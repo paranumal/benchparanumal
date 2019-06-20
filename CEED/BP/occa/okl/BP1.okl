@@ -262,6 +262,7 @@
 
 
 @kernel void BP1_v01(const dlong Nelements,
+		     @restrict const dlong *elementList,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *I,
 		     @restrict const dfloat *q,
@@ -275,6 +276,8 @@
        
     @exclusive dfloat r_U[p_cubNq];
 
+    @exclusive dlong element;
+    
     // array of threads
     for(int j=0;j<p_cubNq;++j;@inner(1)){
       for(int i=0;i<p_cubNq;++i;@inner(0)){
@@ -282,9 +285,11 @@
 	if(i<p_Nq){
 	  s_I[j][i] = I[p_Nq*j+i];
 	}
+
+	element = elementList[e];
 	
 	// load pencil of u into register
-	const dlong base = i + j*p_Nq + e*p_Np;
+	const dlong base = i + j*p_Nq + element*p_Np;
 
 	if(i<p_Nq && j<p_Nq){
 #pragma unroll p_cubNq
@@ -307,10 +312,10 @@
 	for(int k = 0;k < p_cubNq; k++){
 	  
 	  // prefetch geometric factors
-	  const dlong gbase = e*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
 	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
 	  
-	    r_U[k] *= GWJ;
+	  r_U[k] *= GWJ;
 	}
       }
     }
@@ -327,7 +332,7 @@
 	if(i<p_Nq && j<p_Nq){
 #pragma unroll p_cubNq
 	  for(int k = 0; k < p_Nq; k++){
-	    const dlong id = e*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+	    const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
 	    Aq[id] = r_U[k];
 	  }
 	}
