@@ -100,10 +100,11 @@ int main(int argc, char **argv){
   
   MPI_Reduce(&elapsed, &globalElapsed, 1, MPI_DOUBLE, MPI_MAX, 0, mesh->comm);
   MPI_Reduce(&localNelements, &globalNelements, 1, MPI_HLONG, MPI_SUM, 0, mesh->comm);
-  
-  printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n", elapsed, globalElapsed, globalNelements);
-  
-  if (mesh->rank==0)
+
+  if(mesh->rank==0){
+    printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
+	   elapsed, globalElapsed, globalNelements);
+
     printf("%d, %d, %g, %d, %g, %g; \%\%global: N, dofs, elapsed, iterations, time per node, nodes*iterations/time\n",
 	   mesh->N,
 	   globalNelements*mesh->Np,
@@ -111,6 +112,7 @@ int main(int argc, char **argv){
 	   it,
 	   globalElapsed/(mesh->Np*globalNelements),
 	   globalNelements*(it*mesh->Np/globalElapsed));
+  }
   
   if (options.compareArgs("VERBOSE", "TRUE")){
     fflush(stdout);
