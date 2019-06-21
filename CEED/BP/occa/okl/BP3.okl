@@ -44,7 +44,7 @@
     }							\
     							\
     @barrier("local");					\
-    							\
+   							\
     /* raise in b */					\
     for(int k=0;k<p_cubNq;++k;@inner(1)){		\
       for(int a=0;a<p_cubNq;++a;@inner(0)){		\
@@ -233,19 +233,16 @@
           dfloat qr = 0, qs = 0;
 
 	  r_qt = 0;
-#pragma unroll p_cubNq
-          for(int m = 0; m < p_cubNq; m++) {
-            dfloat Dkm = s_D[k][m];
-            r_qt += Dkm*s_Iq[m][j][i];
-          }
 	  
 #pragma unroll p_cubNq
           for(int m = 0; m < p_cubNq; m++) {
             dfloat Dim = s_D[i][m];
             dfloat Djm = s_D[j][m];
-	    
+            dfloat Dkm = s_D[k][m];
+
             qr += Dim*s_Iq[k][j][m];
             qs += Djm*s_Iq[k][m][i];
+	    r_qt += Dkm*s_Iq[m][j][i];	    
           }
 	  
           // prefetch geometric factors
@@ -453,7 +450,7 @@
         }
       }
     }
-    
+      
     // lower pressure degree
     testHex3D(s_I, r_Aq, s_Iq);
     
