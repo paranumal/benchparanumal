@@ -118,7 +118,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
-#if 1
+#if 0
     // Ap
     BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
    
