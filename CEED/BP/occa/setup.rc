@@ -2,7 +2,7 @@
 1.0
 
 [BENCHMARK]
-BP5
+BP3
 
 [MESH DIMENSION]
 3
@@ -14,10 +14,10 @@ TRUE
 40
 
 [BOX NY]
-20
+40
 
 [BOX NZ]
-20
+40
 
 [BOX XMIN]
 -1.
@@ -41,7 +41,7 @@ TRUE
 12
 
 [POLYNOMIAL DEGREE]
-7
+3
 
 # number of cubature nodes = "CUBATURE DEGREE" + 1
 [CUBATURE DEGREE]

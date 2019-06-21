@@ -364,7 +364,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPUpdatePCG", kernelInfo);
-      
+
+      occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
+      nothingKernel();
+     
       MPI_Barrier(mesh->comm);
     }
   }
