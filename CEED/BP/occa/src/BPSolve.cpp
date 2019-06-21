@@ -119,12 +119,13 @@ int BPPCG(BP_t* BP, dfloat lambda,
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
 #if 0
-    // A*p
+    // Ap
     BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
-
+   
     // dot(p,A*p)
     pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
 #else
+    // Ap and p.Ap
     pAp = BPOperatorDot(BP, lambda, o_p, o_Ap, dfloatString); 
 #endif
     
