@@ -433,3 +433,151 @@
   }
   
 }
+
+
+#define cubeThreads				\
+  for(int k=0;k<p_Nq;++k;@inner(2))		\
+    for(int j=0;j<p_Nq;++j;@inner(1))		\
+      for(int i=0;i<p_Nq;++i;@inner(0))		
+
+
+@kernel void BP5Dot(const int Nelements,
+		    @restrict const dlong *elementList,
+		    @restrict const dfloat *ggeo,
+		    @restrict const dfloat *D,
+		    const dfloat lambda,
+		    @restrict const dfloat *p,
+		    @restrict dfloat * Ap,
+		    @restrict dfloat * pAp){
+  
+  for(int e=0;e<Nelements;++e;@outer(0)){
+  
+    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared volatile dfloat s_p[p_Nq][p_Nq][p_Nq];
+    @shared volatile dfloat s_pAp[32]; 
+    @exclusive dfloat r_p, r_Ap, r_Gpr, r_Gps, r_Gpt;
+
+    @exclusive dlong element;
+    
+    cubeThreads{
+      
+      if(k==0)
+	s_D[j][i] = D[j*p_Nq+i];
+      
+      element = elementList[e];
+      
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      
+      const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+      dfloat GWJ = ggeo[gbase+p_GWJID*p_Np];	  
+      
+      r_p = p[id];
+      s_p[k][j][i] = r_p;
+	
+      r_Ap = GWJ*lambda*r_p;
+    }
+
+    cubeThreads{
+      // prefetch geometric factors
+      const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+
+      dfloat G00 = ggeo[gbase+p_G00ID*p_Np];
+      dfloat G01 = ggeo[gbase+p_G01ID*p_Np];
+      dfloat G02 = ggeo[gbase+p_G02ID*p_Np];
+      dfloat G11 = ggeo[gbase+p_G11ID*p_Np];
+      dfloat G12 = ggeo[gbase+p_G12ID*p_Np];
+      dfloat G22 = ggeo[gbase+p_G22ID*p_Np];
+	  
+      dfloat pr = 0.f;
+      dfloat ps = 0.f;
+      dfloat pt = 0.f;
+	  
+#pragma unroll
+      for(int m = 0; m < p_Nq; m++) {
+	pr += s_D[i][m]*s_p[k][j][m];
+	ps += s_D[j][m]*s_p[k][m][i];
+	pt += s_D[k][m]*s_p[m][j][i];
+      }
+	  
+      r_Gpr = (G00*pr + G01*ps + G02*pt);
+      r_Gps = (G01*pr + G11*ps + G12*pt);
+      r_Gpt = (G02*pr + G12*ps + G22*pt);
+    }
+     
+    
+    cubeThreads{
+      s_p[k][j][i] = r_Gpr;
+    }
+
+    cubeThreads{
+#pragma unroll
+      for(int m = 0; m < p_Nq; m++){
+	r_Ap += s_D[m][i]*s_p[k][j][m];
+      }
+    }
+
+    cubeThreads{
+      s_p[k][j][i] = r_Gps;
+    }
+
+
+    cubeThreads{
+      
+#pragma unroll
+      for(int m = 0; m < p_Nq; m++){
+	r_Ap += s_D[m][j]*s_p[k][m][i];
+      }
+    }
+
+    cubeThreads{
+      s_p[k][j][i] = r_Gpt;
+    }
+
+    cubeThreads{
+#pragma unroll
+      for(int m = 0; m < p_Nq; m++){
+	r_Ap += s_D[m][k]*s_p[m][j][i];
+      }
+      
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      Ap[id] = r_Ap;
+    }
+
+    cubeThreads{
+      s_p[k][j][i] = r_p*r_Ap;
+    }
+
+    // do partial reduction on p.Ap [ two phase vSIMD32 sync ]
+    cubeThreads{
+      int t = k*p_Nq*p_Nq + j*p_Nq + i;
+      int n = t%32;
+      int w = t/32;
+      // totally hard wired for SIMD32
+      if(n<16 && t+16<p_Np) s_p[0][0][t] += s_p[0][0][t+16];
+      if(n< 8 && t+8<p_Np)  s_p[0][0][t] += s_p[0][0][t+8];
+      if(n< 4 && t+4<p_Np)  s_p[0][0][t] += s_p[0][0][t+4];
+      if(n< 2 && t+2<p_Np)  s_p[0][0][t] += s_p[0][0][t+2];
+      if(n< 1 && t+1<p_Np)  s_p[0][0][t] += s_p[0][0][t+1];
+      if(n==0) s_pAp[w] = s_p[0][0][t];
+    }
+
+    cubeThreads{
+      int t = k*p_Nq*p_Nq + j*p_Nq + i;
+      int n = t%32;
+      int w = t/32;
+      if(w==0 && n*32<p_Np){ // is this the base warp, and was there an entry from above
+	if( n<16 && ((n+16)*32)<p_Np) s_pAp[n] += s_pAp[n+16];
+	if( n< 8 && ((n+ 8)*32)<p_Np) s_pAp[n] += s_pAp[n+ 8];
+	if( n< 4 && ((n+ 4)*32)<p_Np) s_pAp[n] += s_pAp[n+ 4];
+	if( n< 2 && ((n+ 2)*32)<p_Np) s_pAp[n] += s_pAp[n+ 2];
+	if( n< 1 && ((n+ 1)*32)<p_Np) s_pAp[n] += s_pAp[n+ 1];
+
+	if(n==0){
+	  dfloat res = s_pAp[0];
+	  atomicAdd(pAp, res);
+	}
+      }
+    }
+  }
+  
+}

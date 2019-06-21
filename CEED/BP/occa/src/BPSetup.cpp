@@ -153,8 +153,6 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BP->Ap  = (dfloat*) calloc(Nall,   sizeof(dfloat));
   BP->tmp = (dfloat*) calloc(Nblock, sizeof(dfloat));
 
-  BP->grad = (dfloat*) calloc(Nall*4, sizeof(dfloat));
-
   BP->o_p   = mesh->device.malloc(Nall*sizeof(dfloat), BP->p);
   BP->o_rtmp= mesh->device.malloc(Nall*sizeof(dfloat), BP->p);
   BP->o_z   = mesh->device.malloc(Nall*sizeof(dfloat), BP->z);
@@ -169,6 +167,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BP->tmpNormr = (dfloat*) calloc(BP->NblocksUpdatePCG,sizeof(dfloat));
   BP->o_tmpNormr = mesh->device.malloc(BP->NblocksUpdatePCG*sizeof(dfloat), BP->tmpNormr);
 
+  BP->tmpAtomic = (dfloat*) calloc(BP->Nfields,sizeof(dfloat));
+  BP->o_tmpAtomic = mesh->device.malloc(BP->Nfields*sizeof(dfloat), BP->tmpAtomic);
+  BP->o_zeroAtomic = mesh->device.malloc(BP->Nfields*sizeof(dfloat), BP->tmpAtomic);
   
   //setup async halo stream
   BP->defaultStream = mesh->defaultStream;
@@ -318,6 +319,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
                                          kernelInfo);
 
       // add custom defines
+
+      kernelInfo["defines/" "p_Nfields"]= BP->Nfields;
+      
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);
       kernelInfo["defines/" "p_Nverts"]= mesh->Nverts;
 
@@ -352,6 +356,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       BP->BP1Kernel = mesh->device.buildKernel(DBP "/okl/BP1.okl", "BP1", kernelInfo);
       BP->BP3Kernel = mesh->device.buildKernel(DBP "/okl/BP3.okl", "BP3", kernelInfo);
       BP->BP5Kernel = mesh->device.buildKernel(DBP "/okl/BP5.okl", "BP5", kernelInfo);
+
+      BP->BP1DotKernel = mesh->device.buildKernel(DBP "/okl/BP1.okl", "BP1Dot", kernelInfo);
+      BP->BP3DotKernel = mesh->device.buildKernel(DBP "/okl/BP3.okl", "BP3Dot", kernelInfo);
+      BP->BP5DotKernel = mesh->device.buildKernel(DBP "/okl/BP5.okl", "BP5Dot", kernelInfo);
       
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =

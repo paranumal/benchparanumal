@@ -101,11 +101,16 @@
 #endif
     
     for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)){
+      dfloat res = 0;
+      if(t==0){
 #if (p_NwarpsUpdatePCG>=2)
-      if(t<1) redr[b] = s_warpSum[0] + s_warpSum[1];
+	res = s_warpSum[0] + s_warpSum[1];
 #else
-      if(t<1) redr[b] = s_warpSum[0];
+	res = s_warpSum[0];
 #endif
+	
+	atomicAdd(redr, res);
+      }
     }
   }
 }

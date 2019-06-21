@@ -34,10 +34,8 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
   int Niter = 0;
   int maxIter = 1000; 
 
-#if USE_NULL_PROJECTION==1
   if(BP->allNeumann) // zero mean of RHS
     BPZeroMean(BP, o_r);
-#endif
   
   options.getArgs("MAXIMUM ITERATIONS", maxIter);
 
@@ -45,10 +43,8 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
   
   Niter = BPPCG(BP, lambda, o_r, o_x, tol, maxIter);
 
-#if USE_NULL_PROJECTION==1
   if(BP->allNeumann) // zero mean of RHS
     BPZeroMean(BP, o_x);
-#endif
   
   return Niter;
 
@@ -56,20 +52,16 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
 
 // FROM NEKBONE: not appropriate since it assumes zero initial data
 int BPPCG(BP_t* BP, dfloat lambda, 
-        occa::memory &o_r, occa::memory &o_x, 
-        const dfloat tol, const int MAXIT){
-
+	  occa::memory &o_r, occa::memory &o_x, 
+	  const dfloat tol, const int MAXIT){
+  
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
 
   int fixedIterationCountFlag = 0;
-  int enableGatherScatters = 1;
-  int enableReductions = 1;
   int flexible = options.compareArgs("KRYLOV SOLVER", "FLEXIBLE");
   int verbose = options.compareArgs("VERBOSE", "TRUE");
   
-  options.getArgs("DEBUG ENABLE REDUCTIONS", enableReductions);
-  options.getArgs("DEBUG ENABLE OGS", enableGatherScatters);
   if(options.compareArgs("FIXED ITERATION COUNT", "TRUE"))
     fixedIterationCountFlag = 1;
   
@@ -87,10 +79,6 @@ int BPPCG(BP_t* BP, dfloat lambda,
   occa::memory &o_Ap = BP->o_Ap;
   occa::memory &o_Ax = BP->o_Ax;
 
-#if 0
-  dfloat normB = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
-#endif
- 
   pAp = 0;
   rdotz1 = 1;
 
@@ -102,10 +90,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
   // subtract r = b - A*x
   BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
 
-  if(enableReductions)
-    rdotr0 = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
-  else
-    rdotr0 = 1;
+  rdotr0 = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
 
   dfloat TOL =  mymax(tol*tol*rdotr0,tol*tol);
   
@@ -115,24 +100,14 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // z = Precon^{-1} r
     // need to copy r to z
     o_r.copyTo(o_z);
-    //    BPPreconditioner(BP, lambda, o_r, o_z);
 
     rdotz2 = rdotz1;
 
     // r.z
-    if(enableReductions){
-      rdotz1 = BPWeightedInnerProduct(BP, BP->o_invDegree, o_r, o_z); 
-    }
-    else
-      rdotz1 = 1;
+    rdotz1 = BPWeightedInnerProduct(BP, BP->o_invDegree, o_r, o_z); 
     
     if(flexible){
-      dfloat zdotAp;
-      if(enableReductions){
-	zdotAp = BPWeightedInnerProduct(BP, BP->o_invDegree, o_z, o_Ap);  
-      }
-      else
-	zdotAp = 1;
+      dfloat zdotAp = BPWeightedInnerProduct(BP, BP->o_invDegree, o_z, o_Ap);  
       
       beta = -alpha*zdotAp/rdotz2;
     }
@@ -142,17 +117,17 @@ int BPPCG(BP_t* BP, dfloat lambda,
     
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
-    
+
+#if 0
     // A*p
     BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
 
     // dot(p,A*p)
-    if(enableReductions){
-      pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
-    }
-    else
-      pAp = 1;
-
+    pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
+#else
+    pAp = BPOperatorDot(BP, lambda, o_p, o_Ap, dfloatString); 
+#endif
+    
     alpha = rdotz1/pAp;
 
     //  x <= x + alpha*p
@@ -294,68 +269,47 @@ dfloat BPUpdatePCG(BP_t *BP,
   setupAide &options = BP->options;
   
   int fixedIterationCountFlag = 0;
-  int enableGatherScatters = 1;
-  int enableReductions = 1;
   int flexible = options.compareArgs("KRYLOV SOLVER", "FLEXIBLE");
   int verbose = options.compareArgs("VERBOSE", "TRUE");
   int serial = options.compareArgs("THREAD MODEL", "Serial");
-  int continuous = options.compareArgs("DISCRETIZATION", "CONTINUOUS");
-  int ipdg = options.compareArgs("DISCRETIZATION", "IPDG");
   
   mesh_t *mesh = BP->mesh;
 
-  if(serial==1 && continuous==1){
+  if(serial==1){
     
     dfloat rdotr1 = BPSerialUpdatePCG(mesh->Nq, mesh->Nelements, 
 					    BP->o_invDegree,
 					    o_p, o_Ap, alpha, o_x, o_r);
 
     dfloat globalrdotr1 = 0;
-    if(enableReductions)      
-      MPI_Allreduce(&rdotr1, &globalrdotr1, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
-    else
-      globalrdotr1 = 1;
+    MPI_Allreduce(&rdotr1, &globalrdotr1, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
     
     return globalrdotr1;
   }
   
   dfloat rdotr1 = 0;
   
-  if(!continuous){
-    
-    // x <= x + alpha*p
-    BPScaledAdd(BP,  alpha, o_p,  1.f, o_x);
-    
-    // [
-    // r <= r - alpha*A*p
-    BPScaledAdd(BP, -alpha, o_Ap, 1.f, o_r);
-    
-    // dot(r,r)
-    if(enableReductions)
-      rdotr1 = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
-    else
-      rdotr1 = 1;
-  }else{
-    
-    // x <= x + alpha*p
-    // r <= r - alpha*A*p
-    // dot(r,r)
-    BP->updatePCGKernel(mesh->Nelements*mesh->Np, BP->NblocksUpdatePCG,
-			      BP->o_invDegree, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpNormr);
+  // x <= x + alpha*p
+  // r <= r - alpha*A*p
+  // dot(r,r)
 
-    BP->o_tmpNormr.copyTo(BP->tmpNormr);
-
-    rdotr1 = 0;
-    for(int n=0;n<BP->NblocksUpdatePCG;++n){
-      rdotr1 += BP->tmpNormr[n];
-    }
-    
-    dfloat globalrdotr1 = 0;
-    MPI_Allreduce(&rdotr1, &globalrdotr1, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
-
-    rdotr1 = globalrdotr1;
-    
+  // zero accumulator
+  BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic, BP->Nfields*sizeof(dfloat), 0);
+  
+  BP->updatePCGKernel(mesh->Nelements*mesh->Np, BP->NblocksUpdatePCG,
+		      BP->o_invDegree, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpAtomic);
+  
+  BP->o_tmpAtomic.copyTo(BP->tmpAtomic, BP->Nfields*sizeof(dfloat), 0);
+  
+  rdotr1 = 0;
+  for(int n=0;n<BP->Nfields;++n){
+    rdotr1 += BP->tmpAtomic[n];
   }
+  
+  dfloat globalrdotr1 = 0;
+  MPI_Allreduce(&rdotr1, &globalrdotr1, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
+  
+  rdotr1 = globalrdotr1;
 
   return rdotr1;
 }

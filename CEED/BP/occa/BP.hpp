@@ -115,7 +115,11 @@ typedef struct {
 
   occa::kernel BP1Kernel;
   occa::kernel BP3Kernel;
-  occa::kernel BP5Kernel;
+  occa::kernel BP5Kernel; // Ap
+
+  occa::kernel BP1DotKernel; // Ap and p.Ap
+  occa::kernel BP3DotKernel; // Ap and p.Ap
+  occa::kernel BP5DotKernel; // Ap and p.Ap
 
   occa::kernel innerProductKernel;
   occa::kernel weightedInnerProduct1Kernel;
@@ -135,6 +139,11 @@ typedef struct {
   occa::memory  o_tmpNormr;
   occa::kernel  updatePCGKernel;
 
+  occa::memory o_zeroAtomic;
+  occa::memory o_tmpAtomic;
+
+  dfloat *tmpAtomic;
+  
   occa::memory *o_pcgWork;
 
   hlong NelementsGlobal;
@@ -178,6 +187,8 @@ void BPPlotVTU(BP_t *BP, const char *fileNameBase, int fld);
 occa::properties BPKernelInfo(mesh_t *mesh);
 
 void BPZeroMean(BP_t *BP, occa::memory &o_q);
+
+dfloat BPOperatorDot(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision);
 
 #endif
 
