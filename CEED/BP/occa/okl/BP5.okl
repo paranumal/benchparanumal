@@ -26,7 +26,7 @@
 
 
 // default to element-per-threadblock
-#define BP5_v0 BP5
+#define BP5_v3 BP5
 #define BP5Dot_v2 BP5Dot
 
 @kernel void BP5_v0(const dlong Nelements,
@@ -441,25 +441,27 @@
 
 
   for(int e=0;e<Nelements;++e;@outer(0)){
-    @shared dfloat s_D[p_Nq][p_Nq];
+
+    @shared dfloat s_D[p_Nq*p_Nq];
     @shared dfloat s_p[p_Nq][p_Nq][p_Nq];
 
     @exclusive dlong element;
     @exclusive dfloat r_p, r_Ap, r_Gpr, r_Gps, r_Gpt; // zero the accumulator
 
     cubeThreads{
-      if(k==0)
-	s_D[j][i] = D[j*p_Nq+i];
+      if(k==0){
+	s_D[j*p_Nq+i] = D[j*p_Nq+i];
+      }
       
-      element = elementList[e];
-      
+//      element = elementList[e];
+      element = e;
+	
       int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
 
       r_p = q[id];
       
       s_p[k][j][i] = r_p;
 
-      r_Ap = 0;
     }
     
     
@@ -468,54 +470,29 @@
       const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
 
       dfloat GWJ = ggeo[gbase+p_GWJID*p_Np];
-
+      
       dfloat G00 = ggeo[gbase+p_G00ID*p_Np];
       dfloat G01 = ggeo[gbase+p_G01ID*p_Np];
       dfloat G02 = ggeo[gbase+p_G02ID*p_Np];
+      dfloat G11 = ggeo[gbase+p_G11ID*p_Np];
+      dfloat G12 = ggeo[gbase+p_G12ID*p_Np];
+      dfloat G22 = ggeo[gbase+p_G22ID*p_Np];
 
       r_Ap = GWJ*lambda*r_p;
 
-      {
-	dfloat pr = 0.f;
-	
-#pragma unroll
-	for(int m = 0; m < p_Nq; m++) 
-	  pr += s_D[i][m]*s_p[k][j][m];
-	
-	r_Gpr = G00*pr;
-	r_Gps = G01*pr;
-	r_Gpt = G02*pr;
-      }
-
-      dfloat G11 = ggeo[gbase+p_G11ID*p_Np];
-      dfloat G12 = ggeo[gbase+p_G12ID*p_Np];
+      dfloat pr = 0.f, ps = 0.f, pt = 0.f;
       
-      {
-
-	dfloat ps = 0.f;
-#pragma unroll
-	for(int m = 0; m < p_Nq; m++) 
-	  ps += s_D[j][m]*s_p[k][m][i];
-
-	r_Gpr += G01*ps;
-	r_Gps += G11*ps;
-	r_Gpt += G12*ps;
-	
+      //#pragma unroll
+      for(int m = 0; m < p_Nq; m++) {
+	pr += s_D[i*p_Nq+m]*s_p[k][j][m];
+	ps += s_D[j*p_Nq+m]*s_p[k][m][i];
+	pt += s_D[k*p_Nq+m]*s_p[m][j][i];	
       }
 
-      dfloat G22 = ggeo[gbase+p_G22ID*p_Np];
+      r_Gpr = (G00*pr + G01*ps + G02*pt);
+      r_Gps = (G01*pr + G11*ps + G12*pt);
+      r_Gpt = (G02*pr + G12*ps + G22*pt);
 
-      {
-
-	dfloat pt = 0.f;
-#pragma unroll
-	for(int m = 0; m < p_Nq; m++) 
-	  pt += s_D[k][m]*s_p[m][j][i];
-	
-	r_Gpr += G02*pt;
-	r_Gps += G12*pt;
-	r_Gpt += G22*pt;
-      }
     }
     
     cubeThreads{
@@ -523,9 +500,9 @@
     }
     
     cubeThreads{
-#pragma unroll
+      //#pragma unroll
       for(int m = 0; m < p_Nq; m++){
-	r_Ap += s_D[m][i]*s_p[k][j][m];
+	r_Ap += s_D[m*p_Nq+i]*s_p[k][j][m];
       }
     }
 
@@ -534,9 +511,9 @@
     }
 
     cubeThreads{        
-#pragma unroll
+      //#pragma unroll
       for(int m = 0; m < p_Nq; m++){
-	r_Ap += s_D[m][j]*s_p[k][m][i];
+	r_Ap += s_D[m*p_Nq+j]*s_p[k][m][i];
       }
     }
     
@@ -545,14 +522,14 @@
     }
 
     cubeThreads{    
-#pragma unroll
+      //#pragma unroll
       for(int m = 0; m < p_Nq; m++){
-	r_Ap += s_D[m][k]*s_p[m][j][i];
+	r_Ap += s_D[m*p_Nq+k]*s_p[m][j][i];
       }
 
       const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
       Aq[id] = r_Ap;
-   
+      
     }
   }
 }
@@ -693,6 +670,7 @@
 	if(n==0){
 	  dfloat res = s_pAp[0];
 	  atomicAdd(pAp, res);
+	  //	  atomic_add(pAp, res);
 	}
       }
     }
@@ -840,14 +818,23 @@
     }
 
     // trying fancy stuff here fails epically (maybe related to volatile or too much shmem)
-    for(int alive = p_Np;alive>0; alive >> 1){
-      
+    for(int alive = p_Np;alive>0; alive /= 2){
+
       cubeThreads{
 	dfloat *s_pt = s_p[0][0] + r_t;
 	if(alive && r_t<alive && r_t + alive<p_Np)
 	  *s_pt += s_pt[alive];
       }
     }
+
+    cubeThreads{
+      if(i==0 && j==0 && k==0){
+	dfloat res = s_p[0][0][0];
+	//	atomic_add(qAq, res);
+	atomicAdd(qAq, res);
+      }
+    }
+
   }
   
 }

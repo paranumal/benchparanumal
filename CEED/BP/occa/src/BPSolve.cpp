@@ -26,6 +26,17 @@ SOFTWARE.
 
 #include "BP.hpp"
 
+#include <sys/time.h>
+double getTod(){
+  struct timeval time;
+  if(gettimeofday( &time, 0 )) return -1;
+
+  long cur_time = 1000000 * time.tv_sec + time.tv_usec;
+  double sec = cur_time / 1000000.0;
+  return sec;
+}
+
+
 int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x){
   
   mesh_t *mesh = BP->mesh;
@@ -121,12 +132,21 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
+    mesh->device.finish(); 
+    
+    double startTod = getTod();
+    
     occa::streamTag tag1 = mesh->device.tagStream();
 #if 1
     // Ap
     BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
 
     occa::streamTag tag2 = mesh->device.tagStream();
+    
+    mesh->device.finish(); 
+    
+    double elapsedTod = (getTod()-startTod);
+
     
     // dot(p,A*p)
     pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
@@ -141,6 +161,8 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
     elapsedAx  += mesh->device.timeBetween(tag1, tag2);
     elapsedDot += mesh->device.timeBetween(tag2, tag3);
+
+    printf("Single elapsed: %e, Tod: %e \n", elapsedAx, elapsedTod);
     
     alpha = rdotz1/pAp;
 
