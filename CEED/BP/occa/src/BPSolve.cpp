@@ -93,6 +93,9 @@ int BPPCG(BP_t* BP, dfloat lambda,
   rdotr0 = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
 
   dfloat TOL =  mymax(tol*tol*rdotr0,tol*tol);
+
+  double elapsedAx = 0;
+  double elapsedDot = 0;
   
   int iter;
   for(iter=1;iter<=MAXIT;++iter){
@@ -118,16 +121,26 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
-#if 0
+    occa::streamTag tag1 = mesh->device.tagStream();
+#if 1
     // Ap
     BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
-   
+
+    occa::streamTag tag2 = mesh->device.tagStream();
+    
     // dot(p,A*p)
     pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
 #else
     // Ap and p.Ap
     pAp = BPOperatorDot(BP, lambda, o_p, o_Ap, dfloatString); 
 #endif
+
+    occa::streamTag tag3 = mesh->device.tagStream();
+
+    mesh->device.finish();
+
+    elapsedAx  += mesh->device.timeBetween(tag1, tag2);
+    elapsedDot += mesh->device.timeBetween(tag2, tag3);
     
     alpha = rdotz1/pAp;
 
@@ -149,6 +162,8 @@ int BPPCG(BP_t* BP, dfloat lambda,
     
   }
 
+  printf("Elapsed: Ax = %e, Dot = %e\n", elapsedAx, elapsedDot);
+  
   return iter;
 }
 

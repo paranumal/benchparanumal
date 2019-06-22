@@ -26,8 +26,8 @@
 
 
 // default to element-per-threadblock
-#define BP5_v3 BP5
-#define BP5Dot_v3 BP5Dot
+#define BP5_v0 BP5
+#define BP5Dot_v2 BP5Dot
 
 @kernel void BP5_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,

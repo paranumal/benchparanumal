@@ -11,13 +11,13 @@ BP3
 TRUE
 
 [BOX NX]
-40
+20
 
 [BOX NY]
-40
+20
 
 [BOX NZ]
-40
+20
 
 [BOX XMIN]
 -1.
@@ -41,7 +41,7 @@ TRUE
 12
 
 [POLYNOMIAL DEGREE]
-3
+7
 
 # number of cubature nodes = "CUBATURE DEGREE" + 1
 [CUBATURE DEGREE]
