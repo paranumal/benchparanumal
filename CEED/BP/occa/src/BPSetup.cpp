@@ -32,7 +32,9 @@ void reportMemoryUsage(occa::device &device, const char *mess);
 
 BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAide options){
 
-  BP_t *BP = (BP_t*) calloc(1, sizeof(BP_t));
+  BP_t *BP = new BP_t();
+
+  // (BP_t*) calloc(1, sizeof(BP_t));
 
   options.getArgs("MESH DIMENSION", BP->dim);
   options.getArgs("ELEMENT TYPE", BP->elementType);

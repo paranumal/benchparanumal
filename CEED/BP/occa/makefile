@@ -9,8 +9,10 @@ include ${OCCA_DIR}/scripts/Makefile
 
 # define variables
 HDRDIR = ../../core
-GSDIR  = /home/tcew/Work/git/libparanumal.experimental/3rdParty/gslib/
-OGSDIR = /home/tcew/Work/git/libparanumal.experimental/libs/gatherScatter/
+#GSDIR  = /home/tcew/Work/git/libparanumal.experimental/3rdParty/gslib/
+#OGSDIR = /home/tcew/Work/git/libparanumal.experimental/libs/gatherScatter/
+GSDIR  = /home/tcew/Work/git/devparanumal/3rdParty/gslib/
+OGSDIR = /home/tcew/Work/git/devparanumal/libs/gatherScatter/
 #ALMONDDIR = ../../libs/parAlmond
 
 # set options for this machine
