@@ -27,7 +27,7 @@
 
 // default to element-per-threadblock
 #define BP5_v3 BP5
-#define BP5Dot_v2 BP5Dot
+#define BP5Dot_v3 BP5Dot
 
 @kernel void BP5_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
@@ -333,65 +333,54 @@
 	  
       if(k==0)
 	s_D[j][i] = D[j*p_Nq+i];
-
-      if(e<Nelements){
-	element = elementList[e];
-	    
-	int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
-	    
-	const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
-	dfloat GWJ = ggeo[gbase+p_GWJID*p_Np];	  
-	    
-	dfloat r_p = q[id];
-	s_p[k][j][i] = r_p;
-	    
-	r_Ap = GWJ*lambda*r_p;
-      }
+      
+      element = elementList[e];
+      
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      
+      const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+      
+      dfloat r_p = q[id];
+      s_p[k][j][i] = r_p;
+      
     }
 
     
     cubeThreads{
 	  
-      dfloat G00 = 0, G01 =0, G02 =0, G11 =0, G12 =0, G22 =0, GWJ =0;
-	  
       // prefetch geometric factors
       const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
 
-      if(e<Nelements){
-	G00 = ggeo[gbase+p_G00ID*p_Np];
-	G01 = ggeo[gbase+p_G01ID*p_Np];
-	G02 = ggeo[gbase+p_G02ID*p_Np];
-	G11 = ggeo[gbase+p_G11ID*p_Np];
-	G12 = ggeo[gbase+p_G12ID*p_Np];
-	G22 = ggeo[gbase+p_G22ID*p_Np];
-	    
-	dfloat pr = 0.f;
-	dfloat ps = 0.f;
-	dfloat pt = 0.f;
-	    
-#pragma unroll
-	for(int m = 0; m < p_Nq; m++) 
-	  pr += s_D[i][m]*s_p[k][j][m];
+      dfloat GWJ = ggeo[gbase+p_GWJID*p_Np];	  
+      dfloat G00 = ggeo[gbase+p_G00ID*p_Np];
+      dfloat G01 = ggeo[gbase+p_G01ID*p_Np];
+      dfloat G02 = ggeo[gbase+p_G02ID*p_Np];
+      dfloat G11 = ggeo[gbase+p_G11ID*p_Np];
+      dfloat G12 = ggeo[gbase+p_G12ID*p_Np];
+      dfloat G22 = ggeo[gbase+p_G22ID*p_Np];
+      
+      dfloat pr = 0.f;
+      dfloat ps = 0.f;
+      dfloat pt = 0.f;
 
+      r_Ap = GWJ*lambda*s_p[k][j][i];
+      
 #pragma unroll
-	for(int m = 0; m < p_Nq; m++) 
-	  ps += s_D[j][m]*s_p[k][m][i];
-
-#pragma unroll
-	for(int m = 0; m < p_Nq; m++) 
-	  pt += s_D[k][m]*s_p[m][j][i];
-	    
-	r_Gpr = (G00*pr + G01*ps + G02*pt);
-	r_Gps = (G01*pr + G11*ps + G12*pt);
-	r_Gpt = (G02*pr + G12*ps + G22*pt);
+      for(int m = 0; m < p_Nq; m++) {
+	pr += s_D[i][m]*s_p[k][j][m];
+	ps += s_D[j][m]*s_p[k][m][i];
+	pt += s_D[k][m]*s_p[m][j][i];
       }
+      
+      r_Gpr = (G00*pr + G01*ps + G02*pt);
+      r_Gps = (G01*pr + G11*ps + G12*pt);
+      r_Gpt = (G02*pr + G12*ps + G22*pt);
     }
-
-
+    
     cubeThreads{
       s_p[k][j][i] = r_Gpr;
     }
-
+    
     cubeThreads{
 #pragma unroll
       for(int m = 0; m < p_Nq; m++){
@@ -405,7 +394,6 @@
 
 
     cubeThreads{
-	  
 #pragma unroll
       for(int m = 0; m < p_Nq; m++){
 	r_Ap += s_D[m][j]*s_p[k][m][i];
@@ -422,10 +410,8 @@
 	r_Ap += s_D[m][k]*s_p[m][j][i];
       }
 
-      if(e<Nelements){
-	int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
-	Aq[id] = r_Ap;
-      }
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      Aq[id] = r_Ap;
     }
   }
   
@@ -453,8 +439,8 @@
 	s_D[j*p_Nq+i] = D[j*p_Nq+i];
       }
       
-//      element = elementList[e];
-      element = e;
+      element = elementList[e];
+      //      element = e;
 	
       int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
 
@@ -482,7 +468,7 @@
 
       dfloat pr = 0.f, ps = 0.f, pt = 0.f;
       
-      //#pragma unroll
+#pragma unroll
       for(int m = 0; m < p_Nq; m++) {
 	pr += s_D[i*p_Nq+m]*s_p[k][j][m];
 	ps += s_D[j*p_Nq+m]*s_p[k][m][i];
@@ -500,7 +486,7 @@
     }
     
     cubeThreads{
-      //#pragma unroll
+#pragma unroll
       for(int m = 0; m < p_Nq; m++){
 	r_Ap += s_D[m*p_Nq+i]*s_p[k][j][m];
       }
@@ -511,7 +497,7 @@
     }
 
     cubeThreads{        
-      //#pragma unroll
+#pragma unroll
       for(int m = 0; m < p_Nq; m++){
 	r_Ap += s_D[m*p_Nq+j]*s_p[k][m][i];
       }
@@ -522,7 +508,7 @@
     }
 
     cubeThreads{    
-      //#pragma unroll
+#pragma unroll
       for(int m = 0; m < p_Nq; m++){
 	r_Ap += s_D[m*p_Nq+k]*s_p[m][j][i];
       }
@@ -533,6 +519,347 @@
     }
   }
 }
+
+// exploit matrix structure directly
+@kernel void BP5_v4(const int Nelements,
+		    @restrict const dlong *elementList,
+		    @restrict const dfloat *op,
+		    @restrict const dfloat *D,
+		    const dfloat lambda,
+		    @restrict const dfloat *q,
+		    @restrict dfloat * Aq){
+
+#define p_halfNq ((p_Nq+1)/2)
+  
+  for(int e=0;e<Nelements;++e;@outer(0)){
+  
+    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared dfloat s_p[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_pr[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_ps[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_pt[p_Nq][p_Nq][p_Nq];
+
+    @exclusive dlong element;
+    
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+	element = elementList[e];
+      
+	s_D[j][i] = D[j*p_Nq+i];
+	
+	for(int k=0;k<p_Nq;++k){
+	  int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	  
+	  s_p[k][j][i] = q[id];
+	}
+      }
+    }
+    
+    for(int b=0;b<p_Nq;++b;@inner(1)){
+      for(int a=0;a<p_Nq;++a;@inner(0)){
+
+	// run	permuations of a,b,c
+#pragma unroll
+	for(int c=0;c<p_halfNq;++c){
+
+	  dfloat pr0 = 0.f, ps0 = 0.f, pt0 = 0.f;
+	  dfloat pr1 = 0.f, ps1 = 0.f, pt1 = 0.f;
+
+	  for(int m = 0; m < p_Nq; ++m) {
+	    const int n = p_Nq-1-m;
+	    const dfloat Dcm = s_D[c][m] ;
+
+	    pr0 += Dcm*s_p[b][a][m];
+	    pr1 += Dcm*s_p[b][a][n];
+
+	    ps0 += Dcm*s_p[b][m][a];
+	    ps1 += Dcm*s_p[b][n][a];
+	    
+	    pt0 += Dcm*s_p[m][b][a];
+	    pt1 += Dcm*s_p[n][b][a];
+	  }
+	  
+	  s_pr[b][a][p_Nq-1-c] = -pr1;
+	  s_pr[b][a][c]        = pr0;
+		  
+	  s_ps[b][p_Nq-1-c][a] = -ps1;
+	  s_ps[b][c][a]        = ps0;
+		  
+	  s_pt[p_Nq-1-c][b][a] = -pt1;
+	  s_pt[c][b][a]        = pt0;
+
+	}
+      }
+    }
+
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+	for(int k=0;k<p_Nq;++k){
+
+	  // prefetch geometric factors
+	  const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+	  dfloat GWJ = op[gbase+p_GWJID*p_Np];	  	  
+	  dfloat G00 = op[gbase+p_G00ID*p_Np];
+	  dfloat G01 = op[gbase+p_G01ID*p_Np];
+	  dfloat G02 = op[gbase+p_G02ID*p_Np];
+	  dfloat G11 = op[gbase+p_G11ID*p_Np];
+	  dfloat G12 = op[gbase+p_G12ID*p_Np];
+	  dfloat G22 = op[gbase+p_G22ID*p_Np];
+	  
+	  dfloat pr = s_pr[k][j][i];
+	  dfloat ps = s_ps[k][j][i];
+	  dfloat pt = s_pt[k][j][i];
+	  
+	  s_pr[k][j][i] = G00*pr + G01*ps + G02*pt;
+	  s_ps[k][j][i] = G01*pr + G11*ps + G12*pt;
+	  s_pt[k][j][i] = G02*pr + G12*ps + G22*pt;
+
+	  s_p[k][j][i] *= lambda*GWJ;
+	}
+      }
+    }
+
+    // run permuations of a,b,c
+    for(int c=0;c<p_halfNq;++c){
+
+      for(int b=0;b<p_Nq;++b;@inner(1)){
+	for(int a=0;a<p_Nq;++a;@inner(0)){
+	  
+	  dfloat pr0 = 0.f;
+	  dfloat pr1 = 0.f;
+	  for(int m = 0; m < p_Nq; ++m) {
+	    int n = p_Nq-1-m;
+	    dfloat Dcm = s_D[m][c] ;
+	    pr0 += Dcm*s_pr[b][a][m];
+	    pr1 += Dcm*s_pr[b][a][n];
+	  }
+	  s_p[b][a][c] += pr0;
+	  if(c!=p_Nq-1-c)
+	    s_p[b][a][p_Nq-1-c] -= pr1;
+	}
+      }
+      
+      for(int b=0;b<p_Nq;++b;@inner(1)){
+	for(int a=0;a<p_Nq;++a;@inner(0)){
+	  
+	  dfloat ps0 = 0.f;
+	  dfloat ps1 = 0.f;
+	  for(int m = 0; m < p_Nq; ++m) {
+	    int n = p_Nq-1-m;
+	    dfloat Dcm = s_D[m][c] ;
+	    ps0 += Dcm*s_ps[b][m][a];
+	    ps1 += Dcm*s_ps[b][n][a];
+	  }
+	  s_p[b][c][a] += ps0;
+	  if(c!=p_Nq-1-c)
+	    s_p[b][p_Nq-1-c][a] -= ps1;
+	}
+      }
+
+      for(int b=0;b<p_Nq;++b;@inner(1)){
+	for(int a=0;a<p_Nq;++a;@inner(0)){
+	  
+	  dfloat pt0 = 0.f;
+	  dfloat pt1 = 0.f;
+	  for(int m = 0; m < p_Nq; ++m) {
+	    int n = p_Nq-1-m;
+	    dfloat Dcm = s_D[m][c] ;
+	    pt0 += Dcm*s_pt[m][b][a];
+	    pt1 += Dcm*s_pt[n][b][a];
+	  }
+	  s_p[c][b][a] += pt0;
+	  if(c!=p_Nq-1-c)
+	    s_p[p_Nq-1-c][b][a] -= pt1;
+	}
+      }
+    }
+    
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+	for(int k=0;k<p_Nq;++k){
+	  int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	  Aq[id] = s_p[k][j][i];
+	}
+      }
+    }
+  }
+  
+}
+
+
+// exploit matrix structure directly
+@kernel void BP5_v5(const int Nelements,
+		    @restrict const dlong *elementList,
+		    @restrict const dfloat *op,
+		    @restrict const dfloat *D,
+		    const dfloat lambda,
+		    @restrict const dfloat *q,
+		    @restrict dfloat * Aq){
+
+#define p_halfNq ((p_Nq+1)/2)
+  
+  for(int e=0;e<Nelements;++e;@outer(0)){
+  
+    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared dfloat s_p[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_pr[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_ps[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_pt[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_Ap[p_Nq][p_Nq][p_Nq];
+
+    @exclusive dlong element;
+    
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+	element = elementList[e];
+      
+	s_D[j][i] = D[j*p_Nq+i];
+	
+	for(int k=0;k<p_Nq;++k){
+	  int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	  
+	  s_p[k][j][i] = q[id];
+	}
+      }
+    }
+
+    for(int b=0;b<p_Nq;++b;@inner(1)){
+      for(int a=0;a<p_Nq;++a;@inner(0)){
+
+	// run	permuations of a,b,c
+#pragma unroll
+	for(int c=0;c<p_halfNq;++c){
+
+	  dfloat pr0 = 0.f, ps0 = 0.f, pt0 = 0.f;
+	  dfloat pr1 = 0.f, ps1 = 0.f, pt1 = 0.f;
+	  
+#pragma unroll
+	  for(int m = 0; m < p_Nq; ++m) {
+	    const int n = p_Nq-1-m;
+	    const dfloat Dcm = s_D[c][m] ;
+
+	    pr0 += Dcm*s_p[b][a][m];
+	    pr1 += Dcm*s_p[b][a][n];
+
+	    ps0 += Dcm*s_p[b][m][a];
+	    ps1 += Dcm*s_p[b][n][a];
+	    
+	    pt0 += Dcm*s_p[m][b][a];
+	    pt1 += Dcm*s_p[n][b][a];
+	  }
+	  
+	  s_pr[b][a][p_Nq-1-c] = -pr1;
+	  s_pr[b][a][c]        = pr0;
+		  
+	  s_ps[b][p_Nq-1-c][a] = -ps1;
+	  s_ps[b][c][a]        = ps0;
+		  
+	  s_pt[p_Nq-1-c][b][a] = -pt1;
+	  s_pt[c][b][a]        = pt0;
+
+	}
+      }
+    }
+
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+	#pragma unroll
+	for(int k=0;k<p_Nq;++k){
+
+	  // prefetch geometric factors
+	  const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+	  dfloat GWJ = op[gbase+p_GWJID*p_Np];	  	  
+	  dfloat G00 = op[gbase+p_G00ID*p_Np];
+	  dfloat G01 = op[gbase+p_G01ID*p_Np];
+	  dfloat G02 = op[gbase+p_G02ID*p_Np];
+	  dfloat G11 = op[gbase+p_G11ID*p_Np];
+	  dfloat G12 = op[gbase+p_G12ID*p_Np];
+	  dfloat G22 = op[gbase+p_G22ID*p_Np];
+	  
+	  dfloat pr = s_pr[k][j][i];
+	  dfloat ps = s_ps[k][j][i];
+	  dfloat pt = s_pt[k][j][i];
+	  
+	  s_pr[k][j][i] = G00*pr + G01*ps + G02*pt;
+	  s_ps[k][j][i] = G01*pr + G11*ps + G12*pt;
+	  s_pt[k][j][i] = G02*pr + G12*ps + G22*pt;
+
+	  s_Ap[k][j][i] = lambda*GWJ*s_p[k][j][i];
+	}
+      }
+    }
+      
+    // run permuations of a,b,c
+    for(int c=0;c<p_halfNq;++c){
+
+      for(int b=0;b<p_Nq;++b;@inner(1)){
+	for(int a=0;a<p_Nq;++a;@inner(0)){
+	  
+	  dfloat pr0 = 0.f;
+	  dfloat pr1 = 0.f;
+	  for(int m = 0; m < p_Nq; ++m) {
+	    int n = p_Nq-1-m;
+	    dfloat Dcm = s_D[m][c] ;
+	    pr0 += Dcm*s_pr[b][a][m];
+	    pr1 += Dcm*s_pr[b][a][n];
+	  }
+	  s_Ap[b][a][c] += pr0;
+	  if(c!=p_Nq-1-c)
+	    s_Ap[b][a][p_Nq-1-c] -= pr1;
+	}
+      }
+      
+      for(int b=0;b<p_Nq;++b;@inner(1)){
+	for(int a=0;a<p_Nq;++a;@inner(0)){
+	  
+	  dfloat ps0 = 0.f;
+	  dfloat ps1 = 0.f;
+	  for(int m = 0; m < p_Nq; ++m) {
+	    int n = p_Nq-1-m;
+	    dfloat Dcm = s_D[m][c] ;
+	    ps0 += Dcm*s_ps[b][m][a];
+	    ps1 += Dcm*s_ps[b][n][a];
+	    
+	  }
+	  s_Ap[b][c][a] += ps0;
+	  if(c!=p_Nq-1-c)
+	    s_Ap[b][p_Nq-1-c][a] -= ps1;
+	}
+      }
+
+      for(int b=0;b<p_Nq;++b;@inner(1)){
+	for(int a=0;a<p_Nq;++a;@inner(0)){
+	  
+	  dfloat pt0 = 0.f;
+	  dfloat pt1 = 0.f;
+	  for(int m = 0; m < p_Nq; ++m) {
+	    int n = p_Nq-1-m;
+	    dfloat Dcm = s_D[m][c] ;
+	    pt0 += Dcm*s_pt[m][b][a];
+	    pt1 += Dcm*s_pt[n][b][a];
+	  }
+	  s_Ap[c][b][a] += pt0;
+	  if(c!=p_Nq-1-c)
+	    s_Ap[p_Nq-1-c][b][a] -= pt1;
+	}
+      }
+    }
+    
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+	for(int k=0;k<p_Nq;++k){
+	  int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	  Aq[id] = s_Ap[k][j][i];
+	}
+      }
+    }
+  }
+  
+}
+
 
 
 
@@ -690,15 +1017,16 @@
 
   for(int e=0;e<Nelements;++e;@outer(0)){
 
-    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared dfloat s_D[p_Nq*p_Nq];
     @shared dfloat s_p[p_Nq][p_Nq][p_Nq];
 
     @exclusive dlong element;
     @exclusive dfloat r_p, r_Ap, r_Gpr, r_Gps, r_Gpt; // zero the accumulator
 
+    
     cubeThreads{
       if(k==0)
-	s_D[j][i] = D[j*p_Nq+i];
+	s_D[j*p_Nq+i] = D[j*p_Nq+i];
       
       element = elementList[e];
       
@@ -713,6 +1041,7 @@
     
     
     cubeThreads{
+
       // prefetch geometric factors
       const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
 
@@ -723,16 +1052,13 @@
       dfloat G02 = ggeo[gbase+p_G02ID*p_Np];
 
       r_Ap = GWJ*lambda*s_p[k][j][i];
-
       
       {
 	dfloat pr = 0.f;
 
-	const dfloat *s_Di = s_D[i];
-
 #pragma unroll
 	for(int m = 0; m < p_Nq; m++) 
-	  pr += s_Di[m]*s_p[k][j][m];
+	  pr += s_D[i*p_Nq+m]*s_p[k][j][m];
 	
 	r_Gpr = G00*pr;
 	r_Gps = G01*pr;
@@ -746,11 +1072,9 @@
 	
 	dfloat ps = 0.f;
 
-	const dfloat *s_Dj = s_D[j];
-	
 #pragma unroll
 	for(int m = 0; m < p_Nq; m++) 
-	  ps += s_Dj[m]*s_p[k][m][i];
+	  ps += s_D[j*p_Nq+m]*s_p[k][m][i];
 	
 	r_Gpr += G01*ps;
 	r_Gps += G11*ps;
@@ -763,9 +1087,10 @@
       {
 	
 	dfloat pt = 0.f;
+	
 #pragma unroll
 	for(int m = 0; m < p_Nq; m++) 
-	  pt += s_D[k][m]*s_p[m][j][i];
+	  pt += s_D[k*p_Nq+m]*s_p[m][j][i];
 	
 	r_Gpr += G02*pt;
 	r_Gps += G12*pt;
@@ -778,20 +1103,21 @@
     }
     
     cubeThreads{
+      
 #pragma unroll
       for(int m = 0; m < p_Nq; m++){
-	r_Ap += s_D[m][i]*s_p[k][j][m];
+	r_Ap += s_D[m*p_Nq+i]*s_p[k][j][m];
       }
     }
 
     cubeThreads{    
       s_p[k][j][i] = r_Gps;
     }
-
+    
     cubeThreads{        
 #pragma unroll
       for(int m = 0; m < p_Nq; m++){
-	r_Ap += s_D[m][j]*s_p[k][m][i];
+	r_Ap += s_D[m*p_Nq+j]*s_p[k][m][i];
       }
     }
     
@@ -803,39 +1129,216 @@
     cubeThreads{    
 #pragma unroll
       for(int m = 0; m < p_Nq; m++){
-	r_Ap += s_D[m][k]*s_p[m][j][i];
+	r_Ap += s_D[m*p_Nq+k]*s_p[m][j][i];
+      }
+      
+      const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+      Aq[id] = r_Ap;
+    }
+
+    cubeThreads{
+      s_p[k][j][i] = r_Ap*r_p;
+    }
+
+#if 0
+#define p_Nwarps ((p_Np+31)/32)
+    
+    @shared volatile dfloat s_warp[p_Nwarps];
+
+    cubeThreads{
+      int r_t = k*p_Nq*p_Nq + j*p_Nq + i;
+      volatile dfloat *s_pt = s_p[0][0] + r_t;
+      int r_n = r_t%32;
+      int r_w = r_t/32;
+      if(r_n<16 && r_t+16<p_Np) *s_pt += s_pt[16];
+      if(r_n< 8 && r_t+ 8<p_Np) *s_pt += s_pt[8];
+      if(r_n< 4 && r_t+ 4<p_Np) *s_pt += s_pt[4];
+      if(r_n< 2 && r_t+ 2<p_Np) *s_pt += s_pt[2];
+      if(r_n< 1 && r_t+ 1<p_Np) *s_pt += s_pt[1];
+      if(r_n==0)
+	s_warp[r_w] = *s_pt;
+    }
+
+    cubeThreads{
+      int r_t = k*p_Nq*p_Nq + j*p_Nq + i;
+      int r_w = r_t/32;
+      if(r_w==0 && r_t<p_Nwarps){
+	volatile dfloat *s_pt = s_warp + r_t;
+
+	if(r_t< 16 && (r_t+ 16)<p_Nwarps) *s_pt += s_pt[16];
+	if(r_t<  8 && (r_t+  8)<p_Nwarps) *s_pt += s_pt[ 8];
+	if(r_t<  4 && (r_t+  4)<p_Nwarps) *s_pt += s_pt[ 4];
+	if(r_t<  2 && (r_t+  2)<p_Nwarps) *s_pt += s_pt[ 2];
+	if(r_t<  1 && (r_t+  1)<p_Nwarps) *s_pt += s_pt[ 1];
+	if(r_t==0){
+	  dfloat res =*s_pt;
+	  atomicAdd(qAq, res);
+	}
+      }
+    }
+#else
+    cubeThreads{
+      if(k==0){
+	dfloat res = 0;
+	for(int c=0;c<p_Nq;++c){
+	  res += s_p[c][j][i];
+	}
+	s_p[0][j][i] = res;
+      }
+    }
+    
+    cubeThreads{
+      if(j==0 && k==0){
+	dfloat res = 0;
+	for(int b=0;b<p_Nq;++b){
+	  res += s_p[0][b][i];
+	}
+	s_p[0][0][i] = res;
+      }
+    }
+    
+    cubeThreads{
+      if(i==0 && j==0 && k==0){
+	dfloat res = 0;
+	for(int a=0;a<p_Nq;++a){
+	  res += s_p[0][0][a];
+	}
+	atomicAdd(qAq, res);
+      }
+    }
+
+#endif
+  }
+  
+}
+
+
+@kernel void BP5Dot_v4(const int Nelements,
+		       @restrict const dlong *elementList,
+		       @restrict const dfloat *ggeo,
+		       @restrict const dfloat *D,
+		       const dfloat lambda,
+		       @restrict const dfloat *q,
+		       @restrict dfloat * Aq,
+		       @restrict dfloat *qAq){
+  
+
+  for(int e=0;e<Nelements;++e;@outer(0)){
+    #define p_Nwarps ((p_Np+31)/32)
+    
+    @shared dfloat s_D[p_Nq*p_Nq];
+
+    @exclusive dlong element;
+    @exclusive dfloat r_p, r_Ap; // zero the accumulator
+    
+    {
+      @shared dfloat s_p[p_Nq][p_Nq][p_Nq];
+      @shared dfloat s_Gpr[p_Nq][p_Nq][p_Nq+1];
+      @shared dfloat s_Gps[p_Nq][p_Nq][p_Nq+1];
+      @shared dfloat s_Gpt[p_Nq][p_Nq][p_Nq+1];
+      
+      cubeThreads{
+	if(k==0){
+	  s_D[j*p_Nq+i] = D[j*p_Nq+i];
+	}
+	
+	//      element = elementList[e];
+	element = e;
+	
+	int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	
+	r_p = q[id];
+	
+	s_p[k][j][i] = r_p;
+	
+      }
+      
+      
+      cubeThreads{
+	// prefetch geometric factors
+	const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+	
+	dfloat GWJ = ggeo[gbase+p_GWJID*p_Np];
+	
+	dfloat G00 = ggeo[gbase+p_G00ID*p_Np];
+	dfloat G01 = ggeo[gbase+p_G01ID*p_Np];
+	dfloat G02 = ggeo[gbase+p_G02ID*p_Np];
+	dfloat G11 = ggeo[gbase+p_G11ID*p_Np];
+	dfloat G12 = ggeo[gbase+p_G12ID*p_Np];
+	dfloat G22 = ggeo[gbase+p_G22ID*p_Np];
+
+	r_Ap = GWJ*lambda*r_p;
+	
+	dfloat pr = 0.f, ps = 0.f, pt = 0.f;
+
+#pragma unroll
+	for(int m = 0; m < p_Nq; m++) {
+	  pr += s_D[i*p_Nq+m]*s_p[k][j][m];
+	  ps += s_D[j*p_Nq+m]*s_p[k][m][i];
+	  pt += s_D[k*p_Nq+m]*s_p[m][j][i];	
+	}
+
+	s_Gpr[k][j][i] = (G00*pr + G01*ps + G02*pt);
+	s_Gps[k][j][i] = (G01*pr + G11*ps + G12*pt);
+	s_Gpt[k][j][i] = (G02*pr + G12*ps + G22*pt);
+	
+      }
+
+      cubeThreads{
+#pragma unroll
+	for(int m = 0; m < p_Nq; m++){
+	  r_Ap += s_D[m*p_Nq+i]*s_Gpr[k][j][m];
+	  r_Ap += s_D[m*p_Nq+j]*s_Gps[k][m][i];
+	  r_Ap += s_D[m*p_Nq+k]*s_Gpt[m][j][i];
+	}
+      }
+    }
+    
+    @shared volatile dfloat s_warp[p_Nwarps];
+    @shared volatile dfloat s_pAp[p_Np];
+    
+    cubeThreads{    
+      int r_t = k*p_Nq*p_Nq + j*p_Nq + i;
+      s_pAp[r_t] = r_Ap*r_p;
+    }
+    
+    
+    cubeThreads{
+      int r_t = k*p_Nq*p_Nq + j*p_Nq + i;
+      volatile dfloat *s_pt = s_pAp + r_t;
+      int r_n = r_t%32;
+      int r_w = r_t/32;
+      if(r_n<16 && r_t+16<p_Np) *s_pt += s_pt[16];
+      if(r_n< 8 && r_t+ 8<p_Np) *s_pt += s_pt[8];
+      if(r_n< 4 && r_t+ 4<p_Np) *s_pt += s_pt[4];
+      if(r_n< 2 && r_t+ 2<p_Np) *s_pt += s_pt[2];
+      if(r_n< 1 && r_t+ 1<p_Np) *s_pt += s_pt[1];
+      if(r_n==0)
+	s_warp[r_w] = *s_pt;
+    }
+    
+    cubeThreads{
+      int r_t = k*p_Nq*p_Nq + j*p_Nq + i;
+      int r_w = r_t/32;
+      if(r_w==0 && r_t<p_Nwarps){
+	volatile dfloat *s_pt = s_warp + r_t;
+	
+	if(r_t< 16 && (r_t+ 16)<p_Nwarps) *s_pt += s_pt[16];
+	if(r_t<  8 && (r_t+  8)<p_Nwarps) *s_pt += s_pt[ 8];
+	if(r_t<  4 && (r_t+  4)<p_Nwarps) *s_pt += s_pt[ 4];
+	if(r_t<  2 && (r_t+  2)<p_Nwarps) *s_pt += s_pt[ 2];
+	if(r_t<  1 && (r_t+  1)<p_Nwarps) *s_pt += s_pt[ 1];
+	if(r_t==0){
+	  dfloat res =*s_pt;
+	  atomicAdd(qAq, res);
+	}
       }
 
       const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
       Aq[id] = r_Ap;
     }
-
-    @exclusive int r_t;
     
-    cubeThreads{
-      r_t = k*p_Nq*p_Nq + j*p_Nq + i;
-      s_p[k][j][i] = r_Ap*r_p;
-    }
-
-    // trying fancy stuff here fails epically (maybe related to volatile or too much shmem)
-    for(int alive = p_Np;alive>0; alive /= 2){
-
-      cubeThreads{
-	dfloat *s_pt = s_p[0][0] + r_t;
-	if(alive && r_t<alive && r_t + alive<p_Np)
-	  *s_pt += s_pt[alive];
-      }
-    }
-
-    cubeThreads{
-      if(i==0 && j==0 && k==0){
-	dfloat res = s_p[0][0][0];
-	//	atomic_add(qAq, res);
-	atomicAdd(qAq, res);
-      }
-    }
-
   }
-  
 }
+
 

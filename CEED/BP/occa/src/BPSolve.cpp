@@ -135,6 +135,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     mesh->device.finish(); 
     
     double startTod = getTod();
+    double elapsedTod =0;
     
     occa::streamTag tag1 = mesh->device.tagStream();
 #if 1
@@ -145,14 +146,19 @@ int BPPCG(BP_t* BP, dfloat lambda,
     
     mesh->device.finish(); 
     
-    double elapsedTod = (getTod()-startTod);
-
+    elapsedTod = (getTod()-startTod);
     
     // dot(p,A*p)
     pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
+
 #else
+
     // Ap and p.Ap
-    pAp = BPOperatorDot(BP, lambda, o_p, o_Ap, dfloatString); 
+    pAp = BPOperatorDot(BP, lambda, o_p, o_Ap, dfloatString);
+
+    elapsedTod = (getTod()-startTod);
+    
+    occa::streamTag tag2 = mesh->device.tagStream();
 #endif
 
     occa::streamTag tag3 = mesh->device.tagStream();
