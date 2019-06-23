@@ -117,9 +117,10 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
     rdotz2 = rdotz1;
 
+
     // r.z
     rdotz1 = BPWeightedInnerProduct(BP, BP->o_invDegree, o_r, o_z); 
-    
+
     if(flexible){
       dfloat zdotAp = BPWeightedInnerProduct(BP, BP->o_invDegree, o_z, o_Ap);  
       
@@ -127,12 +128,12 @@ int BPPCG(BP_t* BP, dfloat lambda,
     }
     else{
       beta = (iter==1) ? 0:rdotz1/rdotz2;
-    }
+    }  
     
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
-    mesh->device.finish(); 
+    //    mesh->device.finish(); 
     
     double startTod = getTod();
     double elapsedTod =0;
@@ -144,7 +145,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
     occa::streamTag tag2 = mesh->device.tagStream();
     
-    mesh->device.finish(); 
+    //    mesh->device.finish(); 
     
     elapsedTod = (getTod()-startTod);
     
@@ -161,6 +162,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     occa::streamTag tag2 = mesh->device.tagStream();
 #endif
 
+#if 0
     occa::streamTag tag3 = mesh->device.tagStream();
 
     mesh->device.finish();
@@ -169,6 +171,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     elapsedDot += mesh->device.timeBetween(tag2, tag3);
 
     printf("Single elapsed: %e, Tod: %e \n", elapsedAx, elapsedTod);
+#endif
     
     alpha = rdotz1/pAp;
 
@@ -177,6 +180,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     //  dot(r,r)
     
     dfloat rdotr = BPUpdatePCG(BP, o_p, o_Ap, alpha, o_x, o_r);
+    // 1 + 2 + 3 + 7 + 3 + 7 = 23
 	
     if (verbose&&(mesh->rank==0)) {
 
