@@ -37,7 +37,7 @@ double getTod(){
 }
 
 
-int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x){
+int BPSolve(BP_t *BP, int mode, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x){
   
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
@@ -52,7 +52,7 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
 
   options.getArgs("SOLVER TOLERANCE", tol);
   
-  Niter = BPPCG(BP, lambda, o_r, o_x, tol, maxIter);
+  Niter = BPPCG(BP, mode, lambda, o_r, o_x, tol, maxIter);
 
   if(BP->allNeumann) // zero mean of RHS
     BPZeroMean(BP, o_x);
@@ -62,7 +62,7 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
 }
 
 // FROM NEKBONE: not appropriate since it assumes zero initial data
-int BPPCG(BP_t* BP, dfloat lambda, 
+int BPPCG(BP_t* BP, int mode, dfloat lambda, 
 	  occa::memory &o_r, occa::memory &o_x, 
 	  const dfloat tol, const int MAXIT){
   
@@ -80,9 +80,8 @@ int BPPCG(BP_t* BP, dfloat lambda,
   dfloat rdotz1 = 0;
   dfloat rdotz2 = 0;
 
-
   // now initialized
-  dfloat alpha = 0, beta = 0, pAp = 0;
+  dfloat alpha = 0, beta = 0;
   
   /*aux variables */
   occa::memory &o_p  = BP->o_p;
@@ -90,13 +89,12 @@ int BPPCG(BP_t* BP, dfloat lambda,
   occa::memory &o_Ap = BP->o_Ap;
   occa::memory &o_Ax = BP->o_Ax;
 
-  pAp = 0;
   rdotz1 = 1;
 
   dfloat rdotr0;
 
   // compute A*x
-  BPOperator(BP, lambda, o_x, BP->o_Ax, dfloatString);
+  dfloat pAp = BPOperator(BP, mode, lambda, o_x, BP->o_Ax, dfloatString);
   
   // subtract r = b - A*x
   BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
@@ -117,7 +115,6 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
     rdotz2 = rdotz1;
 
-
     // r.z
     rdotz1 = BPWeightedInnerProduct(BP, BP->o_invDegree, o_r, o_z); 
 
@@ -133,46 +130,10 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
-    //    mesh->device.finish(); 
-    
-    double startTod = getTod();
-    double elapsedTod =0;
-    
-    occa::streamTag tag1 = mesh->device.tagStream();
-#if 1
-    // Ap
-    BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
-
-    occa::streamTag tag2 = mesh->device.tagStream();
-    
-    //    mesh->device.finish(); 
-    
-    elapsedTod = (getTod()-startTod);
-    
-    // dot(p,A*p)
-    pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_p, o_Ap);
-
-#else
-
     // Ap and p.Ap
-    pAp = BPOperatorDot(BP, lambda, o_p, o_Ap, dfloatString);
+    pAp = BPOperator(BP, mode, lambda, o_p, o_Ap, dfloatString); 
 
-    elapsedTod = (getTod()-startTod);
-    
-    occa::streamTag tag2 = mesh->device.tagStream();
-#endif
-
-#if 0
-    occa::streamTag tag3 = mesh->device.tagStream();
-
-    mesh->device.finish();
-
-    elapsedAx  += mesh->device.timeBetween(tag1, tag2);
-    elapsedDot += mesh->device.timeBetween(tag2, tag3);
-
-    printf("Single elapsed: %e, Tod: %e \n", elapsedAx, elapsedTod);
-#endif
-    
+    // alpha = r.z/p.Ap
     alpha = rdotz1/pAp;
 
     //  x <= x + alpha*p

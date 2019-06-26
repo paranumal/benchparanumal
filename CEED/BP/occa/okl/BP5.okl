@@ -26,9 +26,6 @@
 
 
 // default to element-per-threadblock
-#define BP5_v3 BP5
-#define BP5Dot_v2 BP5Dot
-
 @kernel void BP5_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
 		    @restrict const  dfloat *  ggeo,
@@ -863,7 +860,7 @@
 
 
 
-@kernel void BP5Dot_v2(const int Nelements,
+@kernel void BP5Dot_v0(const int Nelements,
 		       @restrict const dlong *elementList,
 		       @restrict const dfloat *ggeo,
 		       @restrict const dfloat *D,
@@ -1005,7 +1002,7 @@
   
 }
 
-@kernel void BP5Dot_v3(const int Nelements,
+@kernel void BP5Dot_v1(const int Nelements,
 		       @restrict const dlong *elementList,
 		       @restrict const dfloat *ggeo,
 		       @restrict const dfloat *D,
@@ -1213,7 +1210,7 @@
 }
 
 
-@kernel void BP5Dot_v4(const int Nelements,
+@kernel void BP5Dot_v2(const int Nelements,
 		       @restrict const dlong *elementList,
 		       @restrict const dfloat *ggeo,
 		       @restrict const dfloat *D,

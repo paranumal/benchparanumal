@@ -235,13 +235,15 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BP->ogs = ogsSetup(Ntotal, mesh->maskedGlobalIds, mesh->comm, verbose, mesh->device);
   BP->o_invDegree = BP->ogs->o_invDegree;
 
+  #if 0
   if(mesh->device.mode()=="CUDA"){ // add backend compiler optimization for CUDA
     kernelInfo["compiler_flags"] += "-Xptxas -dlcm=ca";
   }
 
   if(mesh->device.mode()=="Serial")
     kernelInfo["compiler_flags"] += "-g";
-
+#endif
+  
   // set kernel name suffix
   char *suffix = strdup("Hex3D");
 
@@ -355,13 +357,53 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_NthreadsUpdatePCG"] = (int) NthreadsUpdatePCG; // WARNING SHOULD BE MULTIPLE OF 32
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
-      BP->BP1Kernel = mesh->device.buildKernel(DBP "/okl/BP1.okl", "BP1", kernelInfo);
-      BP->BP3Kernel = mesh->device.buildKernel(DBP "/okl/BP3.okl", "BP3", kernelInfo);
-      BP->BP5Kernel = mesh->device.buildKernel(DBP "/okl/BP5.okl", "BP5", kernelInfo);
+      BP->BP1Nknl = 2;
+      BP->BP3Nknl = 1;
+      BP->BP5Nknl = 6;
 
-      BP->BP1DotKernel = mesh->device.buildKernel(DBP "/okl/BP1.okl", "BP1Dot", kernelInfo);
-      BP->BP3DotKernel = mesh->device.buildKernel(DBP "/okl/BP3.okl", "BP3Dot", kernelInfo);
-      BP->BP5DotKernel = mesh->device.buildKernel(DBP "/okl/BP5.okl", "BP5Dot", kernelInfo);
+      BP->BP1DotNknl = 1;
+      BP->BP3DotNknl = 1;
+      BP->BP5DotNknl = 3;
+
+      BP->BP1Kernels = new occa::kernel[BP->BP1Nknl];
+      BP->BP3Kernels = new occa::kernel[BP->BP3Nknl];
+      BP->BP5Kernels = new occa::kernel[BP->BP5Nknl];
+
+      BP->BP1DotKernels = new occa::kernel[BP->BP1DotNknl];
+      BP->BP3DotKernels = new occa::kernel[BP->BP3DotNknl];
+      BP->BP5DotKernels = new occa::kernel[BP->BP5DotNknl];
+
+      char kernelName[BUFSIZ];
+
+      for(int k=0;k<BP->BP1Nknl;++k){
+	sprintf(kernelName, "BP1_v%d", k);
+	BP->BP1Kernels[k] = mesh->device.buildKernel(DBP "/okl/BP1.okl", kernelName, kernelInfo);
+      }
+
+      for(int k=0;k<BP->BP3Nknl;++k){
+	sprintf(kernelName, "BP3_v%d", k);
+	BP->BP3Kernels[k] = mesh->device.buildKernel(DBP "/okl/BP3.okl", kernelName, kernelInfo);
+      }
+
+      for(int k=0;k<BP->BP5Nknl;++k){
+	sprintf(kernelName, "BP5_v%d", k);
+	BP->BP5Kernels[k] = mesh->device.buildKernel(DBP "/okl/BP5.okl", kernelName, kernelInfo);
+      }
+
+      for(int k=0;k<BP->BP1DotNknl;++k){
+	sprintf(kernelName, "BP1Dot_v%d", k);
+	BP->BP1DotKernels[k] = mesh->device.buildKernel(DBP "/okl/BP1.okl", kernelName, kernelInfo);
+      }
+
+      for(int k=0;k<BP->BP3DotNknl;++k){
+	sprintf(kernelName, "BP3Dot_v%d", k);
+	BP->BP3DotKernels[k] = mesh->device.buildKernel(DBP "/okl/BP3.okl", kernelName, kernelInfo);
+      }
+
+      for(int k=0;k<BP->BP5DotNknl;++k){
+	sprintf(kernelName, "BP5Dot_v%d", k);
+	BP->BP5DotKernels[k] = mesh->device.buildKernel(DBP "/okl/BP5.okl", kernelName, kernelInfo);
+      }
       
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =

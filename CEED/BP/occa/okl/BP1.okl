@@ -24,8 +24,6 @@
 
 */
 
-#define BP1_v00 BP1
-
 #define interpolateHex3D(s_I, r_q, r_Aq)		\
   {							\
     for(int b=0;b<p_cubNq;++b;@inner(1)){		\
@@ -175,7 +173,7 @@
   }						
 
 
-@kernel void BP1_v00(const dlong Nelements,
+@kernel void BP1_v0(const dlong Nelements,
 		     @restrict const dlong *elementList,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *I,
@@ -251,7 +249,7 @@
 }
 
 
-@kernel void BP1_v01(const dlong Nelements,
+@kernel void BP1_v1(const dlong Nelements,
 		     @restrict const dlong *elementList,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *I,
@@ -334,7 +332,7 @@
 
 
 
-@kernel void BP1Dot(const dlong Nelements,
+@kernel void BP1Dot_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *I,

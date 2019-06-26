@@ -24,8 +24,6 @@
 
 */
 
-#define BP3_v00 BP3
-
 #define interpolateHex3D(s_I, r_p, r_Ip, s_Ip)	\
   {						\
   						\
@@ -155,7 +153,7 @@
   }						
 
 
-@kernel void BP3_v00(const dlong Nelements,
+@kernel void BP3_v0(const dlong Nelements,
 		     @restrict const dlong  *elementList,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *D,
@@ -310,7 +308,7 @@
 
 
 
-@kernel void BP3Dot(const dlong Nelements,
+@kernel void BP3Dot_v0(const dlong Nelements,
 		    @restrict const dlong  *elementList,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *D,

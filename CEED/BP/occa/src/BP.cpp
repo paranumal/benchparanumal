@@ -43,12 +43,16 @@ int main(int argc, char **argv){
 
   // set up mesh stuff
   string fileName;
-  int N, cubN, dim, elementType;
+  int N, cubN, dim, elementType, mode;
 
   options.getArgs("POLYNOMIAL DEGREE", N);
   options.getArgs("CUBATURE DEGREE", cubN);
   options.getArgs("ELEMENT TYPE", elementType);
   options.getArgs("MESH DIMENSION", dim);
+  options.getArgs("MODE", mode);
+
+  int combineDot = 0;
+  combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
   mesh_t *mesh;
 
@@ -85,7 +89,7 @@ int main(int argc, char **argv){
   for(int test=0;test<Ntests;++test){
     o_r.copyTo(BP->o_r);
     o_x.copyTo(BP->o_x);
-    it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x);
+    it += BPSolve(BP, mode, lambda, tol, BP->o_r, BP->o_x);
   }
   
   MPI_Barrier(mesh->comm);
@@ -105,13 +109,16 @@ int main(int argc, char **argv){
     printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
 	   elapsed, globalElapsed, globalNelements);
 
-    printf("%d, %d, %g, %d, %g, %g; \%\%global: N, dofs, elapsed, iterations, time per node, nodes*iterations/time\n",
+    printf("%d, %d, %g, %d, %g, %g, %d, %d; "
+	   "\%\% global: N, dofs, elapsed, iterations, time per node, nodes*iterations/time, mode, combineDot\n",
 	   mesh->N,
 	   globalNelements*mesh->Np,
 	   globalElapsed,
 	   it,
 	   globalElapsed/(mesh->Np*globalNelements),
-	   globalNelements*(it*mesh->Np/globalElapsed));
+	   globalNelements*(it*mesh->Np/globalElapsed),
+	   mode,
+	   combineDot);
   }
   
   if (options.compareArgs("VERBOSE", "TRUE")){
@@ -127,7 +134,7 @@ int main(int argc, char **argv){
   // copy solution from DEVICE to HOST
   BP->o_x.copyTo(BP->q);
 
-  BPPlotVTU(BP, "foo", 0);
+  //  BPPlotVTU(BP, "foo", 0);
   
   dfloat maxError = 0;
   for(dlong e=0;e<mesh->Nelements;++e){
