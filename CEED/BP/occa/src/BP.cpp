@@ -83,21 +83,27 @@ int main(int argc, char **argv){
   
   MPI_Barrier(mesh->comm);
   
-  occa::streamTag startTag = mesh->device.tagStream();
-  int Ntests = 1;
+  int Ntests = 10;
+  occa::streamTag *startTags = new occa::streamTag[Ntests];
+  occa::streamTag *stopTags  = new occa::streamTag[Ntests];
+  
   it = 0;
   for(int test=0;test<Ntests;++test){
     o_r.copyTo(BP->o_r);
     o_x.copyTo(BP->o_x);
+    startTags[test] = mesh->device.tagStream();
+      
     it += BPSolve(BP, mode, lambda, tol, BP->o_r, BP->o_x);
+
+    stopTags[test] = mesh->device.tagStream();
   }
-  
+  mesh->device.finish();  
   MPI_Barrier(mesh->comm);
   
-  occa::streamTag stopTag = mesh->device.tagStream();
-  mesh->device.finish();
-  
-  double elapsed = mesh->device.timeBetween(startTag, stopTag);
+  double elapsed = 0;
+  for(int test=0;test<Ntests;++test){
+    elapsed += mesh->device.timeBetween(startTags[test], stopTags[test]);
+  }
   
   double globalElapsed;
   hlong globalNelements, localNelements=mesh->Nelements;
@@ -106,17 +112,39 @@ int main(int argc, char **argv){
   MPI_Reduce(&localNelements, &globalNelements, 1, MPI_HLONG, MPI_SUM, 0, mesh->comm);
 
   if(mesh->rank==0){
+
+    int NbytesPerElement;
+    int combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+    int BP1 = options.compareArgs("BENCHMARK", "BP1");
+    int BP3 = options.compareArgs("BENCHMARK", "BP3");
+    int BP5 = options.compareArgs("BENCHMARK", "BP5");
+
+    // PCG base 
+    NbytesPerElement = mesh->Np*(2+3+2+3+3+2); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+
+    if(!combineDot) NbytesPerElement += mesh->Np*2;
+    
+    if(BP1) NbytesPerElement += mesh->cubNp;
+    if(BP3) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
+    if(BP5) NbytesPerElement += mesh->Nggeo*mesh->Np;
+
+    NbytesPerElement *= sizeof(dfloat);
+    
+    double bw = mesh->Nelements*(it*NbytesPerElement/(globalElapsed*1.e9));
+
     printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
 	   elapsed, globalElapsed, globalNelements);
 
-    printf("%d, %d, %g, %d, %g, %g, %d, %d; "
-	   "\%\% global: N, dofs, elapsed, iterations, time per node, nodes*iterations/time, mode, combineDot\n",
+    printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d; "
+	   "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, nodes*iterations/time, BW GFLOPS/smode, combineDot\n",
 	   mesh->N,
+	   mesh->Nelements,
 	   globalNelements*mesh->Np,
 	   globalElapsed,
 	   it,
 	   globalElapsed/(mesh->Np*globalNelements),
 	   globalNelements*(it*mesh->Np/globalElapsed),
+	   bw,
 	   mode,
 	   combineDot);
   }

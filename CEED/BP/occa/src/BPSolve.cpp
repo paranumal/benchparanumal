@@ -141,8 +141,8 @@ int BPPCG(BP_t* BP, int mode, dfloat lambda,
     //  dot(r,r)
     
     dfloat rdotr = BPUpdatePCG(BP, o_p, o_Ap, alpha, o_x, o_r);
-    // 1 + 2 + 3 + 7 + 3 + 7 = 23
-	
+    // 2 + 2 + 3 + 7 + 3 + 8 = 25
+    
     if (verbose&&(mesh->rank==0)) {
 
       if(rdotr<0)
