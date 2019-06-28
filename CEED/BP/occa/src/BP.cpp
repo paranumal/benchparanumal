@@ -43,13 +43,13 @@ int main(int argc, char **argv){
 
   // set up mesh stuff
   string fileName;
-  int N, cubN, dim, elementType, mode;
+  int N, cubN, dim, elementType, kernelId;
 
   options.getArgs("POLYNOMIAL DEGREE", N);
   options.getArgs("CUBATURE DEGREE", cubN);
   options.getArgs("ELEMENT TYPE", elementType);
   options.getArgs("MESH DIMENSION", dim);
-  options.getArgs("MODE", mode);
+  options.getArgs("KERNEL ID", kernelId);
 
   int combineDot = 0;
   combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
@@ -73,8 +73,10 @@ int main(int argc, char **argv){
   
   BP_t *BP = BPSetup(mesh, lambda, kernelInfo, options);
 
-  occa::memory o_r = mesh->device.malloc(mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_r);
-  occa::memory o_x = mesh->device.malloc(mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_x);    
+  occa::memory o_r =
+    mesh->device.malloc(BP->Nfields*mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_r);
+  occa::memory o_x =
+    mesh->device.malloc(BP->Nfields*mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_x);    
   
   // convergence tolerance
   dfloat tol = 1e-8;
@@ -93,7 +95,7 @@ int main(int argc, char **argv){
     o_x.copyTo(BP->o_x);
     startTags[test] = mesh->device.tagStream();
       
-    it += BPSolve(BP, mode, lambda, tol, BP->o_r, BP->o_x);
+    it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x);
 
     stopTags[test] = mesh->device.tagStream();
   }
@@ -118,7 +120,9 @@ int main(int argc, char **argv){
     int BP1 = options.compareArgs("BENCHMARK", "BP1");
     int BP3 = options.compareArgs("BENCHMARK", "BP3");
     int BP5 = options.compareArgs("BENCHMARK", "BP5");
-
+    int knlId = 0;
+    options.getArgs("KERNEL ID", knlId);
+    
     // PCG base 
     NbytesPerElement = mesh->Np*(2+3+2+3+3+2); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
 
@@ -136,7 +140,7 @@ int main(int argc, char **argv){
 	   elapsed, globalElapsed, globalNelements);
 
     printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d; "
-	   "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, nodes*iterations/time, BW GFLOPS/smode, combineDot\n",
+	   "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot\n",
 	   mesh->N,
 	   mesh->Nelements,
 	   globalNelements*mesh->Np,
@@ -145,7 +149,7 @@ int main(int argc, char **argv){
 	   globalElapsed/(mesh->Np*globalNelements),
 	   globalNelements*(it*mesh->Np/globalElapsed),
 	   bw,
-	   mode,
+	   knlId,
 	   combineDot);
   }
   

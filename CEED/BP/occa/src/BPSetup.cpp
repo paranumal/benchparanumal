@@ -76,7 +76,8 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 
   BPSolveSetup(BP, lambda, kernelInfo);
 
-  dlong Nall = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
+  dlong Ndof = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
+  dlong Nall = BP->Nfields*Ndof;
   BP->r   = (dfloat*) calloc(Nall,   sizeof(dfloat));
   BP->x   = (dfloat*) calloc(Nall,   sizeof(dfloat));
   BP->q   = (dfloat*) calloc(Nall,   sizeof(dfloat));
@@ -98,29 +99,36 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
       
       dfloat mode = 1;
 
-     // mass projection rhs
-      if(BP1)
-	BP->r[id] =
-	  JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
-								     
-      // stiffness solve rhs
-      if(BP3 || BP5)
-	BP->r[id] =
-	  JW*(3*mode*mode*M_PI*M_PI+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
-      
-      BP->x[id] = 0;
+      for(int fld=0;fld<BP->Nfields;++fld){
+	dlong fldid = id + fld*Ndof;
+	
+	// mass projection rhs
+	if(BP1)
+	  BP->r[fldid] =
+	    JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	
+	// stiffness solve rhs
+	if(BP3 || BP5)
+	  BP->r[fldid] =
+	    JW*(3*mode*mode*M_PI*M_PI+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	
+	BP->x[fldid] = 0;
+      }
     }
   }
-
+  
   //copy to occa buffers
   BP->o_r   = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
   BP->o_x   = mesh->device.malloc(Nall*sizeof(dfloat), BP->x);
   
   char *suffix = strdup("Hex3D");
   
-  // gather-scatter
+  // gather-scatterd
   if(options.compareArgs("DISCRETIZATION","CONTINUOUS")){
-    ogsGatherScatter(BP->o_r, ogsDfloat, ogsAdd, mesh->ogs);
+    if(BP->Nfields == 1)
+      ogsGatherScatter(BP->o_r, ogsDfloat, ogsAdd, mesh->ogs);
+    else
+      ogsGatherScatterMany(BP->o_r, BP->Nfields, Ndof, ogsDfloat, ogsAdd, mesh->ogs);
   }
   
   return BP;
@@ -132,10 +140,18 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
 
-  dlong Ntotal = mesh->Np*mesh->Nelements;
+  int BP1 = options.compareArgs("BENCHMARK", "BP1");
+  int BP3 = options.compareArgs("BENCHMARK", "BP3");
+  int BP5 = options.compareArgs("BENCHMARK", "BP5");
+  int combineDot = 0;
+  combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
-  dlong Nhalo = mesh->Np*mesh->totalHaloPairs;
-  dlong Nall   = Ntotal + Nhalo;
+  int knlId = 0;
+  options.getArgs("KERNEL ID", knlId);
+  
+  dlong Ntotal = BP->Nfields*mesh->Np*mesh->Nelements;
+  dlong Nhalo  = BP->Nfields*mesh->Np*mesh->totalHaloPairs;
+  dlong Nall   = (Ntotal + Nhalo);
 
   dlong Nblock  = mymax(1,(Ntotal+blockSize-1)/blockSize);
   dlong Nblock2 = mymax(1,(Nblock+blockSize-1)/blockSize);
@@ -169,18 +185,20 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BP->tmpNormr = (dfloat*) calloc(BP->NblocksUpdatePCG,sizeof(dfloat));
   BP->o_tmpNormr = mesh->device.malloc(BP->NblocksUpdatePCG*sizeof(dfloat), BP->tmpNormr);
 
-  BP->tmpAtomic = (dfloat*) calloc(BP->Nfields,sizeof(dfloat));
-  BP->o_tmpAtomic = mesh->device.malloc(BP->Nfields*sizeof(dfloat), BP->tmpAtomic);
-  BP->o_zeroAtomic = mesh->device.malloc(BP->Nfields*sizeof(dfloat), BP->tmpAtomic);
+  BP->tmpAtomic = (dfloat*) calloc(1,sizeof(dfloat));
+  BP->o_tmpAtomic = mesh->device.malloc(1*sizeof(dfloat), BP->tmpAtomic);
+  BP->o_zeroAtomic = mesh->device.malloc(1*sizeof(dfloat), BP->tmpAtomic);
   
   //setup async halo stream
   BP->defaultStream = mesh->defaultStream;
   BP->dataStream = mesh->dataStream;
 
-  dlong Nbytes = mesh->totalHaloPairs*mesh->Np*sizeof(dfloat);
+  dlong Nbytes = BP->Nfields*mesh->totalHaloPairs*mesh->Np*sizeof(dfloat);
   if(Nbytes>0){
-    BP->sendBuffer = (dfloat*) occaHostMallocPinned(mesh->device, Nbytes, NULL, BP->o_sendBuffer, BP->h_sendBuffer);
-    BP->recvBuffer = (dfloat*) occaHostMallocPinned(mesh->device, Nbytes, NULL, BP->o_recvBuffer, BP->h_recvBuffer);
+    BP->sendBuffer =
+      (dfloat*) occaHostMallocPinned(mesh->device, Nbytes, NULL, BP->o_sendBuffer, BP->h_sendBuffer);
+    BP->recvBuffer =
+      (dfloat*) occaHostMallocPinned(mesh->device, Nbytes, NULL, BP->o_recvBuffer, BP->h_recvBuffer);
   }else{
     BP->sendBuffer = NULL;
     BP->recvBuffer = NULL;
@@ -235,15 +253,6 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BP->ogs = ogsSetup(Ntotal, mesh->maskedGlobalIds, mesh->comm, verbose, mesh->device);
   BP->o_invDegree = BP->ogs->o_invDegree;
 
-  #if 0
-  if(mesh->device.mode()=="CUDA"){ // add backend compiler optimization for CUDA
-    kernelInfo["compiler_flags"] += "-Xptxas -dlcm=ca";
-  }
-
-  if(mesh->device.mode()=="Serial")
-    kernelInfo["compiler_flags"] += "-g";
-#endif
-  
   // set kernel name suffix
   char *suffix = strdup("Hex3D");
 
@@ -253,7 +262,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   
   for (int r=0;r<2;r++){
     if ((r==0 && mesh->rank==0) || (r==1 && mesh->rank>0)) {      
-
+      
       //mesh kernels
       mesh->haloExtractKernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl",
@@ -357,58 +366,32 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_NthreadsUpdatePCG"] = (int) NthreadsUpdatePCG; // WARNING SHOULD BE MULTIPLE OF 32
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
-      BP->BP1Nknl = 2;
-      BP->BP3Nknl = 1;
-      BP->BP5Nknl = 6;
-
-      BP->BP1DotNknl = 1;
-      BP->BP3DotNknl = 1;
-      BP->BP5DotNknl = 3;
-
-      BP->BP1Kernels = new occa::kernel[BP->BP1Nknl];
-      BP->BP3Kernels = new occa::kernel[BP->BP3Nknl];
-      BP->BP5Kernels = new occa::kernel[BP->BP5Nknl];
-
-      BP->BP1DotKernels = new occa::kernel[BP->BP1DotNknl];
-      BP->BP3DotKernels = new occa::kernel[BP->BP3DotNknl];
-      BP->BP5DotKernels = new occa::kernel[BP->BP5DotNknl];
-
       char kernelName[BUFSIZ];
-
-      for(int k=0;k<BP->BP1Nknl;++k){
-	sprintf(kernelName, "BP1_v%d", k);
-	BP->BP1Kernels[k] = mesh->device.buildKernel(DBP "/okl/BP1.okl", kernelName, kernelInfo);
+      if(BP1){
+	if(!combineDot) sprintf(kernelName, "BP1_v%d", knlId);
+	else            sprintf(kernelName, "BP1Dot_v%d", knlId);
+	
+	BP->BPKernel = mesh->device.buildKernel(DBP "/okl/BP1.okl", kernelName, kernelInfo);
       }
 
-      for(int k=0;k<BP->BP3Nknl;++k){
-	sprintf(kernelName, "BP3_v%d", k);
-	BP->BP3Kernels[k] = mesh->device.buildKernel(DBP "/okl/BP3.okl", kernelName, kernelInfo);
+      if(BP3){
+	if(!combineDot) sprintf(kernelName, "BP3_v%d", knlId);
+	else            sprintf(kernelName, "BP3Dot_v%d", knlId);
+	
+	BP->BPKernel = mesh->device.buildKernel(DBP "/okl/BP3.okl", kernelName, kernelInfo);
       }
 
-      for(int k=0;k<BP->BP5Nknl;++k){
-	sprintf(kernelName, "BP5_v%d", k);
-	BP->BP5Kernels[k] = mesh->device.buildKernel(DBP "/okl/BP5.okl", kernelName, kernelInfo);
+      if(BP5){
+	if(!combineDot) sprintf(kernelName, "BP5_v%d", knlId);
+	else            sprintf(kernelName, "BP5Dot_v%d", knlId);
+	
+	BP->BPKernel = mesh->device.buildKernel(DBP "/okl/BP5.okl", kernelName, kernelInfo);
       }
 
-      for(int k=0;k<BP->BP1DotNknl;++k){
-	sprintf(kernelName, "BP1Dot_v%d", k);
-	BP->BP1DotKernels[k] = mesh->device.buildKernel(DBP "/okl/BP1.okl", kernelName, kernelInfo);
-      }
-
-      for(int k=0;k<BP->BP3DotNknl;++k){
-	sprintf(kernelName, "BP3Dot_v%d", k);
-	BP->BP3DotKernels[k] = mesh->device.buildKernel(DBP "/okl/BP3.okl", kernelName, kernelInfo);
-      }
-
-      for(int k=0;k<BP->BP5DotNknl;++k){
-	sprintf(kernelName, "BP5Dot_v%d", k);
-	BP->BP5DotKernels[k] = mesh->device.buildKernel(DBP "/okl/BP5.okl", kernelName, kernelInfo);
-      }
-      
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPUpdatePCG", kernelInfo);
-
+      
       occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
       nothingKernel();
      

@@ -113,17 +113,7 @@ typedef struct {
   occa::memory o_EXYZ; // element vertices for reconstructing geofacs (trilinear hexes only)
   occa::memory o_gllzw; // GLL nodes and weights
 
-  int BP1Nknl, BP3Nknl, BP5Nknl;
-  
-  occa::kernel *BP1Kernels;
-  occa::kernel *BP3Kernels;
-  occa::kernel *BP5Kernels; // Ap
-
-  int BP1DotNknl, BP3DotNknl, BP5DotNknl;
-
-  occa::kernel *BP1DotKernels; // Ap and p.Ap
-  occa::kernel *BP3DotKernels; // Ap and p.Ap
-  occa::kernel *BP5DotKernels; // Ap and p.Ap
+  occa::kernel BPKernel;
 
   occa::kernel innerProductKernel;
   occa::kernel weightedInnerProduct1Kernel;
@@ -157,7 +147,7 @@ typedef struct {
 
 BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAide options);
 
-int  BPSolve(BP_t *BP, int mode, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x);
+int  BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x);
 
 void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo);
 
@@ -166,12 +156,12 @@ void BPInterimHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *se
 void BPEndHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *recvBuffer);
 
 //Linear solvers
-int BPPCG (BP_t* BP, int mode, dfloat lambda, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT); 
+int BPPCG (BP_t* BP, dfloat lambda, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT); 
 
 void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::memory &o_b);
 dfloat BPWeightedInnerProduct(BP_t *BP, occa::memory &o_w, occa::memory &o_a, occa::memory &o_b);
 
-dfloat BPOperator(BP_t *BP, int mode, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision);
+dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision);
 
 dfloat BPWeightedNorm2(BP_t *BP, occa::memory &o_w, occa::memory &o_a);
 
@@ -191,8 +181,6 @@ void BPPlotVTU(BP_t *BP, const char *fileNameBase, int fld);
 occa::properties BPKernelInfo(mesh_t *mesh);
 
 void BPZeroMean(BP_t *BP, occa::memory &o_q);
-
-dfloat BPOperatorDot(BP_t *BP, int mode, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision);
 
 #endif
 

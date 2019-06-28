@@ -26,7 +26,7 @@
 
 #include "BP.hpp"
 
-dfloat BPOperator(BP_t *BP, int mode, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision){
+dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision){
 
   mesh_t *mesh = BP->mesh;
   setupAide &options = BP->options;
@@ -38,54 +38,44 @@ dfloat BPOperator(BP_t *BP, int mode, dfloat lambda, occa::memory &o_q, occa::me
   if(combineDot){
     BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
   }
+
+  occa::kernel &BPKernel = BP->BPKernel;
   
   if(mesh->NglobalGatherElements) {
 
     if(options.compareArgs("BENCHMARK", "BP1")){
 
       if(!combineDot){
-	occa::kernel &BP1Kernel = BP->BP1Kernels[mode];
+	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
 	
-	BP1Kernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		  mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
-
       }else{
-	occa::kernel &BP1DotKernel = BP->BP1DotKernels[mode];
-	
-	BP1DotKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		     mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,
-		     BP->o_tmpAtomic);
+	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,
+		 BP->o_tmpAtomic);
       }
     }
     
     if(options.compareArgs("BENCHMARK", "BP3")){
 
       if(!combineDot){
-	occa::kernel &BP3Kernel = BP->BP3Kernels[mode];
-	
-	BP3Kernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		  mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
+	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
       }else{
-	occa::kernel &BP3DotKernel = BP->BP3DotKernels[mode];
-	
-	BP3DotKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		     mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
-		     BP->o_tmpAtomic);
+	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
+		 BP->o_tmpAtomic);
       }
     }    
     
     if(options.compareArgs("BENCHMARK", "BP5")){
 
       if(!combineDot){
-	occa::kernel &BP5Kernel = BP->BP3Kernels[mode];      
-
-	BP5Kernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		  mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
+	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
+		 mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
       }else{
-	occa::kernel &BP5DotKernel = BP->BP5DotKernels[mode];
-
-	BP5DotKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		     mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
+	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
+		 mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
       }
     }
   }
@@ -97,16 +87,12 @@ dfloat BPOperator(BP_t *BP, int mode, dfloat lambda, occa::memory &o_q, occa::me
     if(options.compareArgs("BENCHMARK", "BP1")){
 
       if(!combineDot){
-	occa::kernel &BP1Kernel = BP->BP1Kernels[mode];
-	
-	BP1Kernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
+	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
 		  mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
       }else{
-	occa::kernel &BP1DotKernel = BP->BP1DotKernels[mode];
-	
-	BP1DotKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		     mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,
-		     BP->o_tmpAtomic);
+	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,
+		 BP->o_tmpAtomic);
       }
       
     }
@@ -114,47 +100,39 @@ dfloat BPOperator(BP_t *BP, int mode, dfloat lambda, occa::memory &o_q, occa::me
     if(options.compareArgs("BENCHMARK", "BP3")){
 
       if(!combineDot){
-	occa::kernel &BP3Kernel = BP->BP3Kernels[mode];
-
-	BP3Kernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		  mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
+	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
       }else{
-	occa::kernel &BP3DotKernel = BP->BP3DotKernels[mode];
-
-	BP3DotKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		     mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
-		     BP->o_tmpAtomic);
+	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
+		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
+		 BP->o_tmpAtomic);
       }
     }
-      
+    
     if(options.compareArgs("BENCHMARK", "BP5")){
       if(!combineDot){
-	occa::kernel &BP5Kernel = BP->BP5Kernels[mode];
-	
-	BP5Kernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		  mesh->o_ggeo, mesh->o_D,lambda, o_q, o_Aq);
+	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
+		 mesh->o_ggeo, mesh->o_D,lambda, o_q, o_Aq);
       }else{
-	occa::kernel &BP5DotKernel = BP->BP5DotKernels[mode];
-	
-	BP5DotKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		     mesh->o_ggeo, mesh->o_D,lambda, o_q, o_Aq,
-		     BP->o_tmpAtomic);
+	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
+		 mesh->o_ggeo, mesh->o_D,lambda, o_q, o_Aq,
+		 BP->o_tmpAtomic);
       }
     }
   }
   
   // finalize gather using local and global contributions
   ogsGatherScatterFinish(o_Aq, ogsDfloat, ogsAdd, ogs);
-    
+  
   dfloat pAp = 0;
 
   if(!combineDot){
+    // switch internal based on Nfields
     pAp =  BPWeightedInnerProduct(BP, BP->o_invDegree, o_q, o_Aq);
   }else{
     BP->o_tmpAtomic.copyTo(BP->tmpAtomic);
     
-    // WATCH OUT FOR VECTOR HERE
-    MPI_Allreduce(BP->tmpAtomic, &pAp, BP->Nfields, MPI_DFLOAT, MPI_SUM, mesh->comm);
+    MPI_Allreduce(BP->tmpAtomic, &pAp, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
   }
   
   return pAp;

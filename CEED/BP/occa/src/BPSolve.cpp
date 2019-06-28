@@ -37,7 +37,7 @@ double getTod(){
 }
 
 
-int BPSolve(BP_t *BP, int mode, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x){
+int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x){
   
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
@@ -52,7 +52,7 @@ int BPSolve(BP_t *BP, int mode, dfloat lambda, dfloat tol, occa::memory &o_r, oc
 
   options.getArgs("SOLVER TOLERANCE", tol);
   
-  Niter = BPPCG(BP, mode, lambda, o_r, o_x, tol, maxIter);
+  Niter = BPPCG(BP, lambda, o_r, o_x, tol, maxIter);
 
   if(BP->allNeumann) // zero mean of RHS
     BPZeroMean(BP, o_x);
@@ -62,7 +62,7 @@ int BPSolve(BP_t *BP, int mode, dfloat lambda, dfloat tol, occa::memory &o_r, oc
 }
 
 // FROM NEKBONE: not appropriate since it assumes zero initial data
-int BPPCG(BP_t* BP, int mode, dfloat lambda, 
+int BPPCG(BP_t* BP, dfloat lambda, 
 	  occa::memory &o_r, occa::memory &o_x, 
 	  const dfloat tol, const int MAXIT){
   
@@ -94,7 +94,7 @@ int BPPCG(BP_t* BP, int mode, dfloat lambda,
   dfloat rdotr0;
 
   // compute A*x
-  dfloat pAp = BPOperator(BP, mode, lambda, o_x, BP->o_Ax, dfloatString);
+  dfloat pAp = BPOperator(BP, lambda, o_x, BP->o_Ax, dfloatString);
   
   // subtract r = b - A*x
   BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
@@ -131,7 +131,7 @@ int BPPCG(BP_t* BP, int mode, dfloat lambda,
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
     // Ap and p.Ap
-    pAp = BPOperator(BP, mode, lambda, o_p, o_Ap, dfloatString); 
+    pAp = BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
 
     // alpha = r.z/p.Ap
     alpha = rdotz1/pAp;
