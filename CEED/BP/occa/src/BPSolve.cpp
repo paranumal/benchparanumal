@@ -155,7 +155,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     
   }
 
-  printf("Elapsed: Ax = %e, Dot = %e\n", elapsedAx, elapsedDot);
+  //  printf("Elapsed: Ax = %e, Dot = %e\n", elapsedAx, elapsedDot);
   
   return iter;
 }

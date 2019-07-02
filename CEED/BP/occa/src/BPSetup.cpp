@@ -36,10 +36,11 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 
   // load forcing into r
   int BP1 = options.compareArgs("BENCHMARK", "BP1");
+  int BP2 = options.compareArgs("BENCHMARK", "BP2");
   int BP3 = options.compareArgs("BENCHMARK", "BP3");
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
 
-  BP->BPid = 1*BP1 + 3*BP3 + 5*BP5;
+  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 5*BP5;
 
   // set nfields here
   
@@ -106,7 +107,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	dlong fldid = id + fld*Ndof;
 	
 	// mass projection rhs
-	if(BP1)
+	if(BP1 || BP2)
 	  BP->r[fldid] =
 	    JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
 	
@@ -144,6 +145,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   setupAide options = BP->options;
 
   int BP1 = options.compareArgs("BENCHMARK", "BP1");
+  int BP2 = options.compareArgs("BENCHMARK", "BP2");
   int BP3 = options.compareArgs("BENCHMARK", "BP3");
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
   int combineDot = 0;
@@ -369,28 +371,15 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_NthreadsUpdatePCG"] = (int) NthreadsUpdatePCG; // WARNING SHOULD BE MULTIPLE OF 32
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
-      char kernelName[BUFSIZ];
-      if(BP1){
-	if(!combineDot) sprintf(kernelName, "BP1_v%d", knlId);
-	else            sprintf(kernelName, "BP1Dot_v%d", knlId);
-	
-	BP->BPKernel = mesh->device.buildKernel(DBP "/okl/BP1.okl", kernelName, kernelInfo);
-      }
+      char kernelName[BUFSIZ], fileName[BUFSIZ];
 
-      if(BP3){
-	if(!combineDot) sprintf(kernelName, "BP3_v%d", knlId);
-	else            sprintf(kernelName, "BP3Dot_v%d", knlId);
-	
-	BP->BPKernel = mesh->device.buildKernel(DBP "/okl/BP3.okl", kernelName, kernelInfo);
-      }
-
-      if(BP5){
-	if(!combineDot) sprintf(kernelName, "BP5_v%d", knlId);
-	else            sprintf(kernelName, "BP5Dot_v%d", knlId);
-	
-	BP->BPKernel = mesh->device.buildKernel(DBP "/okl/BP5.okl", kernelName, kernelInfo);
-      }
-
+      sprintf(fileName, "%s/okl/BP%d.okl", DBP, BP->BPid);
+      sprintf(kernelName, "BP%d_v%d", BP->BPid, knlId);
+      
+      printf("Loading: %s from %s\n", kernelName, fileName);
+      
+      BP->BPKernel = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
+      
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPUpdatePCG", kernelInfo);
