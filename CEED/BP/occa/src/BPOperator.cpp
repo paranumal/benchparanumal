@@ -26,6 +26,50 @@
 
 #include "BP.hpp"
 
+void runBPKernel(BP_t *BP,  dfloat lambda,
+		 hlong Nelements, occa::memory &o_elementList,
+		 occa::memory &o_q, occa::memory &o_Aq){
+
+  if(Nelements){
+    setupAide &options = BP->options;
+    mesh_t *mesh = BP->mesh;
+
+    occa::kernel &BPKernel = BP->BPKernel;
+    
+    int combineDot = 0;
+    combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+    
+    if(!combineDot){
+      switch(BP->BPid){
+      case 1:
+	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
+	break;
+      case 3:
+	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);	
+	break;
+      case 5:
+	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
+	break;
+      }
+    }
+    
+    if(combineDot){
+      switch(BP->BPid){
+      case 1:  
+	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,  BP->o_tmpAtomic);
+	break;
+      case 3:
+	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
+		 BP->o_tmpAtomic);
+	break;
+      case 5:
+	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
+	break;
+      }
+    }
+  }
+}
+
 dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision){
 
   mesh_t *mesh = BP->mesh;
@@ -39,86 +83,16 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq
     BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
   }
 
-  occa::kernel &BPKernel = BP->BPKernel;
-  
+  int BPid = BP->BPid;
+
   if(mesh->NglobalGatherElements) {
-
-    if(options.compareArgs("BENCHMARK", "BP1")){
-
-      if(!combineDot){
-	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
-	
-      }else{
-	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,
-		 BP->o_tmpAtomic);
-      }
-    }
-    
-    if(options.compareArgs("BENCHMARK", "BP3")){
-
-      if(!combineDot){
-	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
-      }else{
-	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
-		 BP->o_tmpAtomic);
-      }
-    }    
-    
-    if(options.compareArgs("BENCHMARK", "BP5")){
-
-      if(!combineDot){
-	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		 mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
-      }else{
-	BPKernel(mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
-		 mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
-      }
-    }
+    runBPKernel(BP, lambda, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
   }
 
   ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
     
   if(mesh->NlocalGatherElements){
-      
-    if(options.compareArgs("BENCHMARK", "BP1")){
-
-      if(!combineDot){
-	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		  mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
-      }else{
-	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,
-		 BP->o_tmpAtomic);
-      }
-      
-    }
-    
-    if(options.compareArgs("BENCHMARK", "BP3")){
-
-      if(!combineDot){
-	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
-      }else{
-	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		 mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
-		 BP->o_tmpAtomic);
-      }
-    }
-    
-    if(options.compareArgs("BENCHMARK", "BP5")){
-      if(!combineDot){
-	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		 mesh->o_ggeo, mesh->o_D,lambda, o_q, o_Aq);
-      }else{
-	BPKernel(mesh->NlocalGatherElements, mesh->o_localGatherElementList,
-		 mesh->o_ggeo, mesh->o_D,lambda, o_q, o_Aq,
-		 BP->o_tmpAtomic);
-      }
-    }
+    runBPKernel(BP, lambda, mesh->NlocalGatherElements, mesh->o_localGatherElementList, o_q, o_Aq);
   }
   
   // finalize gather using local and global contributions

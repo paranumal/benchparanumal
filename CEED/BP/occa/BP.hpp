@@ -50,6 +50,8 @@ typedef struct{
 
 typedef struct {
 
+  int BPid;
+  
   int dim;
   int elementType; // number of edges (3=tri, 4=quad, 6=tet, 12=hex)
   int Nfields;

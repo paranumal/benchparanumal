@@ -34,8 +34,15 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 
   BP_t *BP = new BP_t();
 
-  // (BP_t*) calloc(1, sizeof(BP_t));
+  // load forcing into r
+  int BP1 = options.compareArgs("BENCHMARK", "BP1");
+  int BP3 = options.compareArgs("BENCHMARK", "BP3");
+  int BP5 = options.compareArgs("BENCHMARK", "BP5");
 
+  BP->BPid = 1*BP1 + 3*BP3 + 5*BP5;
+
+  // set nfields here
+  
   options.getArgs("MESH DIMENSION", BP->dim);
   options.getArgs("ELEMENT TYPE", BP->elementType);
   BP->mesh = mesh;
@@ -82,10 +89,6 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   BP->x   = (dfloat*) calloc(Nall,   sizeof(dfloat));
   BP->q   = (dfloat*) calloc(Nall,   sizeof(dfloat));
 
-  // load forcing into r
-  int BP1 = options.compareArgs("BENCHMARK", "BP1");
-  int BP3 = options.compareArgs("BENCHMARK", "BP3");
-  int BP5 = options.compareArgs("BENCHMARK", "BP5");
 
   for(dlong e=0;e<mesh->Nelements;++e){
     for(int n=0;n<mesh->Np;++n){
