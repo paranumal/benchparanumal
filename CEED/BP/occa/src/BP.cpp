@@ -117,20 +117,18 @@ int main(int argc, char **argv){
 
     int NbytesPerElement;
     int combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
-    int BP1 = options.compareArgs("BENCHMARK", "BP1");
-    int BP3 = options.compareArgs("BENCHMARK", "BP3");
-    int BP5 = options.compareArgs("BENCHMARK", "BP5");
+
     int knlId = 0;
     options.getArgs("KERNEL ID", knlId);
     
     // PCG base 
-    NbytesPerElement = mesh->Np*(2+3+2+3+3+2); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+    NbytesPerElement = BP->Nfields*mesh->Np*(2+3+2+3+3+2); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
 
     if(!combineDot) NbytesPerElement += mesh->Np*2;
     
-    if(BP1) NbytesPerElement += mesh->cubNp;
-    if(BP3) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
-    if(BP5) NbytesPerElement += mesh->Nggeo*mesh->Np;
+    if(BP->BPid==1 || BP->BPid==2) NbytesPerElement += mesh->cubNp;
+    if(BP->BPid==3 || BP->BPid==4) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
+    if(BP->BPid==5 || BP->BPid==6) NbytesPerElement += mesh->Nggeo*mesh->Np;
 
     NbytesPerElement *= sizeof(dfloat);
     

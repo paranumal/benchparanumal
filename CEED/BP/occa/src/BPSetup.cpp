@@ -38,6 +38,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   int BP1 = options.compareArgs("BENCHMARK", "BP1");
   int BP2 = options.compareArgs("BENCHMARK", "BP2");
   int BP3 = options.compareArgs("BENCHMARK", "BP3");
+  int BP4 = options.compareArgs("BENCHMARK", "BP4");
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
   int BP6 = options.compareArgs("BENCHMARK", "BP6");
 
@@ -115,7 +116,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	}
 	
 	// stiffness solve rhs
-	if(BP3 || BP5 || BP6)
+	if(BP3 || BP4 || BP5 || BP6)
 	  BP->r[fldid] =
 	    JW*(3*mode*mode*M_PI*M_PI+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
 	
@@ -398,7 +399,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPMultipleUpdatePCG", kernelInfo);
 
       
-      occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
+     occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
       nothingKernel();
      
       MPI_Barrier(mesh->comm);
