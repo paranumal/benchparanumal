@@ -39,8 +39,9 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   int BP2 = options.compareArgs("BENCHMARK", "BP2");
   int BP3 = options.compareArgs("BENCHMARK", "BP3");
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
+  int BP6 = options.compareArgs("BENCHMARK", "BP6");
 
-  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 5*BP5;
+  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 5*BP5 + 6*BP6;
 
   if(BP1 || BP3 || BP5)
     BP->Nfields = 1;
@@ -114,7 +115,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	}
 	
 	// stiffness solve rhs
-	if(BP3 || BP5)
+	if(BP3 || BP5 || BP6)
 	  BP->r[fldid] =
 	    JW*(3*mode*mode*M_PI*M_PI+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
 	

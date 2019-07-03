@@ -39,7 +39,7 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
     int combineDot = 0;
     combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
-    dlong offset = mesh->Np*mesh->Nelements;
+    dlong offset = mesh->Np*mesh->Nelements; // TW: check this
     
     if(!combineDot){
       switch(BP->BPid){
@@ -54,6 +54,9 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
 	break;
       case 5:
 	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
+	break;
+      case 6:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
 	break;
       }
     }
@@ -72,6 +75,9 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
 	break;
       case 5:
 	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
+	break;
+      case 6:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
 	break;
       }
     }
