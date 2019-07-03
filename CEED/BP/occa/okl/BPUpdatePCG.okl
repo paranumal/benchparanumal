@@ -114,3 +114,99 @@
     }
   }
 }
+
+
+@kernel void BPMultipleUpdatePCG(const dlong N,
+				 const dlong offset,
+				 const dlong Nblocks,
+				 @restrict const dfloat *invDegree,
+				 @restrict const dfloat *p,
+				 @restrict const dfloat *Ap,
+				 const dfloat alpha,
+				 @restrict dfloat *x,
+				 @restrict dfloat *r,
+				 @restrict dfloat *redr){
+  
+  for(dlong b=0;b<Nblocks;++b;@outer(0)){
+
+    @shared volatile dfloat s_sum[p_NthreadsUpdatePCG];
+    @shared volatile dfloat s_warpSum[p_NwarpsUpdatePCG]; // good  to 256
+
+    @exclusive int r_n; // limited to 256 in Serial mode
+
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)){
+
+      r_n = t%32;
+      
+      dfloat sum = 0;
+
+      for(int n=t+b*p_NthreadsUpdatePCG;n<N;n+=Nblocks*p_NthreadsUpdatePCG){
+	dfloat wn = invDegree[n];
+
+	for(int fld=0;fld<p_Nfields;++fld){
+	  dlong id = n+offset*fld;
+	  dfloat xn = x[id];
+	  dfloat rn = r[id];
+	  
+	  const dfloat pn = p[id];
+	  const dfloat Apn = Ap[id];
+	  
+	  xn += alpha*pn;
+	  rn -= alpha*Apn;
+	  sum += wn*rn*rn;
+	  
+	  x[id] = xn;
+	  r[id] = rn;
+	}
+      }
+      
+      s_sum[t] = sum;
+    }
+
+    // reduce by factor of 32
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)) if(r_n<16) s_sum[t] += s_sum[t+16];
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)) if(r_n< 8) s_sum[t] += s_sum[t+8];
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)) if(r_n< 4) s_sum[t] += s_sum[t+4];
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)) if(r_n< 2) s_sum[t] += s_sum[t+2];
+
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)){
+      const int w = t/32;							
+      if(r_n< 1) s_warpSum[w] = s_sum[t] + s_sum[t+1];				
+    }
+
+    @barrier("local");
+    
+    // 4 => 1
+#if (p_NwarpsUpdatePCG>=32)
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0))
+      if(t<16) s_warpSum[t] += s_warpSum[t+16];
+#endif
+#if (p_NwarpsUpdatePCG>=16)
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0))      
+      if(t<8) s_warpSum[t] += s_warpSum[t+8];
+#endif
+    
+#if (p_NwarpsUpdatePCG>=8)
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0))
+      if(t<4) s_warpSum[t] += s_warpSum[t+4];
+#endif
+
+#if (p_NwarpsUpdatePCG>=4)
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0))
+      if(t<2) s_warpSum[t] += s_warpSum[t+2];
+#endif
+    
+    for(int t=0;t<p_NthreadsUpdatePCG;++t;@inner(0)){
+      dfloat res = 0;
+      if(t==0){
+#if (p_NwarpsUpdatePCG>=2)
+	res = s_warpSum[0] + s_warpSum[1];
+#else
+	res = s_warpSum[0];
+#endif
+	
+	atomicAdd(redr, res);
+      }
+    }
+  }
+}

@@ -42,14 +42,15 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 
   BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 5*BP5;
 
-  // set nfields here
+  if(BP1 || BP3 || BP5)
+    BP->Nfields = 1;
+  else
+    BP->Nfields = 3;
   
   options.getArgs("MESH DIMENSION", BP->dim);
   options.getArgs("ELEMENT TYPE", BP->elementType);
   BP->mesh = mesh;
   BP->options = options;
-
-  BP->Nfields = 1;
   
   // defaults for conjugate gradient
   int enableGatherScatters = 1;
@@ -107,9 +108,10 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	dlong fldid = id + fld*Ndof;
 	
 	// mass projection rhs
-	if(BP1 || BP2)
+	if(BP1 || BP2){
 	  BP->r[fldid] =
 	    JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	}
 	
 	// stiffness solve rhs
 	if(BP3 || BP5)
@@ -144,20 +146,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
 
-  int BP1 = options.compareArgs("BENCHMARK", "BP1");
-  int BP2 = options.compareArgs("BENCHMARK", "BP2");
-  int BP3 = options.compareArgs("BENCHMARK", "BP3");
-  int BP5 = options.compareArgs("BENCHMARK", "BP5");
-  int combineDot = 0;
-  combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
-
   int knlId = 0;
   options.getArgs("KERNEL ID", knlId);
   
-  dlong Ntotal = BP->Nfields*mesh->Np*mesh->Nelements;
-  dlong Nhalo  = BP->Nfields*mesh->Np*mesh->totalHaloPairs;
-  dlong Nall   = (Ntotal + Nhalo);
-
+  dlong Ntotal = mesh->Np*mesh->Nelements;
+  dlong Nhalo  = mesh->Np*mesh->totalHaloPairs;
+  dlong Nall   = (Ntotal + Nhalo)*BP->Nfields;
+  
   dlong Nblock  = mymax(1,(Ntotal+blockSize-1)/blockSize);
   dlong Nblock2 = mymax(1,(Nblock+blockSize-1)/blockSize);
 
@@ -166,7 +161,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
  
   BP->NthreadsUpdatePCG = NthreadsUpdatePCG;
   BP->NblocksUpdatePCG = NblocksUpdatePCG;
-  
+
   //tau
   BP->tau = 2.0*(mesh->N+1)*(mesh->N+3);
 
@@ -246,7 +241,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   //copy boundary flags
   BP->o_EToB = mesh->device.malloc(mesh->Nelements*mesh->Nfaces*sizeof(int), BP->EToB);
 
-  //setup an unmasked gs handle
+  //setup an unmasked gs handlex
   int verbose = options.compareArgs("VERBOSE","TRUE") ? 1:0;
   meshParallelGatherScatterSetup(mesh, Ntotal, mesh->globalIds, mesh->comm, verbose);
 
@@ -264,6 +259,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   char fileName[BUFSIZ], kernelName[BUFSIZ];
 
   kernelInfo["defines/" "p_blockSize"]= blockSize;
+  kernelInfo["defines/" "p_Nfields"]= BP->Nfields;
   
   for (int r=0;r<2;r++){
     if ((r==0 && mesh->rank==0) || (r==1 && mesh->rank>0)) {      
@@ -298,8 +294,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
 
       BP->weightedInnerProduct2Kernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                       "weightedInnerProduct2",
-                                       kernelInfo);
+				 "weightedInnerProduct2",
+				 kernelInfo);
+      
+      BP->weightedMultipleInnerProduct2Kernel =
+        mesh->device.buildKernel(DBP "/okl/utils.okl",
+				 "weightedMultipleInnerProduct2",
+				 kernelInfo);
 
       BP->innerProductKernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl",
@@ -310,6 +311,11 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
         mesh->device.buildKernel(DBP "/okl/utils.okl",
                                            "weightedNorm2",
                                            kernelInfo);
+
+      BP->weightedMultipleNorm2Kernel =
+        mesh->device.buildKernel(DBP "/okl/utils.okl",
+				 "weightedMultipleNorm2",
+				 kernelInfo);
 
       BP->norm2Kernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl",
@@ -337,8 +343,6 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
                                          kernelInfo);
 
       // add custom defines
-
-      kernelInfo["defines/" "p_Nfields"]= BP->Nfields;
       
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);
       kernelInfo["defines/" "p_Nverts"]= mesh->Nverts;
@@ -372,9 +376,14 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
       char kernelName[BUFSIZ], fileName[BUFSIZ];
-
       sprintf(fileName, "%s/okl/BP%d.okl", DBP, BP->BPid);
-      sprintf(kernelName, "BP%d_v%d", BP->BPid, knlId);
+      
+      int combineDot = 0;
+      combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+      if(!combineDot)
+	sprintf(kernelName, "BP%d_v%d", BP->BPid, knlId);
+      else
+      	sprintf(kernelName, "BP%dDot_v%d", BP->BPid, knlId);
       
       printf("Loading: %s from %s\n", kernelName, fileName);
       
@@ -383,6 +392,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPUpdatePCG", kernelInfo);
+
+      BP->updateMultiplePCGKernel =
+	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPMultipleUpdatePCG", kernelInfo);
+
       
       occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
       nothingKernel();

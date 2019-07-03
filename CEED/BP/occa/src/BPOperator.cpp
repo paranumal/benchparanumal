@@ -38,11 +38,16 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
     
     int combineDot = 0;
     combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+
+    dlong offset = mesh->Np*mesh->Nelements;
     
     if(!combineDot){
       switch(BP->BPid){
       case 1:
 	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
+	break;
+      case 2:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
 	break;
       case 3:
 	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);	
@@ -57,6 +62,9 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
       switch(BP->BPid){
       case 1:  
 	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq,  BP->o_tmpAtomic);
+	break;
+      case 2:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq, BP->o_tmpAtomic);
 	break;
       case 3:
 	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
@@ -79,24 +87,27 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq
   int combineDot = 0;
   combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
-  if(combineDot){
+  if(combineDot)
     BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
-  }
 
+  dlong offset = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
+  
   int BPid = BP->BPid;
 
-  if(mesh->NglobalGatherElements) {
-    runBPKernel(BP, lambda, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
-  }
+  runBPKernel(BP, lambda, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
 
-  ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
-    
-  if(mesh->NlocalGatherElements){
-    runBPKernel(BP, lambda, mesh->NlocalGatherElements, mesh->o_localGatherElementList, o_q, o_Aq);
-  }
+  if(BP->Nfields==1)
+    ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
+  else
+    ogsGatherScatterManyStart(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
+  
+  runBPKernel(BP, lambda, mesh->NlocalGatherElements, mesh->o_localGatherElementList, o_q, o_Aq);
   
   // finalize gather using local and global contributions
-  ogsGatherScatterFinish(o_Aq, ogsDfloat, ogsAdd, ogs);
+  if(BP->Nfields==1)
+    ogsGatherScatterFinish(o_Aq, ogsDfloat, ogsAdd, ogs);
+  else
+    ogsGatherScatterManyFinish(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
   
   dfloat pAp = 0;
 

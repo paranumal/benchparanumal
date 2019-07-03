@@ -41,7 +41,7 @@
 	      }						\
 	    }						\
 	    for(int fld=0;fld<p_Nfields;++fld){		\
-	      s_Iq[fld][k][b][a] = res;			\
+	      s_Iq[fld][k][b][a] = res[fld];		\
 	    }						\
 	  }						\
 	}						\
@@ -50,143 +50,184 @@
     							\
     @barrier("local");					\
     							\
-    /* raise in b */							\
-    for(int k=0;k<p_cubNq;++k;@inner(1)){				\
-      for(int a=0;a<p_cubNq;++a;@inner(0)){				\
-	if(a<p_Nq){							\
-	  for(int fld=0;fld<p_Nfields;++fld){				\
-	    for(int b=0;b<p_Nq;++b){					\
-	      r_Aq[fld][b] = s_Iq[fld][k][b][a];			\
-	    }								\
-	  }								\
-	  for(int j=0;j<p_cubNq;++j){					\
-	    dfloat res[p_Nfields];					\
-	    for(int fld=0;fld<p_Nfields;++fld){				\
-	      res[fld] = 0;						\
-	    }								\
-	    for(int b=0;b<p_Nq;++b){					\
-	      dfloat Ijb = s_I[j][n];					\
-	      for(int fld=0;fld<p_Nfields;++fld){			\
-		res[fld] += Ijb*r_Aq[fld][b];				\
-	      }								\
-	    }								\
-	    for(int fld=0;fld<p_Nfields;++fld){				\
-	      s_Iq[fld][k][j][a] = res[fld];					\
-	    }								\
-	  }								\
-	}								\
-      }									\
-    }									\
-									\
-    @barrier("local");				\
-						\
-    /* raise in a */				\
-    for(int k=0;k<p_cubNq;++k;@inner(1)){	\
-      for(int j=0;j<p_cubNq;++j;@inner(0)){	\
-	for(int a=0;a<p_Nq;++a){		\
-	  r_Aq[a] = s_Iq[k][j][a];		\
-	}					\
-						\
-	for(int i=0;i<p_cubNq;++i){		\
-	  dfloat res = 0;			\
-	  for(int a=0;a<p_Nq;++a){		\
-	    res += s_I[i][a]*r_Aq[a];		\
-	  }					\
-	  s_Iq[k][j][i] = res;			\
-	}					\
-      }						\
-    }						\
-						\
-    @barrier("local");				\
-						\
-    /* copy back to registers */		\
-    for(int j=0;j<p_cubNq;++j;@inner(1)){	\
-      for(int i=0;i<p_cubNq;++i;@inner(0)){	\
-	for(int k=0;k<p_cubNq;++k){		\
-	  r_Aq[k] = s_Iq[k][j][i];		\
-	}					\
-      }						\
-    }						\
-    @barrier("local");				\
+    /* raise in b */					\
+    for(int k=0;k<p_cubNq;++k;@inner(1)){		\
+      for(int a=0;a<p_cubNq;++a;@inner(0)){		\
+	if(a<p_Nq){					\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    for(int b=0;b<p_Nq;++b){			\
+	      r_Aq[fld][b] = s_Iq[fld][k][b][a];	\
+	    }						\
+	  }						\
+	  for(int j=0;j<p_cubNq;++j){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+	    for(int b=0;b<p_Nq;++b){			\
+	      dfloat Ijb = s_I[j][b];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Ijb*r_Aq[fld][b];		\
+	      }						\
+	    }						\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][k][j][a] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+							\
+    @barrier("local");					\
+							\
+    /* raise in a */					\
+    for(int k=0;k<p_cubNq;++k;@inner(1)){		\
+      for(int j=0;j<p_cubNq;++j;@inner(0)){		\
+	for(int a=0;a<p_Nq;++a){			\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    r_Aq[fld][a] = s_Iq[fld][k][j][a];		\
+	  }						\
+	}						\
+							\
+	for(int i=0;i<p_cubNq;++i){			\
+	  dfloat res[p_Nfields];			\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    res[fld] = 0;				\
+	  }						\
+	  for(int a=0;a<p_Nq;++a){			\
+	    dfloat Iia = s_I[i][a];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] += Iia*r_Aq[fld][a];		\
+	    }						\
+	  }						\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    s_Iq[fld][k][j][i] = res[fld];		\
+	  }						\
+	}						\
+      }							\
+    }							\
+      							\
+    @barrier("local");					\
+							\
+    /* copy back to registers */			\
+    for(int j=0;j<p_cubNq;++j;@inner(1)){		\
+      for(int i=0;i<p_cubNq;++i;@inner(0)){		\
+	for(int fld=0;fld<p_Nfields;++fld){		\
+	  for(int k=0;k<p_cubNq;++k){			\
+	    r_Aq[fld][k] = s_Iq[fld][k][j][i];		\
+	  }						\
+	}						\
+      }							\
+    }							\
+    @barrier("local");					\
   }							
-    
-#define testHex3D(s_I, r_q)			\
-  {						\
-    /* lower in 'k' */				\
-    for(int j=0;j<p_cubNq;++j;@inner(1)){	\
-      for(int i=0;i<p_cubNq;++i;@inner(0)){	\
-						\
-	for(int c=0;c<p_Nq;++c){		\
-	  dfloat res = 0;			\
-	  for(int k=0;k<p_cubNq;++k){		\
-	    res += s_I[k][c]*r_q[k];		\
-	  }					\
-	  s_Iq[c][j][i] = res;			\
-	}					\
-      }						\
-    }						\
-						\
-    @barrier("local");				\
-						\
-    /* lower in 'j' */				\
-    for(int c=0;c<p_cubNq;++c;@inner(1)){	\
-      for(int i=0;i<p_cubNq;++i;@inner(0)){	\
-						\
-	if(c<p_Nq){				\
-	  for(int j=0;j<p_cubNq;++j){		\
-	    r_q[j] = s_Iq[c][j][i];		\
-	  }					\
-						\
-	  for(int b=0;b<p_Nq;++b){		\
-	    dfloat res = 0;			\
-	    for(int j=0;j<p_cubNq;++j){		\
-	      res += s_I[j][b]*r_q[j];		\
-	    }					\
-						\
-	    s_Iq[c][b][i] = res;		\
-	  }					\
-	}					\
-      }						\
-    }						\
-						\
-    @barrier("local");				\
-						\
-    /* lower in 'i' */				\
-    for(int c=0;c<p_cubNq;++c;@inner(1)){	\
-      for(int b=0;b<p_cubNq;++b;@inner(0)){	\
-						\
-	if(b<p_Nq && c<p_Nq){			\
-	  for(int i=0;i<p_cubNq;++i){		\
-	    r_q[i] = s_Iq[c][b][i];		\
-	  }					\
-						\
-	  for(int a=0;a<p_Nq;++a){		\
-	    dfloat res = 0;			\
-	    for(int i=0;i<p_cubNq;++i){		\
-	      res += s_I[i][a]*r_q[i];		\
-	    }					\
-						\
-	    s_Iq[c][b][a] = res;		\
-	  }					\
-	}					\
-      }						\
-    }						\
-						\
-    @barrier("local");				\
-						\
-    /* copy back to registers */		\
-    for(int b=0;b<p_cubNq;++b;@inner(1)){	\
-      for(int a=0;a<p_cubNq;++a;@inner(0)){	\
-	if(a<p_Nq && b<p_Nq){			\
-	  for(int c=0;c<p_Nq;++c){		\
-	    r_q[c] = s_Iq[c][b][a];		\
-	  }					\
-	}					\
-      }						\
-    }						\
-						\
-    @barrier("local");				\
-  }						
+
+#define testHex3D(s_I, r_q)				\
+  {							\
+  /* lower in 'k' */					\
+  for(int j=0;j<p_cubNq;++j;@inner(1)){			\
+    for(int i=0;i<p_cubNq;++i;@inner(0)){		\
+      							\
+      for(int c=0;c<p_Nq;++c){				\
+	dfloat res[p_Nfields];				\
+	for(int fld=0;fld<p_Nfields;++fld){		\
+	  res[fld] = 0;					\
+	}						\
+	for(int k=0;k<p_cubNq;++k){			\
+	  dfloat Ikc = s_I[k][c];			\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    res[fld] += Ikc*r_q[fld][k];		\
+	  }						\
+	}						\
+	for(int fld=0;fld<p_Nfields;++fld){		\
+	  s_Iq[fld][c][j][i] = res[fld];		\
+	}						\
+      }							\
+    }							\
+  }							\
+    							\
+    @barrier("local");					\
+    							\
+    /* lower in 'j' */					\
+    for(int c=0;c<p_cubNq;++c;@inner(1)){		\
+      for(int i=0;i<p_cubNq;++i;@inner(0)){		\
+							\
+	if(c<p_Nq){					\
+	  for(int j=0;j<p_cubNq;++j){			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      r_q[fld][j] = s_Iq[fld][c][j][i];		\
+	    }						\
+	  }						\
+							\
+	  for(int b=0;b<p_Nq;++b){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+	    for(int j=0;j<p_cubNq;++j){			\
+	      dfloat Ijb = s_I[j][b];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Ijb*r_q[fld][j];		\
+	      }						\
+	    }						\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][c][b][i] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+    							\
+    @barrier("local");					\
+							\
+    /* lower in 'i' */					\
+    for(int c=0;c<p_cubNq;++c;@inner(1)){		\
+      for(int b=0;b<p_cubNq;++b;@inner(0)){		\
+							\
+	if(b<p_Nq && c<p_Nq){				\
+	  for(int i=0;i<p_cubNq;++i){			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      r_q[fld][i] = s_Iq[fld][c][b][i];		\
+	    }						\
+	  }						\
+	  for(int a=0;a<p_Nq;++a){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+							\
+	    for(int i=0;i<p_cubNq;++i){			\
+	      dfloat Iia = s_I[i][a];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Iia*r_q[fld][i];		\
+	      }						\
+	    }						\
+							\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][c][b][a] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+							\
+    @barrier("local");					\
+							\
+    /* copy back to registers */			\
+    for(int b=0;b<p_cubNq;++b;@inner(1)){		\
+      for(int a=0;a<p_cubNq;++a;@inner(0)){		\
+	if(a<p_Nq && b<p_Nq){				\
+	  for(int c=0;c<p_Nq;++c){			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      r_q[fld][c] = s_Iq[fld][c][b][a];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+    							\
+    @barrier("local");					\
+  }							\
 
 
 @kernel void BP2_v0(const dlong Nelements,
@@ -240,7 +281,9 @@
 	  // prefetch geometric factors
 	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
 	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
-	  r_Aq[k] *= GWJ;
+	  for(int fld=0;fld<p_Nfields;++fld){
+	    r_Aq[fld][k] *= GWJ;
+	  }
 	}
       }    
     }
@@ -255,10 +298,12 @@
       for(int i=0;i<p_cubNq;++i;@inner(0)){
 
 	if(i<p_Nq && j<p_Nq){
+	  for(int fld=0;fld<p_Nfields;++fld){
 #pragma unroll p_cubNq
-	  for(int k = 0; k < p_Nq; k++){
-	    const dlong id = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
-	    Aq[id] = r_Aq[k];
+	    for(int k = 0; k < p_Nq; k++){
+	      const dlong id = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i + fld*offset;
+	      Aq[id] = r_Aq[fld][k];
+	    }
 	  }
 	}
       }
@@ -267,8 +312,9 @@
 }
 
 
-@kernel void BP1Dot_v0(const dlong Nelements,
+@kernel void BP2Dot_v0(const dlong Nelements,
 		       @restrict const dlong *elementList,
+		       const dlong offset,
 		       @restrict const dfloat *ggeo,
 		       @restrict const dfloat *I,
 		       @restrict const dfloat *q,
@@ -277,12 +323,12 @@
   
   for(dlong e=0; e<Nelements; ++e; @outer(0)){
     
-    @shared dfloat s_Iq[p_cubNq][p_cubNq][p_cubNq];	
+    @shared dfloat s_Iq[p_Nfields][p_cubNq][p_cubNq][p_cubNq];	
     
     @shared dfloat s_I[p_cubNq][p_Nq];
     
-    @exclusive dfloat r_q[p_cubNq];
-    @exclusive dfloat r_Aq[p_cubNq];
+    @exclusive dfloat r_q[p_Nfields][p_cubNq];
+    @exclusive dfloat r_Aq[p_Nfields][p_cubNq];
 
     @exclusive dlong element;
     
@@ -296,11 +342,13 @@
 
 	element = elementList[e];
 	// load pencil of u into register
-	const dlong base = i + j*p_Nq + element*p_Np;
 	
 	if(i<p_Nq && j<p_Nq){
-	  for(int k = 0; k < p_Nq; k++) {
-	    r_q[k] = q[base + k*p_Nq*p_Nq];
+	  for(int fld=0;fld<p_Nfields;++fld){
+	    const dlong base = i + j*p_Nq + element*p_Np + fld*offset;
+	    for(int k = 0; k < p_Nq; k++) {
+	      r_q[fld][k] = q[base + k*p_Nq*p_Nq];
+	    }
 	  }
 	}
       }
@@ -318,7 +366,10 @@
 	  // prefetch geometric factors
 	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
 	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
-	  r_Aq[k] *= GWJ;
+	  
+	  for(int fld=0;fld<p_Nfields;++fld){
+	    r_Aq[fld][k] *= GWJ;
+	  }
 	}
       }    
     }
@@ -333,15 +384,16 @@
     // write out
     for(int j=0;j<p_cubNq;++j;@inner(1)){
       for(int i=0;i<p_cubNq;++i;@inner(0)){
-	
 	dfloat res = 0;
 	
 	if(i<p_Nq && j<p_Nq){
+	  for(int fld=0;fld<p_Nfields;++fld){
 #pragma unroll p_cubNq
-	  for(int k = 0; k < p_Nq; k++){
-	    const dlong id = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
-	    Aq[id] = r_Aq[k];
-	    res += r_q[k]*r_Aq[k];
+	    for(int k = 0; k < p_Nq; k++){
+	      const dlong id = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i + fld*offset;
+	      Aq[id] = r_Aq[fld][k];
+	      res += r_q[fld][k]*r_Aq[fld][k];
+	    }
 	  }
 	  s_qAq[j*p_Nq+i] = res;
 	}

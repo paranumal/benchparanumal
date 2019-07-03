@@ -118,22 +118,30 @@ typedef struct {
   occa::kernel BPKernel;
 
   occa::kernel innerProductKernel;
+
   occa::kernel weightedInnerProduct1Kernel;
   occa::kernel weightedInnerProduct2Kernel;
+  occa::kernel weightedMultipleInnerProduct2Kernel;
+  
   occa::kernel scaledAddKernel;
   occa::kernel dotMultiplyKernel;
   occa::kernel dotMultiplyAddKernel;
   occa::kernel dotDivideKernel;
 
   occa::kernel weightedNorm2Kernel;
+  occa::kernel weightedMultipleNorm2Kernel;
+  
   occa::kernel norm2Kernel;
 
   // combined PCG update step
   int             NthreadsUpdatePCG;
   dlong           NblocksUpdatePCG;
+
   dfloat         *tmpNormr;
   occa::memory  o_tmpNormr;
+
   occa::kernel  updatePCGKernel;
+  occa::kernel  updateMultiplePCGKernel;
 
   occa::memory o_zeroAtomic;
   occa::memory o_tmpAtomic;
