@@ -122,8 +122,9 @@ int main(int argc, char **argv){
     options.getArgs("KERNEL ID", knlId);
     
     // PCG base 
-    NbytesPerElement = BP->Nfields*mesh->Np*(2+3+3+2+3+3+3); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
-
+    NbytesPerElement = BP->Nfields*mesh->Np*(2+3+3+2+
+					     3+3+1); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+    
     if(!combineDot) NbytesPerElement += mesh->Np*2;
     
     if(BP->BPid==1 || BP->BPid==2) NbytesPerElement += mesh->cubNp;
@@ -137,8 +138,8 @@ int main(int argc, char **argv){
     printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
 	   elapsed, globalElapsed, globalNelements);
 
-    printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d; "
-	   "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot\n",
+    printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d, %d; "
+	   "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, BPid\n",
 	   mesh->N,
 	   mesh->Nelements,
 	   globalNelements*mesh->Np,
@@ -148,7 +149,8 @@ int main(int argc, char **argv){
 	   globalNelements*(it*mesh->Np/globalElapsed),
 	   bw,
 	   knlId,
-	   combineDot);
+	   combineDot,
+	   BP->BPid);
   }
   
   if (options.compareArgs("VERBOSE", "TRUE")){
