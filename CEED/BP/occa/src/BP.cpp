@@ -122,7 +122,7 @@ int main(int argc, char **argv){
     options.getArgs("KERNEL ID", knlId);
     
     // PCG base 
-    NbytesPerElement = BP->Nfields*mesh->Np*(2+3+2+3+3+2); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+    NbytesPerElement = BP->Nfields*mesh->Np*(2+3+3+2+3+3+3); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
 
     if(!combineDot) NbytesPerElement += mesh->Np*2;
     
