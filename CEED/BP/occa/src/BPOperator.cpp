@@ -52,6 +52,9 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
       case 3:
 	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);	
 	break;
+      case 4:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);	
+	break;
       case 5:
 	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
 	break;
@@ -71,6 +74,10 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
 	break;
       case 3:
 	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
+		 BP->o_tmpAtomic);
+	break;
+      case 4:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq,
 		 BP->o_tmpAtomic);
 	break;
       case 5:

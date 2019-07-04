@@ -42,7 +42,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
   int BP6 = options.compareArgs("BENCHMARK", "BP6");
 
-  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 5*BP5 + 6*BP6;
+  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6;
 
   if(BP1 || BP3 || BP5)
     BP->Nfields = 1;
