@@ -115,7 +115,7 @@ typedef struct {
   occa::memory o_EXYZ; // element vertices for reconstructing geofacs (trilinear hexes only)
   occa::memory o_gllzw; // GLL nodes and weights
 
-  occa::kernel BPKernel;
+  occa::kernel *BPKernel;
 
   occa::kernel innerProductKernel;
 

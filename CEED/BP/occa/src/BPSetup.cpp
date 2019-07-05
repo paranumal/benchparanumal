@@ -48,7 +48,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
     BP->Nfields = 1;
   else
     BP->Nfields = 3;
-  
+
   options.getArgs("MESH DIMENSION", BP->dim);
   options.getArgs("ELEMENT TYPE", BP->elementType);
   BP->mesh = mesh;
@@ -378,18 +378,22 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
       char kernelName[BUFSIZ], fileName[BUFSIZ];
-      sprintf(fileName, "%s/okl/BP%d.okl", DBP, BP->BPid);
+      BP->BPKernel = (occa::kernel*) new occa::kernel[7];
+      for(int bpid=1;bpid<=6;++bpid){
+
+	sprintf(fileName, "%s/okl/BP%d.okl", DBP, bpid);
+	
+	int combineDot = 0;
+	combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+	if(!combineDot)
+	  sprintf(kernelName, "BP%d_v%d", bpid, knlId);
+	else
+	  sprintf(kernelName, "BP%dDot_v%d", bpid, knlId);
       
-      int combineDot = 0;
-      combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
-      if(!combineDot)
-	sprintf(kernelName, "BP%d_v%d", BP->BPid, knlId);
-      else
-      	sprintf(kernelName, "BP%dDot_v%d", BP->BPid, knlId);
-      
-      printf("Loading: %s from %s\n", kernelName, fileName);
-      
-      BP->BPKernel = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
+	printf("Loading: %s from %s\n", kernelName, fileName);
+	
+	BP->BPKernel[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
+      }
       
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =

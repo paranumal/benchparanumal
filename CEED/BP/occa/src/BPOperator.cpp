@@ -34,7 +34,7 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
     setupAide &options = BP->options;
     mesh_t *mesh = BP->mesh;
 
-    occa::kernel &BPKernel = BP->BPKernel;
+    occa::kernel &BPKernel = BP->BPKernel[BP->BPid];
     
     int combineDot = 0;
     combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
