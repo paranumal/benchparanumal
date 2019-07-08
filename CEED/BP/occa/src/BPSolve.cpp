@@ -173,7 +173,7 @@ void BPZeroMean(BP_t *BP, occa::memory &o_q){
   mesh_t *mesh = BP->mesh;
 
   occa::memory &o_tmp = BP->o_tmp;
-
+  
   // this is a C0 thing [ assume GS previously applied to o_q ]
   BP->innerProductKernel(mesh->Nelements*mesh->Np, BP->o_invDegree, o_q, o_tmp);
   

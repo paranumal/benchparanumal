@@ -290,59 +290,37 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
                    kernelInfo);
 
       BP->weightedInnerProduct1Kernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                       "weightedInnerProduct1",
-                                       kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "weightedInnerProduct1", kernelInfo);
 
       BP->weightedInnerProduct2Kernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-				 "weightedInnerProduct2",
-				 kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "weightedInnerProduct2", kernelInfo);
       
       BP->weightedMultipleInnerProduct2Kernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-				 "weightedMultipleInnerProduct2",
-				 kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "weightedMultipleInnerProduct2", kernelInfo);
 
       BP->innerProductKernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                       "innerProduct",
-                                       kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "innerProduct", kernelInfo);
 
       BP->weightedNorm2Kernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                           "weightedNorm2",
-                                           kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "weightedNorm2", kernelInfo);
 
       BP->weightedMultipleNorm2Kernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-				 "weightedMultipleNorm2",
-				 kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "weightedMultipleNorm2", kernelInfo);
 
       BP->norm2Kernel =
-        mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                           "norm2",
-                                           kernelInfo);
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "norm2", kernelInfo);
 
       BP->scaledAddKernel =
-          mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                         "scaledAdd",
-                                         kernelInfo);
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "scaledAdd", kernelInfo);
 
       BP->dotMultiplyKernel =
-          mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                         "dotMultiply",
-                                         kernelInfo);
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "dotMultiply", kernelInfo);
 
       BP->dotMultiplyAddKernel =
-          mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                         "dotMultiplyAdd",
-                                         kernelInfo);
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "dotMultiplyAdd", kernelInfo);
 
       BP->dotDivideKernel =
-          mesh->device.buildKernel(DBP "/okl/utils.okl",
-                                         "dotDivide",
-                                         kernelInfo);
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "dotDivide", kernelInfo);
 
       // add custom defines
       
@@ -350,25 +328,21 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_Nverts"]= mesh->Nverts;
 
       int Nmax = mymax(mesh->Np, mesh->Nfaces*mesh->Nfp);
-      kernelInfo["defines/" "p_Nmax"]= Nmax;
-
       int maxNodes = mymax(mesh->Np, (mesh->Nfp*mesh->Nfaces));
-      kernelInfo["defines/" "p_maxNodes"]= maxNodes;
-
       int NblockV = mymax(1,maxNthreads/mesh->Np); // works for CUDA
       int NnodesV = 1; //hard coded for now
-      kernelInfo["defines/" "p_NblockV"]= NblockV;
-      kernelInfo["defines/" "p_NnodesV"]= NnodesV;
-
       int NblockS = mymax(1,maxNthreads/maxNodes); // works for CUDA
-      kernelInfo["defines/" "p_NblockS"]= NblockS;
-
       int NblockP = mymax(1,maxNthreads/(4*mesh->Np)); // get close to maxNthreads threads
-      kernelInfo["defines/" "p_NblockP"]= NblockP;
-
       int NblockG;
       if(mesh->Np<=32) NblockG = ( 32/mesh->Np );
       else NblockG = maxNthreads/mesh->Np;
+      
+      kernelInfo["defines/" "p_Nmax"]= Nmax;
+      kernelInfo["defines/" "p_maxNodes"]= maxNodes;
+      kernelInfo["defines/" "p_NblockV"]= NblockV;
+      kernelInfo["defines/" "p_NnodesV"]= NnodesV;
+      kernelInfo["defines/" "p_NblockS"]= NblockS;
+      kernelInfo["defines/" "p_NblockP"]= NblockP;
       kernelInfo["defines/" "p_NblockG"]= NblockG;
 
       kernelInfo["defines/" "p_halfC"]= (int)((mesh->cubNq+1)/2);
@@ -401,7 +375,6 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
 
       BP->updateMultiplePCGKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPMultipleUpdatePCG", kernelInfo);
-
       
      occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
       nothingKernel();
@@ -422,6 +395,4 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   MPI_Allreduce(&nullProjectWeightLocal, &nullProjectWeightGlobal, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
   
   BP->nullProjectWeightGlobal = 1./nullProjectWeightGlobal;
-
-
 }
