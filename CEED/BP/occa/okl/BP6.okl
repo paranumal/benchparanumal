@@ -47,7 +47,7 @@
     @exclusive dfloat r_q[p_Nq]; // register array to hold u(i,j,0:N) private to thread
     @exclusive dfloat r_Aq[p_Nq];// array for results Au(i,j,0:N)
 
-    @shared dfloat s_ggeo[p_Nggeo][p_cubNq][p_cubNq];
+    @shared dfloat s_ggeo[p_Nggeo][p_Nq][p_Nq];
 
     @exclusive dlong element;
     
@@ -193,7 +193,7 @@
     @exclusive dfloat r_q[p_Nq]; // register array to hold u(i,j,0:N) private to thread
     @exclusive dfloat r_Aq[p_Nq];// array for results Au(i,j,0:N)
 
-    @shared dfloat s_ggeo[p_Nggeo][p_cubNq][p_cubNq];
+    @shared dfloat s_ggeo[p_Nggeo][p_Nq][p_Nq];
 
     @exclusive dlong element;
     

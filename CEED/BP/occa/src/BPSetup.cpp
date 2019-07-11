@@ -110,16 +110,9 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	dlong fldid = id + fld*Ndof;
 	
 	// mass projection rhs
-	if(BP1 || BP2){
-	  BP->r[fldid] =
-	    JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
-	}
-	
-	// stiffness solve rhs
-	if(BP3 || BP4 || BP5 || BP6)
-	  BP->r[fldid] =
-	    JW*(3*mode*mode*M_PI*M_PI+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
-	
+	BP->r[fldid] =
+	  JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+
 	BP->x[fldid] = 0;
       }
     }

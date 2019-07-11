@@ -180,7 +180,7 @@
 @kernel void BP4_v1(const dlong Nelements,
 		    @restrict const dlong *elementList,
 		    const dlong offset,
-		    @restrict const dfloat *ggeo,
+		   @restrict const dfloat *ggeo,
 		    @restrict const dfloat *D,
 		    @restrict const dfloat *I,
 		    const dfloat lambda,
@@ -821,7 +821,6 @@
   }						
 
 
-
 @kernel void BP4_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
 		    const dlong offset,
@@ -886,6 +885,23 @@
     // Layer by layer
 #pragma unroll p_cubNq
     for(int k = 0;k < p_cubNq; k++){
+
+      @barrier("local");
+      
+      for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
+	for(int j=0;j<p_cubNq;++j;@inner(1)){
+	  for(int i=0;i<p_cubNq;++i;@inner(0)){
+	    
+	    const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	    int f = fld;
+	    
+	    while(f<p_Nggeo){
+	      s_ggeo[f][j][i] = ggeo[gbase+f*p_cubNp];
+	      f += p_Nfields;
+	    }
+	  }
+	}
+      }
       
       @barrier("local");
       
@@ -921,7 +937,7 @@
 
 	    r_GUt = G02*Ur + G12*Us + G22*Ut;
 	    
-	    r_AU[k] += GWJ*lambda*s_Ip[fld][k][j][i];
+	    r_AU[k] += GWJ*lambda*r_U[k];
 	  }
 	}
       }
@@ -1056,12 +1072,12 @@
 	    }
 	    
 	    // prefetch geometric factors
-	    const dlong gbase = element*p_Nggeo*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
+	    const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
 	    
 	    int f = fld;
 	    
 	    while(f<p_Nggeo){
-	      s_ggeo[f][j][i] = ggeo[gbase+f*p_Np];
+	      s_ggeo[f][j][i] = ggeo[gbase+f*p_cubNp];
 	      f += p_Nfields;
 	    }
 	    

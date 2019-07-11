@@ -1,26 +1,26 @@
 /*
 
-The MIT License (MIT)
+  The MIT License (MIT)
 
-Copyright (c) 2017 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+  Copyright (c) 2017 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
 
 */
 
@@ -169,47 +169,49 @@ int main(int argc, char **argv){
 	     combineDot,
 	     BP->BPid);
     }
-  }
   
-  if (options.compareArgs("VERBOSE", "TRUE")){
-    fflush(stdout);
-    MPI_Barrier(mesh->comm);
-    printf("rank %d has %d internal elements and %d non-internal elements\n",
-	   mesh->rank,
-	   mesh->NinternalElements,
-	   mesh->NnotInternalElements);
-    MPI_Barrier(mesh->comm);
-  }
-  
-  // copy solution from DEVICE to HOST
-  BP->o_x.copyTo(BP->q);
-
-  //  BPPlotVTU(BP, "foo", 0);
-  
-  dfloat maxError = 0;
-  for(dlong e=0;e<mesh->Nelements;++e){
-    for(int n=0;n<mesh->Np;++n){
-      dlong   id = e*mesh->Np+n;
-      dfloat xn = mesh->x[id];
-      dfloat yn = mesh->y[id];
-      dfloat zn = mesh->z[id];
-      
-      dfloat exact;
-      double mode = 1.0;
-      // hard coded to match the RHS used in BPSetup
-      exact = cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
-      
-      dfloat error = fabs(exact-BP->q[id]);
-      
-      maxError = mymax(maxError, error);
+    if (options.compareArgs("VERBOSE", "TRUE")){
+      fflush(stdout);
+      MPI_Barrier(mesh->comm);
+      printf("rank %d has %d internal elements and %d non-internal elements\n",
+	     mesh->rank,
+	     mesh->NinternalElements,
+	     mesh->NnotInternalElements);
+      MPI_Barrier(mesh->comm);
     }
-  }
   
-  dfloat globalMaxError = 0;
-  MPI_Allreduce(&maxError, &globalMaxError, 1, MPI_DFLOAT, MPI_MAX, mesh->comm);
-  if(mesh->rank==0)
-    printf("globalMaxError = %g\n", globalMaxError);
+    // copy solution from DEVICE to HOST
+    BP->o_x.copyTo(BP->q);
+
+    //  BPPlotVTU(BP, "foo", 0);
   
+    dfloat maxError = 0;
+    for(dlong e=0;e<mesh->Nelements;++e){
+      for(int n=0;n<mesh->Np;++n){
+	dlong   id = e*mesh->Np+n;
+	dfloat xn = mesh->x[id];
+	dfloat yn = mesh->y[id];
+	dfloat zn = mesh->z[id];
+      
+	dfloat exact;
+	double mode = 1.0;
+	// hard coded to match the RHS used in BPSetup
+	exact = cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	
+	if(BP->BPid>2)
+	  exact /= (3.*mode*mode*M_PI*M_PI+lambda);
+      
+	dfloat error = fabs(exact-BP->q[id]);
+      
+	maxError = mymax(maxError, error);
+      }
+    }
+  
+    dfloat globalMaxError = 0;
+    MPI_Allreduce(&maxError, &globalMaxError, 1, MPI_DFLOAT, MPI_MAX, mesh->comm);
+    if(mesh->rank==0)
+      printf("globalMaxError = %g\n", globalMaxError);
+  }  
   // close down MPI
   MPI_Finalize();
 
