@@ -93,7 +93,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   BP->x   = (dfloat*) calloc(Nall,   sizeof(dfloat));
   BP->q   = (dfloat*) calloc(Nall,   sizeof(dfloat));
 
-
+#if 0
   for(dlong e=0;e<mesh->Nelements;++e){
     for(int n=0;n<mesh->Np;++n){
 
@@ -117,7 +117,53 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
       }
     }
   }
-  
+#else
+  int cubNp = mesh->cubNq*mesh->cubNq*mesh->cubNq;
+
+  dfloat cubrhs[BP->Nfields][cubNp];
+  dfloat *cubx = (dfloat*) calloc(cubNp, sizeof(dfloat));
+  dfloat *cuby = (dfloat*) calloc(cubNp, sizeof(dfloat));
+  dfloat *cubz = (dfloat*) calloc(cubNp, sizeof(dfloat));
+  dfloat *cubInterpT = (dfloat*) calloc(mesh->cubNq*mesh->Nq, sizeof(dfloat));
+
+  for(int i=0;i<mesh->cubNq;++i){
+    for(int a=0;a<mesh->Nq;++a){
+      cubInterpT[a*mesh->cubNq + i] = mesh->cubInterp[i*mesh->Nq+a];
+    }
+  }
+
+  for(dlong e=0;e<mesh->Nelements;++e){
+
+    interpolateHex3D(mesh->cubInterp, mesh->x+e*mesh->Np, mesh->Nq, cubx, mesh->cubNq);
+    interpolateHex3D(mesh->cubInterp, mesh->y+e*mesh->Np, mesh->Nq, cuby, mesh->cubNq);
+    interpolateHex3D(mesh->cubInterp, mesh->z+e*mesh->Np, mesh->Nq, cubz, mesh->cubNq);
+    
+    for(int n=0;n<cubNp;++n){
+      
+      dfloat JW = mesh->cubggeo[cubNp*(e*mesh->Nggeo + GWJID) + n];
+      dfloat xn = cubx[n];
+      dfloat yn = cuby[n];
+      dfloat zn = cubz[n];
+      
+      dfloat mode = 1;
+
+      for(int fld=0;fld<BP->Nfields;++fld){
+	// mass projection rhs
+	cubrhs[fld][n] =
+	  JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+      }
+    }
+
+    for(int fld=0;fld<BP->Nfields;++fld){
+      for(int n=0;n<mesh->Np;++n){
+	dlong fldid = n + fld*Ndof + e*mesh->Np;
+	BP->x[fldid] = 0;
+      }
+      
+      interpolateHex3D(cubInterpT, cubrhs[fld], mesh->cubNq, BP->r + e*mesh->Np + fld*Ndof, mesh->Nq);
+    }
+  }
+#endif
   //copy to occa buffers
   BP->o_r   = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
   BP->o_x   = mesh->device.malloc(Nall*sizeof(dfloat), BP->x);
