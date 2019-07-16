@@ -157,7 +157,7 @@ typedef struct {
 
 BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAide options);
 
-int  BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x);
+int  BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed);
 
 void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo);
 
@@ -166,7 +166,7 @@ void BPInterimHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *se
 void BPEndHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *recvBuffer);
 
 //Linear solvers
-int BPPCG (BP_t* BP, dfloat lambda, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT); 
+int BPPCG (BP_t* BP, dfloat lambda, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT, double *opElapsed); 
 
 void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::memory &o_b);
 dfloat BPWeightedInnerProduct(BP_t *BP, occa::memory &o_w, occa::memory &o_a, occa::memory &o_b);

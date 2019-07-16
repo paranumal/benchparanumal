@@ -37,7 +37,7 @@ double getTod(){
 }
 
 
-int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x){
+int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed){
   
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
@@ -53,7 +53,7 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
     BPZeroMean(BP, o_r);
   
   // solve with preconditioned conjugate gradient (no precon)
-  Niter = BPPCG(BP, lambda, o_r, o_x, tol, maxIter);
+  Niter = BPPCG(BP, lambda, o_r, o_x, tol, maxIter, opElapsed);
 
   // zero mean of RHS
   if(BP->allNeumann) 
@@ -66,7 +66,8 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
 // FROM NEKBONE: not appropriate since it assumes zero initial data
 int BPPCG(BP_t* BP, dfloat lambda, 
 	  occa::memory &o_r, occa::memory &o_x, 
-	  const dfloat tol, const int MAXIT){
+	  const dfloat tol, const int MAXIT,
+	  double *opElapsed){
   
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
@@ -91,6 +92,9 @@ int BPPCG(BP_t* BP, dfloat lambda,
   occa::memory &o_Ap = BP->o_Ap;
   occa::memory &o_Ax = BP->o_Ax;
 
+  occa::streamTag starts[MAXIT];
+  occa::streamTag ends[MAXIT];
+  
   rdotz1 = 1;
 
   dfloat rdotr0;
@@ -132,9 +136,13 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
+    starts[iter-1] = BP->mesh->device.tagStream();
+    
     // Ap and p.Ap
     pAp = BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
 
+    ends[iter-1] = BP->mesh->device.tagStream();
+    
     // alpha = r.z/p.Ap
     alpha = rdotz1/pAp;
 
@@ -157,6 +165,19 @@ int BPPCG(BP_t* BP, dfloat lambda,
     
   }
 
+  BP->mesh->device.finish();
+
+  double elapsed = 0;
+  for(int it=1;it<iter;++it){
+    elapsed += BP->mesh->device.timeBetween(starts[it-1], ends[it-1]);
+  }
+
+  *opElapsed += elapsed;
+  
+  elapsed /= iter;
+
+  printf("%e, %e ; \%\% (OP(x): elapsed, GNodes/s)\n", elapsed, BP->mesh->Nelements*BP->mesh->Np/(1.e9*elapsed));
+  
   //  printf("Elapsed: Ax = %e, Dot = %e\n", elapsedAx, elapsedDot);
   
   return iter;

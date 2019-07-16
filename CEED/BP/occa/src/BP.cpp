@@ -105,6 +105,8 @@ int main(int argc, char **argv){
     int Ntests = 1;
     occa::streamTag *startTags = new occa::streamTag[Ntests];
     occa::streamTag *stopTags  = new occa::streamTag[Ntests];
+
+    double opElapsed = 0;
     
     it = 0;
     for(int test=0;test<Ntests;++test){
@@ -112,7 +114,7 @@ int main(int argc, char **argv){
       o_x.copyTo(BP->o_x);
       startTags[test] = mesh->device.tagStream();
       
-      it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x);
+      it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x, &opElapsed);
       
       stopTags[test] = mesh->device.tagStream();
     }
@@ -155,21 +157,22 @@ int main(int argc, char **argv){
       printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
 	     elapsed, globalElapsed, globalNelements);
       
-      printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d, %d; "
-	     "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, BPid\n",
+      printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d, %g, %d; "
+	     "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid\n",
 	     mesh->N,
 	     mesh->Nelements,
 	     globalNelements*mesh->Np,
 	     globalElapsed,
 	     it,
 	     globalElapsed/(mesh->Np*globalNelements),
-	     globalNelements*(it*mesh->Np/globalElapsed),
+	     BP->Nfields*globalNelements*(it*mesh->Np/globalElapsed),
 	     bw,
 	     knlId,
 	     combineDot,
+	     (it*BP->Nfields*mesh->Np*globalNelements)/(opElapsed),
 	     BP->BPid);
     }
-  
+    
     if (options.compareArgs("VERBOSE", "TRUE")){
       fflush(stdout);
       MPI_Barrier(mesh->comm);
