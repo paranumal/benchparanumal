@@ -443,8 +443,8 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BK5Setup(mesh->Nelements,
 	   mesh->Nq,
 	   mesh->D, 
-	   &BP->c_DofToDofD,
-	   &BP->c_oddDofToDofD,
-	   &BP->c_evenDofToDofD);
+	   &(BP->c_DofToDofD),
+	   &(BP->c_oddDofToDofD),
+	   &(BP->c_evenDofToDofD));
 #endif
 }

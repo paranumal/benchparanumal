@@ -26,13 +26,13 @@ LD	= mpic++
 
 NVCC	= nvcc
 
-
+compilerFlags += -DUSE_CUDA_NATIVE=0
 compilerFlags += -Ddfloat=double
 compilerFlags += -Ddlong=int
 compilerFlags += -DdfloatString='"double"'
 compilerFlags += -DdlongString='"int"'
 
-nvccFlags = -Ddfloat=double -Ddlong=int -DdfloatString='"double"' -DdlongString='"int"'  -I../../core -I../../../../devParanumal/libs/gatherScatter/  -D DBP='"/home/tcew/Work/git/benchparanumal/CEED/BP/occa"'  -I./ -g
+nvccFlags = -Ddfloat=double -Ddlong=int -DdfloatString='"double"' -DdlongString='"int"'  -I../../core -I../../../../devParanumal/libs/gatherScatter/  -D DBP='"/home/tcew/Work/git/benchparanumal/CEED/BP/occa"'  -I./ -g 
 
 
 # s-I$(ALMONDDIR)
