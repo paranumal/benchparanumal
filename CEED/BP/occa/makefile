@@ -23,10 +23,16 @@ FC	= mpif77
 CC	= mpic++
 LD	= mpic++
 
+NVCC	= nvcc
+
+
 compilerFlags += -Ddfloat=double
 compilerFlags += -Ddlong=int
 compilerFlags += -DdfloatString='"double"'
 compilerFlags += -DdlongString='"int"'
+
+nvccFlags = -Ddfloat=double -Ddlong=int -DdfloatString='"double"' -DdlongString='"int"'  -I../../core -I../../../../devParanumal/libs/gatherScatter/  -D DBP='"/home/tcew/Work/git/benchparanumal/CEED/BP/occa"'  -I./ -g
+
 
 # s-I$(ALMONDDIR)
 # compiler flags to be used (set to compile with debugging on)
@@ -40,7 +46,7 @@ PARMETISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libparmetis/
 METISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libmetis
 
 # libraries to be linked in
-LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(links) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran
+LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(links) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran -lcudart -lcuda
 
 #-L$(PARMETISDIR) -lparmetis -L$(METISDIR) -lmetis  -L$(ALMONDDIR) -lparAlmond
 
@@ -54,7 +60,7 @@ $(OGSDIR)/ogs.hpp \
 #$(ALMONDDIR)/parAlmond.hpp \
 
 # types of files we are going to construct rules for
-.SUFFIXES: .c .f
+.SUFFIXES: .c .f .cu .cpp
 
 # rule for .c files
 .c.o: $(DEPS)
@@ -62,6 +68,9 @@ $(OGSDIR)/ogs.hpp \
 
 .cpp.o: $(DEPS)
 	$(CC) $(CFLAGS) -o $*.o -c $*.cpp $(paths)
+
+.cu.o: $(DEPS)
+	$(NVCC) $(nvccFlags) -o $*.o -c $*.cu $(paths)
 
 .f.o: $(DEPS)
 	$(FC) $(CFLAGS) -o $*.o -c $*.f $(paths)
@@ -71,6 +80,7 @@ $(OGSDIR)/ogs.hpp \
 
 # list of objects to be compiled
 AOBJS    = \
+./src/BK5.o\
 ./src/BP.o \
 ./src/BPSetup.o \
 ./src/BPSolve.o\

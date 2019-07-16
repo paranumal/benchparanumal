@@ -56,7 +56,26 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
 	BPKernel(Nelements, o_elementList, offset, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);	
 	break;
       case 5:
-	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
+
+	mesh->device.finish();
+#if USE_CUDA_NATIVE==1
+	printf("ENTERING NATIVE CUDA KERNEL\n");
+	BK5(Nelements,
+	    mesh->Nq,
+	    lambda,
+	    (dfloat*) mesh->o_ggeo.ptr(),
+	    BP->c_DofToDofD,
+	    BP->c_oddDofToDofD,
+	    BP->c_evenDofToDofD,
+	    (dfloat*) o_q.ptr(),
+	    (dfloat*) o_Aq.ptr(),
+	    BP->knlId);
+	printf("LEAVING NATIVE CUDA KERNEL\n");
+#else
+	BPKernel(Nelements, o_elementList, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);	
+#endif
+
+	
 	break;
       case 6:
 	BPKernel(Nelements, o_elementList, offset, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);

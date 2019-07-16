@@ -189,6 +189,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
 
   int knlId = 0;
   options.getArgs("KERNEL ID", knlId);
+  BP->knlId = knlId;
   
   dlong Ntotal = mesh->Np*mesh->Nelements;
   dlong Nhalo  = mesh->Np*mesh->totalHaloPairs;
@@ -392,7 +393,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
 
       char kernelName[BUFSIZ], fileName[BUFSIZ];
       BP->BPKernel = (occa::kernel*) new occa::kernel[7];
-      for(int bpid=1;bpid<=6;++bpid){
+      //      for(int bpid=1;bpid<=6;++bpid){
+      int bpid = BP->BPid;
+      {
 
 	sprintf(fileName, "%s/okl/BP%d.okl", DBP, bpid);
 	
@@ -434,4 +437,14 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   MPI_Allreduce(&nullProjectWeightLocal, &nullProjectWeightGlobal, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
   
   BP->nullProjectWeightGlobal = 1./nullProjectWeightGlobal;
+
+#if USE_CUDA_NATIVE==1
+  // do NATIVE CUDA STUFF
+  BK5Setup(mesh->Nelements,
+	   mesh->Nq,
+	   mesh->D, 
+	   &BP->c_DofToDofD,
+	   &BP->c_oddDofToDofD,
+	   &BP->c_evenDofToDofD);
+#endif
 }

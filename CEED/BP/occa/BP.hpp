@@ -32,6 +32,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 #include "mpi.h"
+#include "params.h"
 #include "mesh.h"
 
 // block size for reduction (hard coded)
@@ -51,6 +52,7 @@ typedef struct{
 typedef struct {
 
   int BPid;
+  int knlId;
   
   int dim;
   int elementType; // number of edges (3=tri, 4=quad, 6=tet, 12=hex)
@@ -153,6 +155,11 @@ typedef struct {
   hlong NelementsGlobal;
   dfloat nullProjectWeightGlobal;
 
+  /* NATIVE CUDA ARRAYS */
+  dfloat *c_DofToDofD;
+  dfloat *c_oddDofToDofD;
+  dfloat *c_evenDofToDofD;
+  
 }BP_t;
 
 BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAide options);
@@ -191,6 +198,13 @@ void BPPlotVTU(BP_t *BP, const char *fileNameBase, int fld);
 occa::properties BPKernelInfo(mesh_t *mesh);
 
 void BPZeroMean(BP_t *BP, occa::memory &o_q);
+
+void BK5(int numElements, int Nq, dfloat lambda, dfloat *c_op, dfloat *c_DofToDofD, dfloat *c_oddDofToDofD, dfloat *c_evenDofToDofD,
+	 dfloat *c_solIn, dfloat *c_solOut, int mode);
+
+void BK5Setup(int numElements, int Nq, dfloat *h_DofToDofD,
+	      dfloat **c_DofToDofD, dfloat **c_oddDofToDofD, dfloat **c_evenDofToDofD);
+
 
 #endif
 

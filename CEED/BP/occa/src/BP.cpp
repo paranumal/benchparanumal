@@ -97,7 +97,9 @@ int main(int argc, char **argv){
   
   int it;
   int bpstart = BP->BPid;
-  for(int bpid=bpstart;bpid<=6;bpid+=2){
+  int bpid = BP->BPid;
+  //  for(int bpid=bpstart;bpid<=6;bpid+=2){
+  {
     BP->BPid = bpid;
     
     MPI_Barrier(mesh->comm);
