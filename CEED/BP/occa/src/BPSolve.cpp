@@ -92,15 +92,15 @@ int BPPCG(BP_t* BP, dfloat lambda,
   occa::memory &o_Ap = BP->o_Ap;
   occa::memory &o_Ax = BP->o_Ax;
 
-  occa::streamTag starts[MAXIT];
-  occa::streamTag ends[MAXIT];
+  occa::streamTag starts[MAXIT+1];
+  occa::streamTag ends[MAXIT+1];
   
   rdotz1 = 1;
 
   dfloat rdotr0;
 
   // compute A*x
-  dfloat pAp = BPOperator(BP, lambda, o_x, BP->o_Ax, dfloatString);
+  dfloat pAp = BPOperator(BP, lambda, o_x, BP->o_Ax, dfloatString, starts, ends); 
   
   // subtract r = b - A*x
   BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
@@ -136,12 +136,8 @@ int BPPCG(BP_t* BP, dfloat lambda,
     // p = z + beta*p
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
-    starts[iter-1] = BP->mesh->device.tagStream();
-    
     // Ap and p.Ap
-    pAp = BPOperator(BP, lambda, o_p, o_Ap, dfloatString); 
-
-    ends[iter-1] = BP->mesh->device.tagStream();
+    pAp = BPOperator(BP, lambda, o_p, o_Ap, dfloatString, starts+iter, ends+iter); 
     
     // alpha = r.z/p.Ap
     alpha = rdotz1/pAp;
@@ -168,8 +164,8 @@ int BPPCG(BP_t* BP, dfloat lambda,
   BP->mesh->device.finish();
 
   double elapsed = 0;
-  for(int it=1;it<iter;++it){
-    elapsed += BP->mesh->device.timeBetween(starts[it-1], ends[it-1]);
+  for(int it=0;it<=iter;++it){
+    elapsed += BP->mesh->device.timeBetween(starts[it], ends[it]);
   }
 
   *opElapsed += elapsed;

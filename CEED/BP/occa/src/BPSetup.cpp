@@ -111,7 +111,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	
 	// mass projection rhs
 	BP->r[fldid] =
-	  JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	  (3.*M_PI*M_PI*mode*mode+lambda)*JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
 
 	BP->x[fldid] = 0;
       }
@@ -150,7 +150,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
       for(int fld=0;fld<BP->Nfields;++fld){
 	// mass projection rhs
 	cubrhs[fld][n] =
-	  JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	  (3.*M_PI*M_PI*mode*mode+lambda)*JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
       }
     }
 

@@ -110,7 +110,7 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
   }
 }
 
-dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision){
+dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *start, occa::streamTag *end){
 
   mesh_t *mesh = BP->mesh;
   setupAide &options = BP->options;
@@ -126,14 +126,21 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq
   
   int BPid = BP->BPid;
 
+  
   runBPKernel(BP, lambda, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
 
   if(BP->Nfields==1)
     ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
   else
     ogsGatherScatterManyStart(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
+
+  if(start)
+    *start = BP->mesh->device.tagStream();
   
   runBPKernel(BP, lambda, mesh->NlocalGatherElements, mesh->o_localGatherElementList, o_q, o_Aq);
+
+  if(end)
+    *end = BP->mesh->device.tagStream();
   
   // finalize gather using local and global contributions
   if(BP->Nfields==1)

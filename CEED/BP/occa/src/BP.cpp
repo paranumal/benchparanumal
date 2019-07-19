@@ -104,16 +104,18 @@ int main(int argc, char **argv){
     
     MPI_Barrier(mesh->comm);
     
-    int Ntests = 1;
+    int Ntests = 4;
     occa::streamTag *startTags = new occa::streamTag[Ntests];
     occa::streamTag *stopTags  = new occa::streamTag[Ntests];
 
     double opElapsed = 0;
-    
+
     it = 0;
     for(int test=0;test<Ntests;++test){
+
       o_r.copyTo(BP->o_r);
       o_x.copyTo(BP->o_x);
+      
       startTags[test] = mesh->device.tagStream();
       
       it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x, &opElapsed);
@@ -127,7 +129,7 @@ int main(int argc, char **argv){
     for(int test=0;test<Ntests;++test){
       elapsed += mesh->device.timeBetween(startTags[test], stopTags[test]);
     }
-    
+
     double globalElapsed;
     hlong globalNelements, localNelements=mesh->Nelements;
     
@@ -201,7 +203,7 @@ int main(int argc, char **argv){
 	dfloat exact;
 	double mode = 1.0;
 	// hard coded to match the RHS used in BPSetup
-	exact = cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
+	exact = (3.*M_PI*M_PI*mode*mode+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
 	
 	if(BP->BPid>2)
 	  exact /= (3.*mode*mode*M_PI*M_PI+lambda);
