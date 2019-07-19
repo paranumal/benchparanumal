@@ -5,7 +5,7 @@ flags += -DdfloatString='"double"'
 flags += -I../../../core
 
 BK5: BK5.cu
-	mpic++ $(flags) -c  -I../../core/ ../../core/meshBasis.cpp
+	mpic++ $(flags) -c  -I../../../core/ ../../../core/meshBasis.cpp
 	nvcc $(flags) -o BK5 $(cudaFlags) BK5.cu  meshBasis.o -llapack -lblas
 
 clean:

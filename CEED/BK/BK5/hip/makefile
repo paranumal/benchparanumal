@@ -6,7 +6,7 @@ flags += -DdfloatString='"double"'
 flags += -I../../../core
 
 BK5: BK5.cpp makefile
-	mpic++ $(flags) -c  -I../../core/ ../../core/meshBasis.cpp
+	mpic++ $(flags) -c  -I../../../core/ ../../../core/meshBasis.cpp
 	hipcc $(flags) -o BK5 $(hipFlags) BK5.cpp meshBasis.o -llapack -lblas
 
 clean:
