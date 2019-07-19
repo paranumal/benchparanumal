@@ -3,7 +3,7 @@
 rm BK5
 make
 
-let Ndof=8000000
+let Ndof=2000000
 
 # to run a sweep
 for Nq in `seq 2 1 10`
@@ -14,7 +14,10 @@ do
     
     let E=($Ndof+$Np)/$Np
     
-    echo $E    
-    ./BK5 $Nq $E CUDA 0 0 
+    echo $E
+    for mode in `seq 0 4`
+    do
+	./BK5 $Nq $E $mode CUDA 0 0
+    done
 done
       
