@@ -2,7 +2,7 @@ cudaFlags =  -arch=sm_70   --use_fast_math -Xptxas -v,-dlcm=ca,-O3 -Xcompiler -O
 
 flags = -Ddfloat=double
 flags += -DdfloatString='"double"'
-flags += -I../../core
+flags += -I../../../core
 
 BK5: BK5.cu
 	mpic++ $(flags) -c  -I../../core/ ../../core/meshBasis.cpp

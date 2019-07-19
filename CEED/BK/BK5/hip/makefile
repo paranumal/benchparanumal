@@ -3,7 +3,7 @@ hipFlags = --amdgpu-target=gfx906  -O3 -ffp-contract=fast
 
 flags = -Ddfloat=double
 flags += -DdfloatString='"double"'
-flags += -I../../core
+flags += -I../../../core
 
 BK5: BK5.cpp makefile
 	mpic++ $(flags) -c  -I../../core/ ../../core/meshBasis.cpp
