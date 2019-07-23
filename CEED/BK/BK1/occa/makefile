@@ -1,6 +1,6 @@
 
 PROJ_DIR=./
-CORE_DIR=../../core
+CORE_DIR=../../../core
 
 ifndef OCCA_DIR
 ERROR:
