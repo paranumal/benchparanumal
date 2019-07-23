@@ -15,6 +15,6 @@ do
     let E=($Ndof+$Np)/$Np
     
     echo $E    
-    ./BK1 $Nq $cubNq $E 1
+    ./BK1 $Nq $cubNq $E CUDA 0 0
 done
       

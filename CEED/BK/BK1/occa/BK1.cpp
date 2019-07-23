@@ -190,8 +190,11 @@ int main(int argc, char **argv){
   // --------------------------------------------------------------------------------
   // Run multiple tests
   
+  // warm up
+  BK1Kernel(Nelements, o_ggeo, o_INToC, o_q, o_Aq);
+  
   // run Ntests times
-  int Ntests = 10;
+  int Ntests = 50;
 
   start = device.tagStream();
 
