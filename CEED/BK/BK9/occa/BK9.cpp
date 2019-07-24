@@ -66,26 +66,28 @@ int main(int argc, char **argv){
 
   // ./BK9 NqV NqP Nelements ThreadModel PlatformNumber DeviceNumber
 
-  if(argc<5){
-    printf("Usage: ./BK9 NqV NqP Nelements ThreadModel PlatformNumber DeviceNumber\n");
+  if(argc<6){
+    printf("Usage: ./BK9 NqV NqP Nelements mode ThreadModel PlatformNumber DeviceNumber\n");
     exit(-1);
   }
     
   int NqV = atoi(argv[1]);
   int NqP = atoi(argv[2]);
   dlong Nelements = atoi(argv[3]);
-  char *threadModel = strdup(argv[4]);
+  int mode  = atoi(argv[4]);
 
+  char *threadModel = strdup(argv[5]);
+  
   int deviceId = 0;
-
-  if(argc>=6)
-    deviceId = atoi(argv[5]);
+  
+  if(argc>=7)
+    deviceId = atoi(argv[6]);
   
   int platformId = 0;
-  if(argc>=7)
-    platformId = atoi(argv[6]);
+  if(argc>=8)
+    platformId = atoi(argv[7]);
 
-  printf("Running: NqV=%d, NqP=%d, Nelements=%d\n", NqV, NqP, Nelements);
+  printf("Running: NqV=%d, NqP=%d, Nelements=%d, mode=%d\n", NqV, NqP, Nelements, mode);
   
   int NV = NqV-1;
   int NP = NqP-1;
@@ -174,8 +176,10 @@ int main(int argc, char **argv){
   props["defines/dlong"]  = dlongString;
 
   // ------------------------------------------------------------------------------
-  // build kernel  
-  occa::kernel BK9Kernel = device.buildKernel("BK9.okl", "BK9", props);
+  // build kernel
+  char kernelName[BUFSIZ];
+  sprintf(kernelName, "BK9_v%02d", mode);
+  occa::kernel BK9Kernel = device.buildKernel("BK9.okl", kernelName, props);
 
   // ------------------------------------------------------------------------------
   // populate device arrays
