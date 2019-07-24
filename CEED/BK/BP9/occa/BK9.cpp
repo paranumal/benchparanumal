@@ -95,8 +95,9 @@ int main(int argc, char **argv){
 
   int Nvgeo = 10;
   int Ndim  = 3;
-  
-  dfloat lambda = 0;
+
+  dfloat lambda = 1;
+  dfloat mu = 1;
   
   dlong offset = Nelements*NpV;
 
@@ -195,7 +196,7 @@ int main(int argc, char **argv){
   occa::streamTag start, end;
 
   // warm up
-  BK9Kernel(Nelements, offset, o_vgeo, o_DrV, o_IPToV, lambda, o_eta, o_q, o_Aq);
+  BK9Kernel(Nelements, offset, o_vgeo, o_DrV, o_IPToV, lambda, mu, o_eta, o_q, o_Aq);
 
   device.finish();
   
@@ -205,7 +206,7 @@ int main(int argc, char **argv){
   start = device.tagStream();
 
   for(int test=0;test<Ntests;++test)
-    BK9Kernel(Nelements, offset, o_vgeo, o_DrV, o_IPToV, lambda, o_eta, o_q, o_Aq);
+    BK9Kernel(Nelements, offset, o_vgeo, o_DrV, o_IPToV, lambda, mu, o_eta, o_q, o_Aq);
   
   end = device.tagStream();
 

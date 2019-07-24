@@ -186,6 +186,7 @@
 		     @restrict const dfloat *D,
 		     @restrict const dfloat *I,
 		     const dfloat lambda,
+		     const dfloat mu,	
 		     @restrict const dfloat *eta,
 		     @restrict const dfloat *q,
 		     @restrict dfloat *Aq){
@@ -308,7 +309,7 @@
 	  // use raised pressure
 	  const dfloat pk = r_p[k];
 
-	  const dfloat eta_kji = eta[pid];
+	  const dfloat eta_kji = mu*eta[pid];
 	  
           // prefetch geometric factors
           const dlong gbase = e*p_Nvgeo*p_NpV + k*p_NqV*p_NqV + j*p_NqV + i;
@@ -434,6 +435,7 @@
 		     @restrict const dfloat *D,
 		     @restrict const dfloat *I,
 		     const dfloat lambda,
+		     const dfloat mu,
 		     @restrict const dfloat *eta,
 		     @restrict const dfloat *q,
 		     @restrict dfloat *Aq)
@@ -532,7 +534,7 @@
 
 	  const dfloat pk = r_p[k];
 
-	  const dfloat eta_kji = eta[pid];
+	  const dfloat eta_kji = mu*eta[pid];
 	  
           // prefetch geometric factors
           const dlong gbase = e*p_Nvgeo*p_NpV + k*p_NqV*p_NqV + j*p_NqV + i;
