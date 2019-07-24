@@ -41,8 +41,7 @@
     }						\
   }						\
   						\
-  @barrier("local");				\
-  						\
+						\
   /* raise in b */				\
   for(int k=0;k<p_NqV;++k;@inner(1)){		\
     for(int a=0;a<p_NqV;++a;@inner(0)){		\
@@ -63,8 +62,6 @@
     }						\
   }						\
 						\
-  @barrier("local");				\
-						\
   /* raise in a */				\
   for(int k=0;k<p_NqV;++k;@inner(1)){		\
     for(int j=0;j<p_NqV;++j;@inner(0)){		\
@@ -82,8 +79,6 @@
     }						\
   }						\
   						\
-  @barrier("local");				\
-  						\
   /* copy back to registers */			\
   for(int j=0;j<p_NqV;++j;@inner(1)){		\
     for(int i=0;i<p_NqV;++i;@inner(0)){		\
@@ -93,8 +88,6 @@
     }						\
   }						\
   						\
-  @barrier("local");				\
-						\
   }						\
 
 #define lowerDegreeHex3D(s_I, r_p)		\
@@ -113,8 +106,6 @@
       }						\
     }						\
   }						\
-						\
-  @barrier("local");				\
 						\
   /* lower in 'j' */				\
   for(int c=0;c<p_NqV;++c;@inner(1)){		\
@@ -137,8 +128,6 @@
     }						\
   }						\
 						\
-  @barrier("local");				\
-						\
   /* lower in 'i' */				\
   for(int c=0;c<p_NqV;++c;@inner(1)){		\
     for(int b=0;b<p_NqV;++b;@inner(0)){		\
@@ -160,8 +149,6 @@
     }						\
   }						\
 						\
-  @barrier("local");				\
-						\
   /* copy back to registers */			\
   for(int b=0;b<p_NqV;++b;@inner(1)){		\
     for(int a=0;a<p_NqV;++a;@inner(0)){		\
@@ -172,8 +159,6 @@
       }						\
     }						\
   }						\
-						\
-  @barrier("local");				\
 						\
   }						
 
@@ -252,8 +237,6 @@
 #pragma unroll p_NqV
     for(int k = 0;k < p_NqV; k++){
 
-      @barrier("local");
-
       for(int j=0;j<p_NqV;++j;@inner(1)){
         for(int i=0;i<p_NqV;++i;@inner(0)){
 
@@ -276,8 +259,6 @@
           }
         }
       }
-
-      @barrier("local");
 
       for(int j=0;j<p_NqV;++j;@inner(1)){
         for(int i=0;i<p_NqV;++i;@inner(0)){
@@ -364,8 +345,6 @@
 
         }
       }
-
-      @barrier("local");
 
       for(int j=0;j<p_NqV;++j;@inner(1)){
         for(int i=0;i<p_NqV;++i;@inner(0)){
@@ -499,8 +478,6 @@
 #pragma unroll p_NqV
     for(int k = 0;k < p_NqV; k++){
 
-      @barrier("local");
-
       for(int j=0;j<p_NqV;++j;@inner(1)){
         for(int i=0;i<p_NqV;++i;@inner(0)){
 
@@ -600,8 +577,6 @@
         }
       }
 
-      @barrier("local");
-
       for(int j=0;j<p_NqV;++j;@inner(1)){
         for(int i=0;i<p_NqV;++i;@inner(0)){
 
@@ -661,80 +636,6 @@
       for(int b=0;b<p_NqV;++b;@inner(1))	\
 	for(int a=0;a<p_NqV;++a;@inner(0))	\
 
-
-#define cubeRaiseDegreeHex3D(s_I, s_p, s_Ip)	\
-  {						\
-    cubeThreads(k,b,a){				\
-      if(a<p_NqP && b<p_NqP){			\
-	dfloat res = 0;				\
-	for(int c=0;c<p_NqP;++c){		\
-	  res += s_I[k][c]*s_p[c][b][a];	\
-	}					\
-	s_Ip[k][b][a] = res;			\
-      }						\
-    }						\
-    						\
-    @barrier("local");				\
-    						\
-    cubeThreads(k,j,a){				\
-      if(a<p_NqP){				\
-	dfloat res = 0;				\
-	for(int b=0;b<p_NqP;++b){		\
-	  res += s_I[j][b]*s_Ip[k][b][a];	\
-	}					\
-	s_p[k][j][a] = res;			\
-      }						\
-    }						\
-    						\
-    @barrier("local");				\
-  						\
-    cubeThreads(k,j,i){				\
-      dfloat res = 0;				\
-      for(int a=0;a<p_NqP;++a){			\
-	res += s_I[i][a]*s_p[k][j][a];		\
-      }						\
-      s_Ip[k][j][i] = res;			\
-    }						\
-  }
-
-
-#define cubeLowerDegreeHex3D(s_I, s_p, r_p)	\
-  {						\
-  						\
-    cubeThreads(c,j,i){				\
-      if(c<p_NqP){				\
-	dfloat res = 0;				\
-	for(int k=0;k<p_NqV;++k){		\
-	  res += s_I[k][c]*s_p[k][j][i];	\
-	}					\
-	s_Ip[c][j][i] = res;			\
-      }						\
-    }						\
-						\
-    @barrier("local");				\
-  						\
-    cubeThreads(c,b,i){				\
-      if(b<p_NqP&&c<p_NqP){			\
-	dfloat res = 0;				\
-	for(int j=0;j<p_NqV;++j){		\
-	  res += s_I[j][b]*s_Ip[c][j][i];	\
-	}					\
-	s_p[c][b][i] = res;			\
-      }						\
-    }						\
-  						\
-    @barrier("local");				\
-    cubeThreads(c,b,a){				\
-      dfloat res = 0;				\
-      for(int i=0;i<p_NqV;++i){			\
-	res += s_I[i][a]*s_p[c][b][i];		\
-      }						\
-      r_p =  res;				\
-    }						\
-  }
-
-
-
 @kernel void BK9_v02(const dlong Nelements,
 		     const dlong offset,
 		     @restrict const dfloat *vgeo,
@@ -792,11 +693,41 @@
       }
     }
     
-    // raise pressure degree
-    cubeRaiseDegreeHex3D(s_I, s_p, s_Ip);
+    // START raise pressure degree ----------------------------------------------------------
+     cubeThreads(k,b,a){				
+      if(a<p_NqP && b<p_NqP){			
+	dfloat res = 0;
+#pragma unroll p_NqP
+	for(int c=0;c<p_NqP;++c){		
+	  res += s_I[k][c]*s_p[c][b][a];	
+	}					
+	s_Ip[k][b][a] = res;			
+      }						
+    }						
+    
+    cubeThreads(k,j,a){				
+      if(a<p_NqP){				
+	dfloat res = 0;
+#pragma unroll p_NqP
+	for(int b=0;b<p_NqP;++b){		
+	  res += s_I[j][b]*s_Ip[k][b][a];	
+	}					
+	s_p[k][j][a] = res;			
+      }						
+    }						
+    
+    cubeThreads(k,j,i){				
+      dfloat res = 0;
+#pragma unroll p_NqP
+      for(int a=0;a<p_NqP;++a){			
+	res += s_I[i][a]*s_p[k][j][a];		
+      }						
+      r_p = res;			
+    }
+    // END raise pressure degree ----------------------------------------------------------
+    
+    cubeThreads(k,j,i){				
 
-    cubeThreads(k,j,i){
-      
       dfloat Ur = 0.f, Us = 0.f, Ut = 0.f;
       dfloat Vr = 0.f, Vs = 0.f, Vt = 0.f;
       dfloat Wr = 0.f, Ws = 0.f, Wt = 0.f;
@@ -843,6 +774,10 @@
       const dfloat tz = vgeo[gbase+p_TZID*p_NpV];
       
       const dfloat JW = vgeo[gbase+p_JWID*p_NpV];
+
+      r_AU = JW*lambda*s_U[k][j][i];
+      r_AV = JW*lambda*s_V[k][j][i];
+      r_AW = JW*lambda*s_W[k][j][i];	                   
       
       // (phi, divU)
       dfloat APk = 0;
@@ -850,9 +785,9 @@
       APk += ry*Vr + sy*Vs + ty*Vt;
       APk += rz*Wr + sz*Ws + tz*Wt;
       
-      r_p = -JW*APk;
+      s_p[k][j][i] = -JW*APk; // -div U => s_p
       
-      const dfloat JWpk = -JW*pk;
+      const dfloat JWp = -JW*pk;
       
       // (grad phi, grad U - delta_x p)
       // (grad phi, grad V - delta_y p)
@@ -860,41 +795,35 @@
       const dfloat G00 = (rx*rx+ry*ry+rz*rz)*JW*eta_kji;
       const dfloat G01 = (rx*sx+ry*sy+rz*sz)*JW*eta_kji;
       const dfloat G02 = (rx*tx+ry*ty+rz*tz)*JW*eta_kji;
+      
+      r_GUr = (G00*Ur + G01*Us + G02*Ut) + rx*JWp;
+      r_GVr = (G00*Vr + G01*Vs + G02*Vt) + ry*JWp;
+      r_GWr = (G00*Wr + G01*Ws + G02*Wt) + rz*JWp;
+
       const dfloat G11 = (sx*sx+sy*sy+sz*sz)*JW*eta_kji;
       const dfloat G12 = (sx*tx+sy*ty+sz*tz)*JW*eta_kji;
+      
+      r_GUs = (G01*Ur + G11*Us + G12*Ut) + sx*JWp;
+      r_GVs = (G01*Vr + G11*Vs + G12*Vt) + sy*JWp;
+      r_GWs = (G01*Wr + G11*Ws + G12*Wt) + sz*JWp;
+      
       const dfloat G22 = (tx*tx+ty*ty+tz*tz)*JW*eta_kji;
-      
-      r_GUr = (G00*Ur + G01*Us + G02*Ut) + rx*JWpk;
-      r_GVr = (G00*Vr + G01*Vs + G02*Vt) + ry*JWpk;
-      r_GWr = (G00*Wr + G01*Ws + G02*Wt) + rz*JWpk;
-      
-      r_GUs = (G01*Ur + G11*Us + G12*Ut) + sx*JWpk;
-      r_GVs = (G01*Vr + G11*Vs + G12*Vt) + sy*JWpk;
-      r_GWs = (G01*Wr + G11*Ws + G12*Wt) + sz*JWpk;
-      
-      r_GUt = G02*Ur + G12*Us + G22*Ut + tx*JWpk;
-      r_GVt = G02*Vr + G12*Vs + G22*Vt + ty*JWpk;
-      r_GWt = G02*Wr + G12*Ws + G22*Wt + tz*JWpk;
-      
-      r_AU = JW*lambda*s_U[k][j][i];
-      r_AV = JW*lambda*s_V[k][j][i];
-      r_AW = JW*lambda*s_W[k][j][i];	             
+
+      r_GUt = (G02*Ur + G12*Us + G22*Ut) + tx*JWp;
+      r_GVt = (G02*Vr + G12*Vs + G22*Vt) + ty*JWp;
+      r_GWt = (G02*Wr + G12*Ws + G22*Wt) + tz*JWp;
       
     }
     
-    @barrier("local");
-
     cubeThreads(k,j,i){
       
       s_U[k][j][i] = r_GUr;
       s_V[k][j][i] = r_GVr;
       s_W[k][j][i] = r_GWr;
     }
-
-    @barrier("local");
-
+    
     cubeThreads(k,j,i){
-	  
+      
 #pragma unroll p_NqV
       for(int m = 0; m < p_NqV; m++){
 	dfloat Dmi = s_D[m][i];
@@ -904,15 +833,11 @@
       }
     }
 
-    @barrier("local");
-
     cubeThreads(k,j,i){
       s_U[k][j][i] = r_GUs;
       s_V[k][j][i] = r_GVs;
       s_W[k][j][i] = r_GWs;
     }
-
-    @barrier("local");
 
     cubeThreads(k,j,i){
 	  
@@ -924,14 +849,12 @@
 	r_AW += Dmj*s_W[k][m][i];
       }
     }
-
+    
     cubeThreads(k,j,i){
       s_U[k][j][i] = r_GUt;
       s_V[k][j][i] = r_GVt;
       s_W[k][j][i] = r_GWt;
     }
-
-    @barrier("local");
 
     cubeThreads(k,j,i){
       
@@ -948,20 +871,45 @@
       Aq[id+1*offset] = r_AV;
       Aq[id+2*offset] = r_AW;
       
-      s_p[k][j][i] = r_p;
     }
     
-    // lower pressure degree
-    cubeLowerDegreeHex3D(s_I, s_p, r_p);
+    // START lower pressure degree ---------------------------------------
+    cubeThreads(c,j,i){				
+      if(c<p_NqP){				
+	dfloat res = 0;
+#pragma unroll p_NqV
+	for(int k=0;k<p_NqV;++k){		
+	  res += s_I[k][c]*s_p[k][j][i];	
+	}					
+	s_Ip[c][j][i] = res;			
+      }						
+    }						
+						
+    cubeThreads(c,b,i){				
+      if(b<p_NqP&&c<p_NqP){			
+	dfloat res = 0;
+#pragma unroll p_NqV
+	for(int j=0;j<p_NqV;++j){		
+	  res += s_I[j][b]*s_Ip[c][j][i];	
+	}					
+	s_p[c][b][i] = res;			
+      }						
+    }						
     
-    // write out
-    cubeThreads(k,j,i){
-      if(i<p_NqP && j<p_NqP && k<p_NqP){
-	const dlong id = e*p_NpP + k*p_NqP*p_NqP+ j*p_NqP + i + 3*offset;
-	Aq[id] = r_p;
+    cubeThreads(c,b,a){
+      if(a<p_NqP && b<p_NqP && c<p_NqP){
+	dfloat res = 0;
+#pragma unroll p_NqV
+	for(int i=0;i<p_NqV;++i){			
+	  res += s_I[i][a]*s_p[c][b][i];		
+	}						
+	const dlong id = e*p_NpP + c*p_NqP*p_NqP+ b*p_NqP + a + 3*offset;
+	Aq[id] = res;
       }
     }
+    
   }
+  
 }
 
 

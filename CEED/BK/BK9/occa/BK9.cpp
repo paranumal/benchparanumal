@@ -170,8 +170,6 @@ int main(int argc, char **argv){
   props["defines/p_TZID"] = 8;
   props["defines/p_JWID"] = 9;
 
-  props["defines/p_JWID"] = 9;
-
   props["defines/dfloat"] = dfloatString;
   props["defines/dlong"]  = dlongString;
 
