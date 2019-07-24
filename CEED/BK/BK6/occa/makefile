@@ -1,6 +1,6 @@
 
 PROJ_DIR=./
-CORE_DIR=../../core
+CORE_DIR=../../../core
 
 ifndef OCCA_DIR
 ERROR:
@@ -16,7 +16,7 @@ compilerFlags += -Ddfloat=double
 compilerFlags += -DdfloatString='"double"'
 
 ${PROJ_DIR}/BK6: ${PROJ_DIR}/BK6.cpp makefile ${CORE_DIR}/meshBasis.cpp
-	$(compiler) -DOCCA_VERSION_1_0 $(compilerFlags) -o BK6 $(linkerFlags) ${PROJ_DIR}/BK6.cpp ${CORE_DIR}/meshBasis.cpp $(paths) -L${OCCA_DIR}/lib $(flags) -locca -llapack -lblas
+	$(compiler) -DOCCA_VERSION_1_0 $(compilerFlags) -o BK6 $(linkerFlags) ${PROJ_DIR}/BK6.cpp -I${CORE_DIR} ${CORE_DIR}/meshBasis.cpp $(paths) -L${OCCA_DIR}/lib $(flags) -locca -llapack -lblas
 #$(linkerFlags)
 
 
