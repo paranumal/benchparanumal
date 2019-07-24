@@ -2,10 +2,10 @@ cudaFlags =  -arch=sm_70   --use_fast_math -Xptxas -v,-dlcm=ca,-O3 -Xcompiler -O
 
 flags = -Ddfloat=double
 flags += -DdfloatString='"double"'
-flags += -I../../core
+flags += -I../../../core
 
 BK3: BK3.cu
-	mpic++ $(flags) -c  -I../../core/ ../../core/meshBasis.cpp
+	mpic++ $(flags) -c  -I../../../core/ ../../../core/meshBasis.cpp
 	nvcc $(flags) -o BK3 $(cudaFlags) BK3.cu meshBasis.o -llapack -lblas
 
 clean:
