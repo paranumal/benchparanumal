@@ -1,0 +1,35 @@
+#!/bin/bash
+
+rm BK9
+make
+
+# to run a sweep
+for Nq in `seq 3 1 8`
+do
+    
+    #  let cubNq=$(($Nq + 2))
+    let NqP=$(($Nq - 1))
+    echo $cubNq
+    
+    let Np=$Nq*$Nq*$Nq
+    
+    let maxE=3000000/$Np
+    
+    let tmpE=$maxE/640
+    let tmpE2=(9+$tmpE)/10
+    let skipE=$tmpE2*10
+    
+    echo $maxE
+    echo $skipE
+    
+    ./BK9 $Nq $NqP 1  0 CUDA 0 0
+
+    for E in `seq 80 $skipE $maxE`
+    do
+	for mode in `seq 0 2`
+	do
+	    ./BK9 $Nq $NqP $E $mode CUDA 0 0
+	done
+    done
+done
+      

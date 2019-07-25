@@ -173,6 +173,16 @@ int main(int argc, char **argv){
   props["defines/dfloat"] = dfloatString;
   props["defines/dlong"]  = dlongString;
 
+  if(device.mode()=="CUDA"){ // add backend compiler optimization for CUDA
+    props["compiler_flags"] += " --ftz=true";
+    props["compiler_flags"] += " --prec-div=false";
+    props["compiler_flags"] += " --prec-sqrt=false";
+    props["compiler_flags"] += " --use_fast_math";
+    props["compiler_flags"] += " --fmad=true"; // compiler option for cuda
+    props["compiler_flags"] += " -Xptxas -dlcm=ca";
+  }
+
+  
   // ------------------------------------------------------------------------------
   // build kernel
   char kernelName[BUFSIZ];
@@ -216,13 +226,15 @@ int main(int argc, char **argv){
 
   double elapsed = device.timeBetween(start, end)/Ntests;
 
-  long long int Ndofs = (NpV*Ndim+NpP)*Nelements;
+  long long int Ndofs  = (NpV*Ndim+NpP)*Nelements;
+  long long int Nbytes = (Nvgeo*NpV + 2*(NpV*Ndim+NpP))*Nelements*sizeof(dfloat);
   
   dfloat GnodesPerSecond = (NpV*Nelements/elapsed)/1.e9;
-  dfloat GdofsPerSecond = (Ndofs/elapsed)/1.e9;
+  dfloat GdofsPerSecond  = (Ndofs/elapsed)/1.e9;
+  dfloat GBPerSecond     = (Nbytes/elapsed)/1.e9;
   
-  printf("%02d %02d %06d %08d %08lld %e %e %e [NV, NP, Nelements, NVnodes, Ndofs, GVnodes/s, Gdofs/s, elapsed]\n",
-	 NV,  NP, Nelements, NpV*Nelements, Ndofs, GnodesPerSecond, GdofsPerSecond, elapsed);
+  printf("%02d %02d %06d %08d %08lld %e %e %e %e %e %d; %%%% [NV, NP, Nelements, NVnodes, Ndofs, GBytes, GVnodes/s, Gdofs/s, GB/s, elapsed, mode]\n",
+	 NV,  NP, Nelements, NpV*Nelements, Ndofs, Nbytes/1.e9, GnodesPerSecond, GdofsPerSecond, GBPerSecond, elapsed, mode);
   
   return 0;
   
