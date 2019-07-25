@@ -1,6 +1,6 @@
-inputFile = 'foo.dat';
-outputFile = 'BK9TitanV.pdf'
-  
+inputFile = 'results/BK9NVIDIAV100AWS.dat';
+outputFile = 'BK9NVIDIAV100AWS.pdf'
+titleString = 'BK9:NVIDIA V100 SXM2:OCCA:CUDA';  
 data = load(inputFile);
 
 minN = min(data(:,1));
@@ -88,11 +88,11 @@ legend(legs, 'location', 'southeast')
 
 xlabel('#Velocity Nodes', 'FontSize', 16)
 ylabel('Bandwidth (GB/s)', 'FontSize', 16)
-  title('BK9:NVIDIA Titan V:OCCA:CUDA', 'FontSize', 16)
+  title(titleString, 'FontSize', 16)
 grid on
 box on
   grid minor
   
-  axis([0 1e6 0 700])
+  axis([0 1e6 0 800])
   print('-bestfit', '-dpdf','-painters', outputFile)
   
