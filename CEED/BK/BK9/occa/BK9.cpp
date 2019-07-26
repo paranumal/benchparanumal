@@ -213,7 +213,7 @@ int main(int argc, char **argv){
   device.finish();
   
   // run Ntests times
-  int Ntests = 10;
+  int Ntests = 40;
   
   start = device.tagStream();
 
