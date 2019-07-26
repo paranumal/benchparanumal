@@ -1,9 +1,23 @@
 
+
+if(0)
 bandwidthTestNVIDIATitanV
+titleString = 'Bandwidth Test:NVIDIA Titan V:OCCA:CUDA'
+pdfName = 'bandwidthTestNVIDIATitanV.pdf'
+end
+
+if(1)
 bandwidthTestNVIDIAV100AWS
 titleString = 'Bandwidth Test:NVIDIA V100 SXM2:OCCA:CUDA'
 pdfName = 'bandwidthTestNVIDIAV100.pdf'
+end
 
+if(0)
+bandwidthTestAMDRadeonVII
+titleString = 'Bandwidth Test:AMD Radeon VII:OCCA:HIP'
+pdfName = 'bandwidthTestAMDRadeonVII.pdf'
+end
+  
 knl00 = memcpyKNL00;
 knl01 = memcpyKNL01;
 knl02 = memcpyKNL02;
@@ -17,7 +31,7 @@ ha01 = plot(knl01(:,1), knl01(:,3));
 ha02 = plot(knl02(:,1), knl02(:,3));
 hold off
   
-axis([0 2e7 0 900])
+axis([0 2e8 0 900])
 
 r = 0.8;
 
@@ -56,7 +70,7 @@ plot([knl01n08,knl01n08], [0,knl01bw08], '--', 'color', get(ha01, 'color'))
 plot([knl02n08,knl02n08], [0,knl02bw08], '--', 'color', get(ha02, 'color'))
 hold off
 
-ha = legend('memcpy', 'KNL 00: write',  'KNL 01: read+write', 'KNL 02: read', 'location', 'northeast')
+ha = legend('memcpy', 'KNL 00: write',  'KNL 01: read+write', 'KNL 02: read', 'location', 'southeast')
 set(ha, 'FontSize', 16)
 box
 grid minor
