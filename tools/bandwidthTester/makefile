@@ -17,11 +17,11 @@ CC	= mpic++
 LD	= mpic++
 
 # compiler flags to be used (set to compile with debugging on)
-CFLAGS = $(compilerFlags) $(flags) -I$(HDRDIR) -I$(GSDIR) -g  -D DHOLMES='"${CURDIR}/../.."'
+CFLAGS = $(compilerFlags) $(flags) -I$(HDRDIR) -I$(GSDIR) -O3  -D DHOLMES='"${CURDIR}/../.."'
 
 
 # link flags to be used
-LDFLAGS	= -L$(OCCA_DIR)/lib $(compilerFlags) $(flags) -g
+LDFLAGS	= -L$(OCCA_DIR)/lib $(compilerFlags) $(flags) -O3
 #-L../../3rdParty/gslib/lib  -lgs -L$(ALMONDDIR) -lparALMOND
 
 # libraries to be linked in
