@@ -27,138 +27,138 @@
 #define raiseDegreeHex3D(s_I, r_p)		\
   {						\
 						\
-  for(int b=0;b<p_NqV;++b;@inner(1)){		\
-    for(int a=0;a<p_NqV;++a;@inner(0)){		\
-      if(a<p_NqP && b<p_NqP){			\
-	for(int k=0;k<p_NqV;++k){		\
-	  dfloat res = 0;			\
-	  for(int c=0;c<p_NqP;++c){		\
-	    res += s_I[k][c]*r_p[c];		\
+    for(int b=0;b<p_NqV;++b;@inner(1)){		\
+      for(int a=0;a<p_NqV;++a;@inner(0)){	\
+	if(a<p_NqP && b<p_NqP){			\
+	  for(int k=0;k<p_NqV;++k){		\
+	    dfloat res = 0;			\
+	    for(int c=0;c<p_NqP;++c){		\
+	      res += s_I[k][c]*r_p[c];		\
+	    }					\
+	    s_Ip[k][b][a] = res;		\
 	  }					\
-	  s_Ip[k][b][a] = res;			\
 	}					\
       }						\
     }						\
-  }						\
   						\
 						\
-  /* raise in b */				\
-  for(int k=0;k<p_NqV;++k;@inner(1)){		\
-    for(int a=0;a<p_NqV;++a;@inner(0)){		\
+    /* raise in b */				\
+    for(int k=0;k<p_NqV;++k;@inner(1)){		\
+      for(int a=0;a<p_NqV;++a;@inner(0)){	\
       						\
-      if(a<p_NqP){				\
-	for(int b=0;b<p_NqP;++b){		\
-	  r_p[b] = s_Ip[k][b][a];		\
-	}					\
-						\
-	for(int j=0;j<p_NqV;++j){		\
-	  dfloat res = 0;			\
+	if(a<p_NqP){				\
 	  for(int b=0;b<p_NqP;++b){		\
-	    res += s_I[j][b]*r_p[b];		\
+	    r_p[b] = s_Ip[k][b][a];		\
 	  }					\
-	  s_Ip[k][j][a] = res;			\
+						\
+	  for(int j=0;j<p_NqV;++j){		\
+	    dfloat res = 0;			\
+	    for(int b=0;b<p_NqP;++b){		\
+	      res += s_I[j][b]*r_p[b];		\
+	    }					\
+	    s_Ip[k][j][a] = res;		\
+	  }					\
 	}					\
       }						\
     }						\
-  }						\
 						\
-  /* raise in a */				\
-  for(int k=0;k<p_NqV;++k;@inner(1)){		\
-    for(int j=0;j<p_NqV;++j;@inner(0)){		\
-      for(int a=0;a<p_NqP;++a){			\
-	r_p[a] = s_Ip[k][j][a];			\
-      }						\
-						\
-      for(int i=0;i<p_NqV;++i){			\
-	dfloat res = 0;				\
+    /* raise in a */				\
+    for(int k=0;k<p_NqV;++k;@inner(1)){		\
+      for(int j=0;j<p_NqV;++j;@inner(0)){	\
 	for(int a=0;a<p_NqP;++a){		\
-	  res += s_I[i][a]*r_p[a];		\
+	  r_p[a] = s_Ip[k][j][a];		\
 	}					\
-	s_Ip[k][j][i] = res;			\
+						\
+	for(int i=0;i<p_NqV;++i){		\
+	  dfloat res = 0;			\
+	  for(int a=0;a<p_NqP;++a){		\
+	    res += s_I[i][a]*r_p[a];		\
+	  }					\
+	  s_Ip[k][j][i] = res;			\
+	}					\
       }						\
     }						\
-  }						\
   						\
-  /* copy back to registers */			\
-  for(int j=0;j<p_NqV;++j;@inner(1)){		\
-    for(int i=0;i<p_NqV;++i;@inner(0)){		\
-      for(int k=0;k<p_NqV;++k){			\
-	r_p[k] = s_Ip[k][j][i];			\
+    /* copy back to registers */		\
+    for(int j=0;j<p_NqV;++j;@inner(1)){		\
+      for(int i=0;i<p_NqV;++i;@inner(0)){	\
+	for(int k=0;k<p_NqV;++k){		\
+	  r_p[k] = s_Ip[k][j][i];		\
+	}					\
       }						\
     }						\
-  }						\
   						\
   }						\
 
 #define lowerDegreeHex3D(s_I, r_p)		\
   {						\
 						\
-  /* lower in 'k' */				\
-  for(int j=0;j<p_NqV;++j;@inner(1)){		\
-    for(int i=0;i<p_NqV;++i;@inner(0)){		\
+    /* lower in 'k' */				\
+    for(int j=0;j<p_NqV;++j;@inner(1)){		\
+      for(int i=0;i<p_NqV;++i;@inner(0)){	\
 						\
-      for(int c=0;c<p_NqP;++c){			\
-	dfloat res = 0;				\
-	for(int k=0;k<p_NqV;++k){		\
-	  res += s_I[k][c]*r_p[k];		\
-	}					\
-	s_Ip[c][j][i] = res;			\
-      }						\
-    }						\
-  }						\
-						\
-  /* lower in 'j' */				\
-  for(int c=0;c<p_NqV;++c;@inner(1)){		\
-    for(int i=0;i<p_NqV;++i;@inner(0)){		\
-						\
-      if(c<p_NqP){				\
-	for(int j=0;j<p_NqV;++j){		\
-	  r_p[j] = s_Ip[c][j][i];		\
-	}					\
-						\
-	for(int b=0;b<p_NqP;++b){		\
-	  dfloat res = 0;			\
-	  for(int j=0;j<p_NqV;++j){		\
-	    res += s_I[j][b]*r_p[j];		\
-	  }					\
-						\
-	  s_Ip[c][b][i] = res;			\
-	}					\
-      }						\
-    }						\
-  }						\
-						\
-  /* lower in 'i' */				\
-  for(int c=0;c<p_NqV;++c;@inner(1)){		\
-    for(int b=0;b<p_NqV;++b;@inner(0)){		\
-						\
-      if(b<p_NqP && c<p_NqP){			\
-	for(int i=0;i<p_NqV;++i){		\
-	  r_p[i] = s_Ip[c][b][i];		\
-	}					\
-						\
-	for(int a=0;a<p_NqP;++a){		\
-	  dfloat res = 0;			\
-	  for(int i=0;i<p_NqV;++i){		\
-	    res += s_I[i][a]*r_p[i];		\
-	  }					\
-						\
-	  s_Ip[c][b][a] = res;			\
-	}					\
-      }						\
-    }						\
-  }						\
-						\
-  /* copy back to registers */			\
-  for(int b=0;b<p_NqV;++b;@inner(1)){		\
-    for(int a=0;a<p_NqV;++a;@inner(0)){		\
-      if(a<p_NqP && b<p_NqP){			\
 	for(int c=0;c<p_NqP;++c){		\
-	  r_p[c] = s_Ip[c][b][a];		\
+	  dfloat res = 0;			\
+	  for(int k=0;k<p_NqV;++k){		\
+	    res += s_I[k][c]*r_p[k];		\
+	  }					\
+	  s_Ip[c][j][i] = res;			\
 	}					\
       }						\
     }						\
-  }						\
+						\
+    /* lower in 'j' */				\
+    for(int c=0;c<p_NqV;++c;@inner(1)){		\
+      for(int i=0;i<p_NqV;++i;@inner(0)){	\
+						\
+	if(c<p_NqP){				\
+	  for(int j=0;j<p_NqV;++j){		\
+	    r_p[j] = s_Ip[c][j][i];		\
+	  }					\
+						\
+	  for(int b=0;b<p_NqP;++b){		\
+	    dfloat res = 0;			\
+	    for(int j=0;j<p_NqV;++j){		\
+	      res += s_I[j][b]*r_p[j];		\
+	    }					\
+						\
+	    s_Ip[c][b][i] = res;		\
+	  }					\
+	}					\
+      }						\
+    }						\
+						\
+    /* lower in 'i' */				\
+    for(int c=0;c<p_NqV;++c;@inner(1)){		\
+      for(int b=0;b<p_NqV;++b;@inner(0)){	\
+						\
+	if(b<p_NqP && c<p_NqP){			\
+	  for(int i=0;i<p_NqV;++i){		\
+	    r_p[i] = s_Ip[c][b][i];		\
+	  }					\
+						\
+	  for(int a=0;a<p_NqP;++a){		\
+	    dfloat res = 0;			\
+	    for(int i=0;i<p_NqV;++i){		\
+	      res += s_I[i][a]*r_p[i];		\
+	    }					\
+						\
+	    s_Ip[c][b][a] = res;		\
+	  }					\
+	}					\
+      }						\
+    }						\
+						\
+    /* copy back to registers */		\
+    for(int b=0;b<p_NqV;++b;@inner(1)){		\
+      for(int a=0;a<p_NqV;++a;@inner(0)){	\
+	if(a<p_NqP && b<p_NqP){			\
+	  for(int c=0;c<p_NqP;++c){		\
+	    r_p[c] = s_Ip[c][b][a];		\
+	  }					\
+	}					\
+      }						\
+    }						\
 						\
   }						
 
@@ -635,8 +635,8 @@
 
 #define cubeThreads(c,b,a)			\
   for(int c=0;c<p_NqV;++c;@inner(2))		\
-      for(int b=0;b<p_NqV;++b;@inner(1))	\
-	for(int a=0;a<p_NqV;++a;@inner(0))	\
+    for(int b=0;b<p_NqV;++b;@inner(1))		\
+      for(int a=0;a<p_NqV;++a;@inner(0))	\
 
 @kernel void BK9_v02(const dlong Nelements,
 		     const dlong offset,
@@ -696,7 +696,7 @@
     }
     
     // START raise pressure degree ----------------------------------------------------------
-     cubeThreads(k,b,a){				
+    cubeThreads(k,b,a){				
       if(a<p_NqP && b<p_NqP){			
 	dfloat res = 0;
 #pragma unroll p_NqP
@@ -1582,8 +1582,6 @@
 }
 
 
-
-
 @kernel void BK9_v05(const dlong Nelements,
 		     const dlong offset,
 		     @restrict const dfloat *vgeo,
@@ -1917,6 +1915,392 @@
 	  for(int c = 0; c < p_NqP; c++){
 	    const dlong id = e*p_NpP +c*p_NqP*p_NqP+ j*p_NqP + i + 3*offset;
 	    Aq[id] = s_p[c][j][i];
+	  }
+	}
+      }
+    }
+  }
+}
+
+
+
+// blocked 2D thread version
+#define blockRaiseDegreeHex3D(s_I, r_p)		\
+  {						\
+    for(int es=0;es<p_Nblk;++es;@inner(2)){	\
+      for(int b=0;b<p_NqV;++b;@inner(1)){	\
+	for(int a=0;a<p_NqV;++a;@inner(0)){	\
+	  if(a<p_NqP && b<p_NqP){		\
+	    for(int k=0;k<p_NqV;++k){		\
+	      dfloat res = 0;			\
+	      for(int c=0;c<p_NqP;++c){		\
+		res += s_I[k][c]*r_p[c];	\
+	      }					\
+	      s_Ip[es][k][b][a] = res;		\
+	    }					\
+	  }					\
+	}					\
+      }						\
+    }						\
+    /* raise in b */				\
+    for(int es=0;es<p_Nblk;++es;@inner(2)){	\
+      for(int k=0;k<p_NqV;++k;@inner(1)){	\
+	for(int a=0;a<p_NqV;++a;@inner(0)){	\
+	  if(a<p_NqP){				\
+	    for(int b=0;b<p_NqP;++b){		\
+	      r_p[b] = s_Ip[es][k][b][a];	\
+	    }					\
+	    for(int j=0;j<p_NqV;++j){		\
+	      dfloat res = 0;			\
+	      for(int b=0;b<p_NqP;++b){		\
+		res += s_I[j][b]*r_p[b];	\
+	      }					\
+	      s_Ip[es][k][j][a] = res;		\
+	    }					\
+	  }					\
+	}					\
+      }						\
+    }						\
+    /* raise in a */				\
+    for(int es=0;es<p_Nblk;++es;@inner(2)){	\
+      for(int k=0;k<p_NqV;++k;@inner(1)){	\
+	for(int j=0;j<p_NqV;++j;@inner(0)){	\
+	  for(int a=0;a<p_NqP;++a){		\
+	    r_p[a] = s_Ip[es][k][j][a];		\
+	  }					\
+	  for(int i=0;i<p_NqV;++i){		\
+	    dfloat res = 0;			\
+	    for(int a=0;a<p_NqP;++a){		\
+	      res += s_I[i][a]*r_p[a];		\
+	    }					\
+	    s_Ip[es][k][j][i] = res;		\
+	  }					\
+	}					\
+      }						\
+    }  						\
+    /* copy back to registers */		\
+    for(int es=0;es<p_Nblk;++es;@inner(2)){	\
+      for(int j=0;j<p_NqV;++j;@inner(1)){	\
+	for(int i=0;i<p_NqV;++i;@inner(0)){	\
+	  for(int k=0;k<p_NqV;++k){		\
+	    r_p[k] = s_Ip[es][k][j][i];		\
+	  }					\
+	}					\
+      }						\
+    }						\
+  }						\
+    
+#define blockLowerDegreeHex3D(s_I, r_p)			\
+  {							\
+  /* lower in 'k' */					\
+  for(int es=0;es<p_Nblk;++es;@inner(2)){		\
+    for(int j=0;j<p_NqV;++j;@inner(1)){			\
+      for(int i=0;i<p_NqV;++i;@inner(0)){		\
+	for(int c=0;c<p_NqP;++c){			\
+	  dfloat res = 0;				\
+	  for(int k=0;k<p_NqV;++k){			\
+	    res += s_I[k][c]*r_p[k];			\
+	  }						\
+	  s_Ip[es][c][j][i] = res;			\
+	}						\
+      }							\
+    }							\
+  }							\
+  /* lower in 'j' */					\
+  for(int es=0;es<p_Nblk;++es;@inner(2)){		\
+    for(int c=0;c<p_NqV;++c;@inner(1)){			\
+      for(int i=0;i<p_NqV;++i;@inner(0)){		\
+	if(c<p_NqP){					\
+	  for(int j=0;j<p_NqV;++j){			\
+	    r_p[j] = s_Ip[es][c][j][i];			\
+	  }						\
+	  for(int b=0;b<p_NqP;++b){			\
+	    dfloat res = 0;				\
+	    for(int j=0;j<p_NqV;++j){			\
+	      res += s_I[j][b]*r_p[j];			\
+	    }						\
+	    s_Ip[es][c][b][i] = res;			\
+	  }						\
+	}						\
+      }							\
+    }							\
+  }							\
+  /* lower in 'i' */					\
+  for(int es=0;es<p_Nblk;++es;@inner(2)){		\
+    for(int c=0;c<p_NqV;++c;@inner(1)){			\
+      for(int b=0;b<p_NqV;++b;@inner(0)){		\
+	if(b<p_NqP && c<p_NqP){				\
+	  for(int i=0;i<p_NqV;++i){			\
+	    r_p[i] = s_Ip[es][c][b][i];			\
+	  }						\
+	  for(int a=0;a<p_NqP;++a){			\
+	    dfloat res = 0;				\
+	    for(int i=0;i<p_NqV;++i){			\
+	      res += s_I[i][a]*r_p[i];			\
+	    }						\
+	    s_Ip[es][c][b][a] = res;			\
+	  }						\
+	}						\
+      }							\
+    }							\
+  }							\
+  /* copy back to registers */				\
+  for(int es=0;es<p_Nblk;++es;@inner(2)){		\
+    for(int b=0;b<p_NqV;++b;@inner(1)){			\
+      for(int a=0;a<p_NqV;++a;@inner(0)){		\
+	if(a<p_NqP && b<p_NqP){				\
+	  for(int c=0;c<p_NqP;++c){			\
+	    r_p[c] = s_Ip[es][c][b][a];			\
+	  }						\
+	}						\
+      }							\
+    }							\
+  }							\
+  }							
+
+
+
+@kernel void BK9_v06(const dlong Nelements,
+		     const dlong offset,
+		     @restrict const dfloat *vgeo,
+		     @restrict const dfloat *D,
+		     @restrict const dfloat *I,
+		     const dfloat lambda,
+		     const dfloat mu,
+		     @restrict const dfloat *eta,
+		     @restrict const dfloat *q,
+		     @restrict dfloat *Aq){
+  
+#define p_Nblk 2
+  
+  for(dlong eo=0; eo<Nelements; eo+=p_Nblk; @outer(0)){
+    
+    @shared dfloat s_Ip[p_Nblk][p_NqV][p_NqV][p_NqV];	
+    
+    @shared dfloat s_D[p_NqV][p_NqV];
+    @shared dfloat s_I[p_NqV][p_NqP];
+    
+    @shared dfloat s_U[p_Nblk][p_NqV][p_NqV][p_NqV];
+    @shared dfloat s_V[p_Nblk][p_NqV][p_NqV][p_NqV];
+    @shared dfloat s_W[p_Nblk][p_NqV][p_NqV][p_NqV];
+      
+    @shared dfloat s_GUr[p_Nblk][p_NqV][p_NqV];
+    @shared dfloat s_GUs[p_Nblk][p_NqV][p_NqV];
+    @shared dfloat s_GVr[p_Nblk][p_NqV][p_NqV];
+    @shared dfloat s_GVs[p_Nblk][p_NqV][p_NqV];
+    @shared dfloat s_GWr[p_Nblk][p_NqV][p_NqV];
+    @shared dfloat s_GWs[p_Nblk][p_NqV][p_NqV];
+    
+    // heavy on registers (FP64, 2*3*8 for N=7)
+    @exclusive dfloat r_AU[p_NqV], r_AV[p_NqV], r_AW[p_NqV], r_p[p_NqV];
+    
+    @exclusive dlong e;
+    
+    // array of threads
+    for(int es=0;es<p_Nblk;++es;@inner(2)){
+      for(int j=0;j<p_NqV;++j;@inner(1)){
+	for(int i=0;i<p_NqV;++i;@inner(0)){
+	  
+	  e = eo+es;
+	  
+	  if(es==0){
+	    s_D[j][i] = D[p_NqV*j+i]; 
+	    
+	    if(i<p_NqP){
+	      s_I[j][i] = I[p_NqP*j+i];
+	    }
+	  }
+
+	  if(e<Nelements){
+	    // load pencil of u into register
+	    const dlong base = i + j*p_NqV + e*p_NpV;
+	    
+#pragma unroll p_NqV
+	    for(int k = 0; k < p_NqV; k++) {
+	      s_U[es][k][j][i] = q[base + k*p_NqV*p_NqV + 0*offset];
+	      s_V[es][k][j][i] = q[base + k*p_NqV*p_NqV + 1*offset];
+	      s_W[es][k][j][i] = q[base + k*p_NqV*p_NqV + 2*offset];
+	      
+	      r_AU[k] = 0.f; // zero the accumulator
+	      r_AV[k] = 0.f; // zero the accumulator
+	      r_AW[k] = 0.f; // zero the accumulator
+	    }
+	    
+	    if(i<p_NqP && j<p_NqP){
+	      const dlong baseP = i + j*p_NqP + e*p_NpP + 3*offset;
+	      for(int c = 0; c < p_NqP; c++) {
+		r_p[c] = q[baseP + c*p_NqP*p_NqP];
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    
+    // raise pressure degree
+    blockRaiseDegreeHex3D(s_I, r_p);
+    
+    // Layer by layer
+#pragma unroll p_NqV
+    for(int k = 0;k < p_NqV; k++){
+      
+      for(int es=0;es<p_Nblk;++es;@inner(2)){
+	for(int j=0;j<p_NqV;++j;@inner(1)){
+	  for(int i=0;i<p_NqV;++i;@inner(0)){
+	    
+	    if(e<Nelements){
+	      dfloat Ur = 0.f, Us = 0.f, Ut = 0.f;
+	      dfloat Vr = 0.f, Vs = 0.f, Vt = 0.f;
+	      dfloat Wr = 0.f, Ws = 0.f, Wt = 0.f;
+	      
+#pragma unroll p_NqV
+	      for(int m = 0; m < p_NqV; m++) {
+		// 12 shared, 18 flops => 12TB*18/(12*8) = 2.25TFLOPS/s
+		dfloat Dim = s_D[i][m];
+		dfloat Djm = s_D[j][m];
+		dfloat Dkm = s_D[k][m];
+		
+		Ur += Dim*s_U[es][k][j][m];
+		Vr += Dim*s_V[es][k][j][m];
+		Wr += Dim*s_W[es][k][j][m];
+		
+		Us += Djm*s_U[es][k][m][i];
+		Vs += Djm*s_V[es][k][m][i];
+		Ws += Djm*s_W[es][k][m][i];
+		
+		Ut += Dkm*s_U[es][m][j][i];
+		Vt += Dkm*s_V[es][m][j][i];
+		Wt += Dkm*s_W[es][m][j][i];
+	      }
+	      
+	      const dlong pid = i + j*p_NqV + k*p_NqV*p_NqV + e*p_NpV;
+	      
+	      const dfloat pk = r_p[k];
+	      
+	      const dfloat eta_kji = mu*eta[pid];
+	      
+	      // prefetch geometric factors
+	      const dlong gbase = e*p_Nvgeo*p_NpV + k*p_NqV*p_NqV + j*p_NqV + i;
+	      
+	      const dfloat rx = vgeo[gbase+p_RXID*p_NpV];
+	      const dfloat sx = vgeo[gbase+p_SXID*p_NpV];
+	      const dfloat tx = vgeo[gbase+p_TXID*p_NpV];
+	      
+	      const dfloat ry = vgeo[gbase+p_RYID*p_NpV];
+	      const dfloat sy = vgeo[gbase+p_SYID*p_NpV];
+	      const dfloat ty = vgeo[gbase+p_TYID*p_NpV];
+	      
+	      const dfloat rz = vgeo[gbase+p_RZID*p_NpV];
+	      const dfloat sz = vgeo[gbase+p_SZID*p_NpV];
+	      const dfloat tz = vgeo[gbase+p_TZID*p_NpV];
+	      
+	      const dfloat JW = vgeo[gbase+p_JWID*p_NpV];
+	      
+	      // (phi, divU)
+	      dfloat APk = 0;
+	      APk += rx*Ur + sx*Us + tx*Ut;
+	      APk += ry*Vr + sy*Vs + ty*Vt;
+	      APk += rz*Wr + sz*Ws + tz*Wt;
+	      
+	      r_p[k] = -JW*APk;
+	      
+	      const dfloat JWpk = -JW*pk;
+	      
+	      // (grad phi, grad U - delta_x p)
+	      // (grad phi, grad V - delta_y p)
+	      // (grad phi, grad W - delta_z p)
+	      const dfloat G00 = (rx*rx+ry*ry+rz*rz)*JW*eta_kji;
+	      const dfloat G01 = (rx*sx+ry*sy+rz*sz)*JW*eta_kji;
+	      const dfloat G02 = (rx*tx+ry*ty+rz*tz)*JW*eta_kji;
+	      
+	      s_GUr[es][j][i] = (G00*Ur + G01*Us + G02*Ut) + rx*JWpk;
+	      s_GVr[es][j][i] = (G00*Vr + G01*Vs + G02*Vt) + ry*JWpk;
+	      s_GWr[es][j][i] = (G00*Wr + G01*Ws + G02*Wt) + rz*JWpk;
+	      
+	      const dfloat G11 = (sx*sx+sy*sy+sz*sz)*JW*eta_kji;
+	      const dfloat G12 = (sx*tx+sy*ty+sz*tz)*JW*eta_kji;
+	      
+	      s_GUs[es][j][i] = (G01*Ur + G11*Us + G12*Ut) + sx*JWpk;
+	      s_GVs[es][j][i] = (G01*Vr + G11*Vs + G12*Vt) + sy*JWpk;
+	      s_GWs[es][j][i] = (G01*Wr + G11*Ws + G12*Wt) + sz*JWpk;
+
+	      const dfloat G22 = (tx*tx+ty*ty+tz*tz)*JW*eta_kji;
+	      
+	      const dfloat r_Ut = G02*Ur + G12*Us + G22*Ut + tx*JWpk;
+	      const dfloat r_Vt = G02*Vr + G12*Vs + G22*Vt + ty*JWpk;
+	      const dfloat r_Wt = G02*Wr + G12*Ws + G22*Wt + tz*JWpk;
+	      
+#pragma unroll p_NqV
+	      for(int m = 0; m < p_NqV; m++){
+		dfloat Dkm = s_D[k][m];
+		r_AU[m] += Dkm*r_Ut;
+		r_AV[m] += Dkm*r_Vt;
+		r_AW[m] += Dkm*r_Wt;
+	      }
+	      
+	      r_AU[k] += JW*lambda*s_U[es][k][j][i];
+	      r_AV[k] += JW*lambda*s_V[es][k][j][i];
+	      r_AW[k] += JW*lambda*s_W[es][k][j][i];	 
+	      
+	    }
+	  }
+	}
+      }
+      
+      for(int es=0;es<p_Nblk;++es;@inner(2)){
+	for(int j=0;j<p_NqV;++j;@inner(1)){
+	  for(int i=0;i<p_NqV;++i;@inner(0)){
+	    
+	    dfloat AUtmp = 0, AVtmp = 0, AWtmp = 0;
+	    
+#pragma unroll p_NqV
+	    for(int m = 0; m < p_NqV; m++){
+	      // 9 shared, 18 flops => 12TB/s*18/(9*8) = 3TFLOPS/s
+	      dfloat Dmi = s_D[m][i];
+	      dfloat Dmj = s_D[m][j];	     
+	      
+	      AUtmp += Dmi*s_GUr[es][j][m];
+	      AVtmp += Dmi*s_GVr[es][j][m];
+	      AWtmp += Dmi*s_GWr[es][j][m];
+	      
+	      AUtmp += Dmj*s_GUs[es][m][i];
+	      AVtmp += Dmj*s_GVs[es][m][i];
+	      AWtmp += Dmj*s_GWs[es][m][i];
+	    }
+	    
+	    r_AU[k] += AUtmp;
+	    r_AV[k] += AVtmp;
+	    r_AW[k] += AWtmp;
+	  }
+	}
+      }
+    }
+    
+    
+    // lower pressure degree
+    blockLowerDegreeHex3D(s_I, r_p);
+    
+    // write out
+    
+    for(int es=0;es<p_Nblk;++es;@inner(2)){
+      for(int j=0;j<p_NqV;++j;@inner(1)){
+	for(int i=0;i<p_NqV;++i;@inner(0)){
+
+	  if(e<Nelements){
+#pragma unroll p_NqV
+	    for(int k = 0; k < p_NqV; k++){
+	      const dlong id = e*p_NpV +k*p_NqV*p_NqV+ j*p_NqV + i;
+	      Aq[id+0*offset] = r_AU[k];
+	      Aq[id+1*offset] = r_AV[k];
+	      Aq[id+2*offset] = r_AW[k];
+	    }
+	    
+	    if(i<p_NqP && j<p_NqP){
+	      for(int c = 0; c < p_NqP; c++){
+		const dlong id = e*p_NpP +c*p_NqP*p_NqP+ j*p_NqP + i + 3*offset;
+		Aq[id] = r_p[c];
+	      }
+	    }
 	  }
 	}
       }
