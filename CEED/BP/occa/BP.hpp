@@ -178,7 +178,7 @@ int BPPCG (BP_t* BP, dfloat lambda, occa::memory &o_r, occa::memory &o_x, const 
 void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::memory &o_b);
 dfloat BPWeightedInnerProduct(BP_t *BP, occa::memory &o_w, occa::memory &o_a, occa::memory &o_b);
 
-dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision);
+dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *, occa::streamTag *);
 
 dfloat BPWeightedNorm2(BP_t *BP, occa::memory &o_w, occa::memory &o_a);
 
