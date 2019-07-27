@@ -2290,7 +2290,7 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
     }
     
 #pragma unroll p_cubNq
-    for(int k = 0;k < p_Nq; k++){
+    for(int k = 0;k < p_cubNq; k++){
       
       for(int j=0;j<p_cubNq;++j;@inner(1)){
 	for(int i=0;i<p_cubNq;++i;@inner(0)){
