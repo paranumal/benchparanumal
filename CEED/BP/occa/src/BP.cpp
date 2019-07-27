@@ -173,7 +173,7 @@ int main(int argc, char **argv){
 	     bw,
 	     knlId,
 	     combineDot,
-	     (it*BP->Nfields*mesh->Np*globalNelements)/(opElapsed),
+	     (it*BP->Nfields*mesh->Np)*(globalNelements/opElapsed),
 	     BP->BPid);
     }
     
