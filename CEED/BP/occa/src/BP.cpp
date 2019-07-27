@@ -119,7 +119,7 @@ int main(int argc, char **argv){
       startTags[test] = mesh->device.tagStream();
       
       it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x, &opElapsed);
-      
+
       stopTags[test] = mesh->device.tagStream();
     }
     mesh->device.finish();  

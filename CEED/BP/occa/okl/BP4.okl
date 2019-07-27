@@ -1008,7 +1008,7 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 
 
 
-@kernel void BP4Dot_v4a(const dlong Nelements,
+@kernel void BP4Dot_v4(const dlong Nelements,
 		       @restrict const dlong *elementList,
 		       const dlong offset,
 		       @restrict const dfloat *ggeo,
@@ -1742,10 +1742,6 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
     @shared dfloat s_V[p_cubNq][p_cubNq];
     @shared dfloat s_W[p_cubNq][p_cubNq];
 
-    @shared dfloat s_U1[p_cubNq][p_cubNq];
-    @shared dfloat s_V1[p_cubNq][p_cubNq];
-    @shared dfloat s_W1[p_cubNq][p_cubNq];
-    
     @shared dfloat s_GUr[p_cubNq][p_cubNq];
     @shared dfloat s_GUs[p_cubNq][p_cubNq];
 
@@ -1755,6 +1751,16 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
     @shared dfloat s_GWr[p_cubNq][p_cubNq];
     @shared dfloat s_GWs[p_cubNq][p_cubNq];
 
+#if 1
+    @shared dfloat s_U1[p_cubNq][p_cubNq];
+    @shared dfloat s_V1[p_cubNq][p_cubNq];
+    @shared dfloat s_W1[p_cubNq][p_cubNq];
+#else
+#define s_U1 s_GUr
+#define s_V1 s_GVr
+#define s_W1 s_GWr
+#endif
+    
     @exclusive dfloat r_Ut, r_Vt, r_Wt;
     @exclusive dlong element;
     
@@ -2039,6 +2045,12 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
       }
     }
   }
+
+#if 0
+#undef s_U1
+#undef s_V1
+#undef s_W1
+#endif
 }
 
 

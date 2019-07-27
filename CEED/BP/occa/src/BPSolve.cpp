@@ -164,12 +164,12 @@ int BPPCG(BP_t* BP, dfloat lambda,
   BP->mesh->device.finish();
 
   double elapsed = 0;
-  for(int it=0;it<=iter;++it){
+  for(int it=0;it<iter;++it){
     elapsed += BP->mesh->device.timeBetween(starts[it], ends[it]);
   }
 
   *opElapsed += elapsed;
-  
+
   elapsed /= iter;
 
   printf("%e, %e ; \%\% (OP(x): elapsed, GNodes/s)\n", elapsed, BP->mesh->Nelements*BP->mesh->Np/(1.e9*elapsed));
