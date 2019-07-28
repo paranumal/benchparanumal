@@ -25235,3 +25235,1110 @@ after occa setup: bytes allocated = 2328908236
 allNeumann = 0 
 Compiling GatherScatter Kernels...done.
 Loading: BP5Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+4.106240e-04, 9.008728e+00 ; % (OP(x): elapsed, GNodes/s)
+4.110895e-04, 8.998528e+00 ; % (OP(x): elapsed, GNodes/s)
+4.102516e-04, 9.016905e+00 ; % (OP(x): elapsed, GNodes/s)
+4.109964e-04, 9.000566e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.049903, globalElapsed = 0.049903, globalNelements = 7225
+7, 7225, 3699200, 0.049903, 44, 1.34902e-08, 3.26162e+09, 626.232, 0, 1, 9.00618e+09, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.952874
+global: 1.0,BP6,TRUE,0,3,TRUE,3700000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3700000, ACTUAL NODES = 3699200, NELEMENTS = [25,17,17=>7225]
+Rank 0 initially has 7225 elements
+r: 00 [ 0000] (Nelements=7225, Nmessages=0, Ncomms=0)
+J in range [0.000138408,0.000138408] and max Skew = 1.47059
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2328908236
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.158487e-04, 4.534174e+00 ; % (OP(x): elapsed, GNodes/s)
+8.158487e-04, 4.534174e+00 ; % (OP(x): elapsed, GNodes/s)
+8.160349e-04, 4.533139e+00 ; % (OP(x): elapsed, GNodes/s)
+8.158487e-04, 4.534174e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.117218, globalElapsed = 0.117218, globalNelements = 7225
+7, 7225, 3699200, 0.117218, 44, 3.16874e-08, 4.16569e+09, 644.294, 0, 1, 1.36017e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.952874
+global: 1.0,BP1,FALSE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.801164e-04, 2.110351e+01 ; % (OP(x): elapsed, GNodes/s)
+1.819229e-04, 2.089395e+01 ; % (OP(x): elapsed, GNodes/s)
+1.805964e-04, 2.104742e+01 ; % (OP(x): elapsed, GNodes/s)
+1.818298e-04, 2.090465e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.045614, globalElapsed = 0.045614, globalNelements = 7424
+7, 7424, 3801088, 0.0456141, 44, 1.20003e-08, 3.66658e+09, 599.085, 0, 0, 2.0987e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5241
+global: 1.0,BP2,FALSE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.310109e-04, 8.819006e+00 ; % (OP(x): elapsed, GNodes/s)
+4.290705e-04, 8.858888e+00 ; % (OP(x): elapsed, GNodes/s)
+4.293033e-04, 8.854086e+00 ; % (OP(x): elapsed, GNodes/s)
+4.295680e-04, 8.848629e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.113089, globalElapsed = 0.113089, globalNelements = 7424
+7, 7424, 3801088, 0.113089, 44, 2.97518e-08, 4.4367e+09, 643.9, 0, 0, 2.65354e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5241
+global: 1.0,BP3,FALSE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.602618e-04, 6.784485e+00 ; % (OP(x): elapsed, GNodes/s)
+5.604480e-04, 6.782231e+00 ; % (OP(x): elapsed, GNodes/s)
+5.600727e-04, 6.786776e+00 ; % (OP(x): elapsed, GNodes/s)
+5.597760e-04, 6.790373e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.062424, globalElapsed = 0.062424, globalNelements = 7424
+7, 7424, 3801088, 0.0624236, 44, 1.64226e-08, 2.67924e+09, 620.872, 0, 0, 6.78597e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.972829
+global: 1.0,BP4,FALSE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+1.413204e-03, 2.689694e+00 ; % (OP(x): elapsed, GNodes/s)
+1.416809e-03, 2.682852e+00 ; % (OP(x): elapsed, GNodes/s)
+1.413548e-03, 2.689041e+00 ; % (OP(x): elapsed, GNodes/s)
+1.414851e-03, 2.686564e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.156665, globalElapsed = 0.156665, globalNelements = 7424
+7, 7424, 3801088, 0.156665, 44, 4.12159e-08, 3.20265e+09, 537.761, 0, 0, 8.06111e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.972829
+global: 1.0,BP5,FALSE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+3.550080e-04, 1.070705e+01 ; % (OP(x): elapsed, GNodes/s)
+3.564218e-04, 1.066458e+01 ; % (OP(x): elapsed, GNodes/s)
+3.538793e-04, 1.074120e+01 ; % (OP(x): elapsed, GNodes/s)
+3.557004e-04, 1.068621e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.053334, globalElapsed = 0.053334, globalNelements = 7424
+7, 7424, 3801088, 0.0533339, 44, 1.40312e-08, 3.13586e+09, 652.26, 0, 0, 1.06997e+10, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974709
+global: 1.0,BP6,FALSE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.328844e-04, 4.563764e+00 ; % (OP(x): elapsed, GNodes/s)
+8.332364e-04, 4.561836e+00 ; % (OP(x): elapsed, GNodes/s)
+8.332218e-04, 4.561916e+00 ; % (OP(x): elapsed, GNodes/s)
+8.334807e-04, 4.560499e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.130888, globalElapsed = 0.130888, globalNelements = 7424
+7, 7424, 3801088, 0.130888, 44, 3.44345e-08, 3.83337e+09, 613.339, 0, 0, 1.3686e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974709
+global: 1.0,BP1,TRUE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.806895e-04, 2.103658e+01 ; % (OP(x): elapsed, GNodes/s)
+1.810618e-04, 2.099332e+01 ; % (OP(x): elapsed, GNodes/s)
+1.800378e-04, 2.111272e+01 ; % (OP(x): elapsed, GNodes/s)
+1.801309e-04, 2.110181e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.040503, globalElapsed = 0.040503, globalNelements = 7424
+7, 7424, 3801088, 0.0405033, 44, 1.06557e-08, 4.12924e+09, 608.611, 0, 1, 2.1061e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5241
+global: 1.0,BP2,TRUE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.383651e-04, 8.671055e+00 ; % (OP(x): elapsed, GNodes/s)
+4.371549e-04, 8.695060e+00 ; % (OP(x): elapsed, GNodes/s)
+4.375273e-04, 8.687660e+00 ; % (OP(x): elapsed, GNodes/s)
+4.378996e-04, 8.680272e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.102406, globalElapsed = 0.102406, globalNelements = 7424
+7, 7424, 3801088, 0.102406, 44, 2.69414e-08, 4.89953e+09, 684.939, 0, 1, 2.60505e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5241
+global: 1.0,BP3,TRUE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.842385e-04, 6.506055e+00 ; % (OP(x): elapsed, GNodes/s)
+5.847040e-04, 6.500876e+00 ; % (OP(x): elapsed, GNodes/s)
+5.868451e-04, 6.477157e+00 ; % (OP(x): elapsed, GNodes/s)
+5.876829e-04, 6.467923e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.058163, globalElapsed = 0.058163, globalNelements = 7424
+7, 7424, 3801088, 0.0581634, 44, 1.53018e-08, 2.87549e+09, 620.341, 0, 1, 6.48796e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.972829
+global: 1.0,BP4,TRUE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+1.973062e-03, 1.926492e+00 ; % (OP(x): elapsed, GNodes/s)
+1.970828e-03, 1.928676e+00 ; % (OP(x): elapsed, GNodes/s)
+1.968593e-03, 1.930865e+00 ; % (OP(x): elapsed, GNodes/s)
+1.844131e-03, 2.061181e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.170103, globalElapsed = 0.170103, globalNelements = 7424
+7, 7424, 3801088, 0.170103, 44, 4.47512e-08, 2.94964e+09, 479.547, 0, 1, 5.88054e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.972829
+global: 1.0,BP5,TRUE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+4.218880e-04, 9.009709e+00 ; % (OP(x): elapsed, GNodes/s)
+4.220742e-04, 9.005735e+00 ; % (OP(x): elapsed, GNodes/s)
+4.217949e-04, 9.011697e+00 ; % (OP(x): elapsed, GNodes/s)
+4.217949e-04, 9.011697e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.050930, globalElapsed = 0.050930, globalNelements = 7424
+7, 7424, 3801088, 0.0509303, 44, 1.33989e-08, 3.28386e+09, 630.501, 0, 1, 9.00971e+09, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974709
+global: 1.0,BP6,TRUE,0,3,TRUE,3800000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3800000, ACTUAL NODES = 3801088, NELEMENTS = [32,29,8=>7424]
+Rank 0 initially has 7424 elements
+r: 00 [ 0000] (Nelements=7424, Nmessages=0, Ncomms=0)
+J in range [0.000134698,0.000134698] and max Skew = 4
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2393053896
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.363287e-04, 4.544969e+00 ; % (OP(x): elapsed, GNodes/s)
+8.375389e-04, 4.538402e+00 ; % (OP(x): elapsed, GNodes/s)
+8.366080e-04, 4.543452e+00 ; % (OP(x): elapsed, GNodes/s)
+8.373527e-04, 4.539411e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.120118, globalElapsed = 0.120118, globalNelements = 7424
+7, 7424, 3801088, 0.120118, 44, 3.16011e-08, 4.17707e+09, 646.054, 0, 1, 1.36247e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974709
+global: 1.0,BP1,FALSE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.822778e-04, 2.134763e+01 ; % (OP(x): elapsed, GNodes/s)
+1.841193e-04, 2.113413e+01 ; % (OP(x): elapsed, GNodes/s)
+1.822516e-04, 2.135070e+01 ; % (OP(x): elapsed, GNodes/s)
+1.834356e-04, 2.121289e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.046483, globalElapsed = 0.046483, globalNelements = 7600
+7, 7600, 3891200, 0.046483, 44, 1.19457e-08, 3.68334e+09, 601.824, 0, 0, 2.12609e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.4424
+global: 1.0,BP2,FALSE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.412334e-04, 8.818914e+00 ; % (OP(x): elapsed, GNodes/s)
+4.399738e-04, 8.844163e+00 ; % (OP(x): elapsed, GNodes/s)
+4.321367e-04, 9.004558e+00 ; % (OP(x): elapsed, GNodes/s)
+4.013905e-04, 9.694299e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.117697, globalElapsed = 0.117697, globalNelements = 7600
+7, 7600, 3891200, 0.117697, 44, 3.0247e-08, 4.36407e+09, 633.358, 0, 0, 2.72313e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.4424
+global: 1.0,BP3,FALSE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.742691e-04, 6.775918e+00 ; % (OP(x): elapsed, GNodes/s)
+5.731258e-04, 6.789434e+00 ; % (OP(x): elapsed, GNodes/s)
+5.718400e-04, 6.804701e+00 ; % (OP(x): elapsed, GNodes/s)
+5.732625e-04, 6.787815e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.063466, globalElapsed = 0.063466, globalNelements = 7600
+7, 7600, 3891200, 0.0634661, 44, 1.63102e-08, 2.6977e+09, 625.151, 0, 0, 6.78945e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.94548
+global: 1.0,BP4,FALSE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+1.434077e-03, 2.713383e+00 ; % (OP(x): elapsed, GNodes/s)
+1.432931e-03, 2.715553e+00 ; % (OP(x): elapsed, GNodes/s)
+1.430988e-03, 2.719241e+00 ; % (OP(x): elapsed, GNodes/s)
+1.432512e-03, 2.716347e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.159726, globalElapsed = 0.159726, globalNelements = 7600
+7, 7600, 3891200, 0.159726, 44, 4.10481e-08, 3.21574e+09, 539.96, 0, 0, 8.14839e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.94548
+global: 1.0,BP5,FALSE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+3.654604e-04, 1.064739e+01 ; % (OP(x): elapsed, GNodes/s)
+3.646196e-04, 1.067194e+01 ; % (OP(x): elapsed, GNodes/s)
+3.638691e-04, 1.069396e+01 ; % (OP(x): elapsed, GNodes/s)
+3.639913e-04, 1.069037e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.054434, globalElapsed = 0.054434, globalNelements = 7600
+7, 7600, 3891200, 0.0544336, 44, 1.39889e-08, 3.14535e+09, 654.233, 0, 0, 1.06759e+10, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.951245
+global: 1.0,BP6,FALSE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.516596e-04, 4.568961e+00 ; % (OP(x): elapsed, GNodes/s)
+8.511244e-04, 4.571835e+00 ; % (OP(x): elapsed, GNodes/s)
+8.143825e-04, 4.778098e+00 ; % (OP(x): elapsed, GNodes/s)
+7.907346e-04, 4.920994e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.132665, globalElapsed = 0.132665, globalNelements = 7600
+7, 7600, 3891200, 0.132665, 44, 3.40936e-08, 3.87169e+09, 619.471, 0, 0, 1.4116e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.951245
+global: 1.0,BP1,TRUE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.844131e-04, 2.110045e+01 ; % (OP(x): elapsed, GNodes/s)
+1.841338e-04, 2.113246e+01 ; % (OP(x): elapsed, GNodes/s)
+1.835753e-04, 2.119675e+01 ; % (OP(x): elapsed, GNodes/s)
+1.842269e-04, 2.112178e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.041303, globalElapsed = 0.041303, globalNelements = 7600
+7, 7600, 3891200, 0.0413033, 44, 1.06145e-08, 4.14526e+09, 610.973, 0, 1, 2.11378e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.4424
+global: 1.0,BP2,TRUE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.495360e-04, 8.656037e+00 ; % (OP(x): elapsed, GNodes/s)
+4.477673e-04, 8.690229e+00 ; % (OP(x): elapsed, GNodes/s)
+4.478604e-04, 8.688422e+00 ; % (OP(x): elapsed, GNodes/s)
+4.472087e-04, 8.701082e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.104875, globalElapsed = 0.104875, globalNelements = 7600
+7, 7600, 3891200, 0.104875, 44, 2.69517e-08, 4.89764e+09, 684.675, 0, 1, 2.60517e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.4424
+global: 1.0,BP3,TRUE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.978298e-04, 6.508876e+00 ; % (OP(x): elapsed, GNodes/s)
+5.980160e-04, 6.506849e+00 ; % (OP(x): elapsed, GNodes/s)
+5.985745e-04, 6.500778e+00 ; % (OP(x): elapsed, GNodes/s)
+5.962473e-04, 6.526152e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.059493, globalElapsed = 0.059493, globalNelements = 7600
+7, 7600, 3891200, 0.0594925, 44, 1.5289e-08, 2.87789e+09, 620.859, 0, 1, 6.51065e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.94548
+global: 1.0,BP4,TRUE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+2.019142e-03, 1.927155e+00 ; % (OP(x): elapsed, GNodes/s)
+2.019328e-03, 1.926978e+00 ; % (OP(x): elapsed, GNodes/s)
+2.017466e-03, 1.928756e+00 ; % (OP(x): elapsed, GNodes/s)
+2.003223e-03, 1.942469e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.176475, globalElapsed = 0.176475, globalNelements = 7600
+7, 7600, 3891200, 0.176475, 44, 4.53523e-08, 2.91054e+09, 473.191, 0, 1, 5.79395e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.94548
+global: 1.0,BP5,TRUE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+4.309178e-04, 9.030028e+00 ; % (OP(x): elapsed, GNodes/s)
+4.311971e-04, 9.024180e+00 ; % (OP(x): elapsed, GNodes/s)
+4.307316e-04, 9.033931e+00 ; % (OP(x): elapsed, GNodes/s)
+4.309178e-04, 9.030028e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.051997, globalElapsed = 0.051997, globalNelements = 7600
+7, 7600, 3891200, 0.0519969, 44, 1.33627e-08, 3.29275e+09, 632.208, 0, 1, 9.02954e+09, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.951245
+global: 1.0,BP6,TRUE,0,3,TRUE,3890000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3890000, ACTUAL NODES = 3891200, NELEMENTS = [25,19,16=>7600]
+Rank 0 initially has 7600 elements
+r: 00 [ 0000] (Nelements=7600, Nmessages=0, Ncomms=0)
+J in range [0.000131579,0.000131579] and max Skew = 1.5625
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2449785736
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.556887e-04, 4.547448e+00 ; % (OP(x): elapsed, GNodes/s)
+8.556916e-04, 4.547432e+00 ; % (OP(x): elapsed, GNodes/s)
+7.700480e-04, 5.053191e+00 ; % (OP(x): elapsed, GNodes/s)
+7.639971e-04, 5.093213e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.122355, globalElapsed = 0.122355, globalNelements = 7600
+7, 7600, 3891200, 0.122355, 44, 3.1444e-08, 4.19794e+09, 649.281, 0, 1, 1.43878e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.951245
+global: 1.0,BP1,FALSE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.843840e-04, 2.114821e+01 ; % (OP(x): elapsed, GNodes/s)
+1.849978e-04, 2.107804e+01 ; % (OP(x): elapsed, GNodes/s)
+1.848524e-04, 2.109463e+01 ; % (OP(x): elapsed, GNodes/s)
+1.846109e-04, 2.112222e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.046637, globalElapsed = 0.046637, globalNelements = 7616
+7, 7616, 3899392, 0.0466374, 44, 1.19602e-08, 3.67887e+09, 601.093, 0, 0, 2.11107e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5561
+global: 1.0,BP2,FALSE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.421498e-04, 8.819165e+00 ; % (OP(x): elapsed, GNodes/s)
+4.385076e-04, 8.892415e+00 ; % (OP(x): elapsed, GNodes/s)
+4.152524e-04, 9.390415e+00 ; % (OP(x): elapsed, GNodes/s)
+4.024378e-04, 9.689427e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.118779, globalElapsed = 0.118779, globalNelements = 7616
+7, 7616, 3899392, 0.118779, 44, 3.0461e-08, 4.33342e+09, 628.91, 0, 0, 2.75519e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5561
+global: 1.0,BP3,FALSE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.766982e-04, 6.761582e+00 ; % (OP(x): elapsed, GNodes/s)
+5.760145e-04, 6.769607e+00 ; % (OP(x): elapsed, GNodes/s)
+5.759302e-04, 6.770598e+00 ; % (OP(x): elapsed, GNodes/s)
+5.756684e-04, 6.773678e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.063827, globalElapsed = 0.063827, globalNelements = 7616
+7, 7616, 3899392, 0.0638268, 44, 1.63684e-08, 2.68811e+09, 622.927, 0, 0, 6.76886e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974439
+global: 1.0,BP4,FALSE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+1.436140e-03, 2.715190e+00 ; % (OP(x): elapsed, GNodes/s)
+1.434304e-03, 2.718665e+00 ; % (OP(x): elapsed, GNodes/s)
+1.432137e-03, 2.722779e+00 ; % (OP(x): elapsed, GNodes/s)
+1.432486e-03, 2.722116e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.159627, globalElapsed = 0.159627, globalNelements = 7616
+7, 7616, 3899392, 0.159627, 44, 4.09364e-08, 3.22452e+09, 541.433, 0, 0, 8.15905e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974439
+global: 1.0,BP5,FALSE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+3.644509e-04, 1.069936e+01 ; % (OP(x): elapsed, GNodes/s)
+3.633804e-04, 1.073088e+01 ; % (OP(x): elapsed, GNodes/s)
+3.645382e-04, 1.069680e+01 ; % (OP(x): elapsed, GNodes/s)
+3.628044e-04, 1.074792e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.054407, globalElapsed = 0.054407, globalNelements = 7616
+7, 7616, 3899392, 0.0544075, 44, 1.39528e-08, 3.15349e+09, 655.925, 0, 0, 1.07187e+10, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.975862
+global: 1.0,BP6,FALSE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.520116e-04, 4.576689e+00 ; % (OP(x): elapsed, GNodes/s)
+8.529338e-04, 4.571740e+00 ; % (OP(x): elapsed, GNodes/s)
+8.528233e-04, 4.572333e+00 ; % (OP(x): elapsed, GNodes/s)
+8.526895e-04, 4.573051e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.134053, globalElapsed = 0.134053, globalNelements = 7616
+7, 7616, 3899392, 0.134053, 44, 3.43778e-08, 3.83968e+09, 614.349, 0, 0, 1.37204e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.975862
+global: 1.0,BP1,TRUE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.840407e-04, 2.118766e+01 ; % (OP(x): elapsed, GNodes/s)
+1.845062e-04, 2.113421e+01 ; % (OP(x): elapsed, GNodes/s)
+1.840407e-04, 2.118766e+01 ; % (OP(x): elapsed, GNodes/s)
+1.847855e-04, 2.110227e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.041388, globalElapsed = 0.041388, globalNelements = 7616
+7, 7616, 3899392, 0.0413878, 44, 1.06139e-08, 4.1455e+09, 611.008, 0, 1, 2.11529e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5561
+global: 1.0,BP2,TRUE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.494429e-04, 8.676056e+00 ; % (OP(x): elapsed, GNodes/s)
+4.492567e-04, 8.679652e+00 ; % (OP(x): elapsed, GNodes/s)
+4.490705e-04, 8.683251e+00 ; % (OP(x): elapsed, GNodes/s)
+4.490676e-04, 8.683307e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.105082, globalElapsed = 0.105082, globalNelements = 7616
+7, 7616, 3899392, 0.105082, 44, 2.69484e-08, 4.89826e+09, 684.761, 0, 1, 2.60417e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5561
+global: 1.0,BP3,TRUE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.952233e-04, 6.551142e+00 ; % (OP(x): elapsed, GNodes/s)
+5.955025e-04, 6.548069e+00 ; % (OP(x): elapsed, GNodes/s)
+5.979229e-04, 6.521563e+00 ; % (OP(x): elapsed, GNodes/s)
+5.977367e-04, 6.523595e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.059479, globalElapsed = 0.059479, globalNelements = 7616
+7, 7616, 3899392, 0.0594787, 44, 1.52533e-08, 2.88462e+09, 622.311, 0, 1, 6.53606e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974439
+global: 1.0,BP4,TRUE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+2.026030e-03, 1.924646e+00 ; % (OP(x): elapsed, GNodes/s)
+2.022400e-03, 1.928101e+00 ; % (OP(x): elapsed, GNodes/s)
+1.908643e-03, 2.043018e+00 ; % (OP(x): elapsed, GNodes/s)
+1.866007e-03, 2.089698e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.171143, globalElapsed = 0.171143, globalNelements = 7616
+7, 7616, 3899392, 0.171143, 44, 4.38898e-08, 3.00753e+09, 488.959, 0, 1, 5.98137e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.974439
+global: 1.0,BP5,TRUE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+4.319418e-04, 9.027586e+00 ; % (OP(x): elapsed, GNodes/s)
+4.322211e-04, 9.021753e+00 ; % (OP(x): elapsed, GNodes/s)
+4.313833e-04, 9.039275e+00 ; % (OP(x): elapsed, GNodes/s)
+4.315695e-04, 9.035375e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.052246, globalElapsed = 0.052246, globalNelements = 7616
+7, 7616, 3899392, 0.0522459, 44, 1.33985e-08, 3.28396e+09, 630.52, 0, 1, 9.03099e+09, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.975862
+global: 1.0,BP6,TRUE,0,3,TRUE,3900000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 3900000, ACTUAL NODES = 3899392, NELEMENTS = [34,32,7=>7616]
+Rank 0 initially has 7616 elements
+r: 00 [ 0000] (Nelements=7616, Nmessages=0, Ncomms=0)
+J in range [0.000131303,0.000131303] and max Skew = 4.85714
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2454943176
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.565295e-04, 4.552549e+00 ; % (OP(x): elapsed, GNodes/s)
+8.557847e-04, 4.556510e+00 ; % (OP(x): elapsed, GNodes/s)
+8.565295e-04, 4.552549e+00 ; % (OP(x): elapsed, GNodes/s)
+8.561571e-04, 4.554529e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.122975, globalElapsed = 0.122975, globalNelements = 7616
+7, 7616, 3899392, 0.122975, 44, 3.15369e-08, 4.18558e+09, 647.369, 0, 1, 1.36621e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.975862
+global: 1.0,BP1,FALSE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.889687e-04, 2.116617e+01 ; % (OP(x): elapsed, GNodes/s)
+1.887651e-04, 2.118900e+01 ; % (OP(x): elapsed, GNodes/s)
+1.886371e-04, 2.120338e+01 ; % (OP(x): elapsed, GNodes/s)
+1.872349e-04, 2.136217e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.047634, globalElapsed = 0.047634, globalNelements = 7812
+7, 7812, 3999744, 0.0476339, 44, 1.19092e-08, 3.69461e+09, 603.665, 0, 0, 2.12299e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5559
+global: 1.0,BP2,FALSE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.501847e-04, 8.884673e+00 ; % (OP(x): elapsed, GNodes/s)
+4.490764e-04, 8.906601e+00 ; % (OP(x): elapsed, GNodes/s)
+4.504175e-04, 8.880082e+00 ; % (OP(x): elapsed, GNodes/s)
+4.507404e-04, 8.873720e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.118773, globalElapsed = 0.118773, globalNelements = 7812
+7, 7812, 3999744, 0.118773, 44, 2.96951e-08, 4.44518e+09, 645.13, 0, 0, 2.66588e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5559
+global: 1.0,BP3,FALSE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+5.889280e-04, 6.791567e+00 ; % (OP(x): elapsed, GNodes/s)
+5.878895e-04, 6.803565e+00 ; % (OP(x): elapsed, GNodes/s)
+5.883985e-04, 6.797678e+00 ; % (OP(x): elapsed, GNodes/s)
+5.892218e-04, 6.788180e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.065233, globalElapsed = 0.065233, globalNelements = 7812
+7, 7812, 3999744, 0.0652331, 44, 1.63093e-08, 2.69785e+09, 625.184, 0, 0, 6.79524e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.976945
+global: 1.0,BP4,FALSE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+1.489169e-03, 2.685889e+00 ; % (OP(x): elapsed, GNodes/s)
+1.483767e-03, 2.695668e+00 ; % (OP(x): elapsed, GNodes/s)
+1.486845e-03, 2.690088e+00 ; % (OP(x): elapsed, GNodes/s)
+1.418100e-03, 2.820494e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.164284, globalElapsed = 0.164284, globalNelements = 7812
+7, 7812, 3999744, 0.164284, 44, 4.10737e-08, 3.21374e+09, 539.623, 0, 0, 8.16568e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.976945
+global: 1.0,BP5,FALSE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+3.754298e-04, 1.065377e+01 ; % (OP(x): elapsed, GNodes/s)
+3.725556e-04, 1.073596e+01 ; % (OP(x): elapsed, GNodes/s)
+3.719855e-04, 1.075242e+01 ; % (OP(x): elapsed, GNodes/s)
+3.723520e-04, 1.074184e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.055803, globalElapsed = 0.055803, globalNelements = 7812
+7, 7812, 3999744, 0.0558029, 44, 1.39516e-08, 3.15376e+09, 655.981, 0, 0, 1.07209e+10, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.97871
+global: 1.0,BP6,FALSE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.744611e-04, 4.573953e+00 ; % (OP(x): elapsed, GNodes/s)
+8.743942e-04, 4.574303e+00 ; % (OP(x): elapsed, GNodes/s)
+8.650415e-04, 4.623760e+00 ; % (OP(x): elapsed, GNodes/s)
+8.123345e-04, 4.923764e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.136738, globalElapsed = 0.136738, globalNelements = 7812
+7, 7812, 3999744, 0.136738, 44, 3.41867e-08, 3.86115e+09, 617.784, 0, 0, 1.40087e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.97871
+global: 1.0,BP1,TRUE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.892538e-04, 2.113428e+01 ; % (OP(x): elapsed, GNodes/s)
+1.887884e-04, 2.118639e+01 ; % (OP(x): elapsed, GNodes/s)
+1.887884e-04, 2.118639e+01 ; % (OP(x): elapsed, GNodes/s)
+1.890676e-04, 2.115510e+01 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.042233, globalElapsed = 0.042233, globalNelements = 7812
+7, 7812, 3999744, 0.0422325, 44, 1.05588e-08, 4.16714e+09, 614.197, 0, 1, 2.11655e+10, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5559
+global: 1.0,BP2,TRUE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP2Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP2.okl
+4.611724e-04, 8.672991e+00 ; % (OP(x): elapsed, GNodes/s)
+4.591244e-04, 8.711679e+00 ; % (OP(x): elapsed, GNodes/s)
+4.598691e-04, 8.697571e+00 ; % (OP(x): elapsed, GNodes/s)
+4.591244e-04, 8.711679e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.107531, globalElapsed = 0.107531, globalNelements = 7812
+7, 7812, 3999744, 0.107531, 44, 2.68845e-08, 4.90989e+09, 686.388, 0, 1, 2.60954e+10, 2; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.5559
+global: 1.0,BP3,TRUE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP3Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP3.okl
+6.223127e-04, 6.427225e+00 ; % (OP(x): elapsed, GNodes/s)
+6.211025e-04, 6.439748e+00 ; % (OP(x): elapsed, GNodes/s)
+6.194269e-04, 6.457169e+00 ; % (OP(x): elapsed, GNodes/s)
+6.210095e-04, 6.440713e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.061213, globalElapsed = 0.061213, globalNelements = 7812
+7, 7812, 3999744, 0.0612134, 44, 1.53043e-08, 2.875e+09, 620.237, 0, 1, 6.4412e+09, 3; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.976945
+global: 1.0,BP4,TRUE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP4Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP4.okl
+2.072669e-03, 1.929755e+00 ; % (OP(x): elapsed, GNodes/s)
+2.069969e-03, 1.932272e+00 ; % (OP(x): elapsed, GNodes/s)
+2.070435e-03, 1.931838e+00 ; % (OP(x): elapsed, GNodes/s)
+2.070900e-03, 1.931403e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.178406, globalElapsed = 0.178406, globalNelements = 7812
+7, 7812, 3999744, 0.178406, 44, 4.46043e-08, 2.95935e+09, 481.126, 0, 1, 5.79395e+09, 4; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.976945
+global: 1.0,BP5,TRUE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP5Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP5.okl
+4.425542e-04, 9.037863e+00 ; % (OP(x): elapsed, GNodes/s)
+4.431127e-04, 9.026471e+00 ; % (OP(x): elapsed, GNodes/s)
+4.427404e-04, 9.034062e+00 ; % (OP(x): elapsed, GNodes/s)
+4.434880e-04, 9.018833e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.053402, globalElapsed = 0.053402, globalNelements = 7812
+7, 7812, 3999744, 0.053402, 44, 1.33514e-08, 3.29554e+09, 632.745, 0, 1, 9.0293e+09, 5; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.97871
+global: 1.0,BP6,TRUE,0,3,TRUE,4000000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 4000000, ACTUAL NODES = 3999744, NELEMENTS = [36,31,7=>7812]
+Rank 0 initially has 7812 elements
+r: 00 [ 0000] (Nelements=7812, Nmessages=0, Ncomms=0)
+J in range [0.000128008,0.000128008] and max Skew = 5.14286
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 2518121816
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP6Dot_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP6.okl
+8.784058e-04, 4.553412e+00 ; % (OP(x): elapsed, GNodes/s)
+8.784058e-04, 4.553412e+00 ; % (OP(x): elapsed, GNodes/s)
+8.784058e-04, 4.553412e+00 ; % (OP(x): elapsed, GNodes/s)
+8.788713e-04, 4.551001e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.126011, globalElapsed = 0.126011, globalNelements = 7812
+7, 7812, 3999744, 0.126011, 44, 3.15047e-08, 4.18985e+09, 648.03, 0, 1, 1.36584e+10, 6; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 0.97871
+global: 1.0,BP1,FALSE,0,3,TRUE,100000,-1.,1.,-1.,1.,-1.,1.,12,7,1,ISOPARAMETRIC,NODAL,CUDA,0,0,10,PCG,1.e-9,CONTINUOUS,NODAL,cavity,FALSE,1,1,10,TRUE,FALSE,FALSE,
+MPI(1): 
+Warning: Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+Failed to find [CUBATURE DEGREE].
+TARGET NODES = 100000, ACTUAL NODES = 100352, NELEMENTS = [7,7,4=>196]
+Rank 0 initially has 196 elements
+r: 00 [ 0000] (Nelements=196, Nmessages=0, Ncomms=0)
+J in range [0.00510204,0.00510204] and max Skew = 1.75
+device_id = 0
+mode: 'CUDA', device_id: 0
+after occa setup: bytes allocated = 63180376
+allNeumann = 0 
+Compiling GatherScatter Kernels...done.
+Loading: BP1_v0 from /home/ubuntu/Work/git/benchparanumal/CEED/BP/occa/okl/BP1.okl
+1.982255e-05, 5.062518e+00 ; % (OP(x): elapsed, GNodes/s)
+1.979055e-05, 5.070704e+00 ; % (OP(x): elapsed, GNodes/s)
+1.956073e-05, 5.130280e+00 ; % (OP(x): elapsed, GNodes/s)
+1.982255e-05, 5.062518e+00 ; % (OP(x): elapsed, GNodes/s)
+elapsed = 0.005909, globalElapsed = 0.005909, globalNelements = 196
+7, 196, 100352, 0.00590874, 44, 5.88801e-08, 7.47281e+08, 122.099, 0, 0, 5.08135e+09, 1; % global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid
+globalMaxError = 30.8827
