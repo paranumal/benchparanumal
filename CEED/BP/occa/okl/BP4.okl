@@ -24,17 +24,9 @@
 
 */
 
-#if 0
+#if 1
 const dfloat c_I[p_cubNq][p_Nq] = {
-  5.355342505720097e-01,  5.833338986139706e-01, -1.783117095445903e-01,  9.623288030752702e-02, -6.179092624737888e-02,  4.234811659541896e-02, -2.819497837947588e-02,  1.084846808251880e-02,
- -1.268188705192677e-01,  8.342973267412825e-01,  3.888165421740908e-01, -1.491943684673626e-01,  8.711220248284385e-02, -5.740146953079415e-02,  3.754106590734207e-02, -1.435242878813467e-02,
-  4.248856454305545e-02, -1.414351904597506e-01,  9.415999436891999e-01,  2.166409038490180e-01, -9.323094155363879e-02,  5.576597963277857e-02, -3.504395556278669e-02,  1.321469586212445e-02,
- -9.260211868485923e-03,  2.668371360042665e-02, -5.724050704923778e-02,  9.935181852430502e-01,  6.543089000328361e-02, -3.014872476128008e-02,  1.740616545110550e-02, -6.389510618862931e-03,
- -6.389510618862967e-03,  1.740616545110546e-02, -3.014872476127978e-02,  6.543089000328348e-02,  9.935181852430505e-01, -5.724050704923757e-02,  2.668371360042667e-02, -9.260211868485843e-03,
-  1.321469586212431e-02, -3.504395556278668e-02,  5.576597963277856e-02, -9.323094155363862e-02,  2.166409038490179e-01,  9.415999436891994e-01, -1.414351904597503e-01,  4.248856454305534e-02,
- -1.435242878813468e-02,  3.754106590734188e-02, -5.740146953079409e-02,  8.711220248284367e-02, -1.491943684673629e-01,  3.888165421740902e-01,  8.342973267412834e-01, -1.268188705192677e-01,
-  1.084846808251865e-02, -2.819497837947595e-02,  4.234811659541835e-02, -6.179092624737870e-02,  9.623288030752707e-02, -1.783117095445898e-01,  5.833338986139682e-01,  5.355342505720121e-01
-};
+  6.140199424134869e-01, -8.576211976259797e-02, -1.801202465982604e-02, 4.366503554225144e-02, -3.906250000000006e-02, 2.228160997219480e-02, -4.316404237264458e-03, -7.659085815419109e-03, 9.933260265880246e-03, 4.924933510874336e-01, 9.565208064674119e-01, 6.546846920862763e-02, -1.309060500845320e-01, 1.088400233988092e-01, -5.992450656959249e-02, 1.138971948601442e-02, 2.000059478327947e-02, -2.580914381943446e-02, -1.604972830785226e-01, 1.778741554177247e-01, 9.931316132781199e-01, 3.409688113100979e-01, -2.040293534695562e-01, 9.955853952912171e-02, -1.785985536508378e-02, -3.044001166598278e-02, 3.873475837799427e-02, 8.755063945380101e-02, -7.625081278625127e-02, -5.856886186586556e-02, 8.722924385549529e-01, 6.342518300707465e-01, -1.879358782544937e-01, 2.876734415527825e-02, 4.571647336183481e-02, -5.642552470063954e-02, -5.642552470063954e-02, 4.571647336183476e-02, 2.876734415527806e-02, -1.879358782544943e-01, 6.342518300707476e-01, 8.722924385549521e-01, -5.856886186586632e-02, -7.625081278625165e-02, 8.755063945380122e-02, 3.873475837799453e-02, -3.044001166598249e-02, -1.785985536508370e-02, 9.955853952912178e-02, -2.040293534695566e-01, 3.409688113100984e-01, 9.931316132781199e-01, 1.778741554177256e-01, -1.604972830785225e-01, -2.580914381943435e-02, 2.000059478327964e-02, 1.138971948601423e-02, -5.992450656959262e-02, 1.088400233988092e-01, -1.309060500845318e-01, 6.546846920862820e-02, 9.565208064674117e-01, 4.924933510874337e-01, 9.933260265880286e-03, -7.659085815419084e-03, -4.316404237264398e-03, 2.228160997219484e-02, -3.906249999999997e-02, 4.366503554225144e-02, -1.801202465982618e-02, -8.576211976259832e-02, 6.140199424134870e-01};
 
 const dfloat c_D[p_cubNq][p_cubNq] = {
 -1.233617700739016e+01, -1.903399269213867e+00, 4.284887942362620e-01, -1.930147883186553e-01, 1.311019785068984e-01, -1.253775086575042e-01, 1.772614459241101e-01, -5.206761235859063e-01, 1.962363182777441e+01, -2.180720939958537e+00, -2.206109949908643e+00, 7.851103846579595e-01, -4.912296007186739e-01, 4.523915197606122e-01, -6.276152118553401e-01, 1.827526892720916e+00, -1.234714284064271e+01, 6.166016293603689e+00, -7.260583322364266e-01, -2.352848325643207e+00, 1.135319556167888e+00, -9.514161078659364e-01, 1.264421785526867e+00, -3.612822620384691e+00, 8.584781486527868e+00, -3.387036628665435e+00, 3.631663393943799e+00, -1.898218179097409e-01, -2.725766481169754e+00, 1.752386002797821e+00, -2.119208563829789e+00, 5.831065317519080e+00, -5.831065317519075e+00, 2.119208563829787e+00, -1.752386002797823e+00, 2.725766481169760e+00, 1.898218179097351e-01, -3.631663393943807e+00, 3.387036628665443e+00, -8.584781486527893e+00, 3.612822620384686e+00, -1.264421785526866e+00, 9.514161078659373e-01, -1.135319556167890e+00, 2.352848325643209e+00, 7.260583322364396e-01, -6.166016293603695e+00, 1.234714284064272e+01, -1.827526892720910e+00, 6.276152118553378e-01, -4.523915197606114e-01, 4.912296007186728e-01, -7.851103846579570e-01, 2.206109949908635e+00, 2.180720939958541e+00, -1.962363182777438e+01, 5.206761235858991e-01, -1.772614459241099e-01, 1.253775086575041e-01, -1.311019785068980e-01, 1.930147883186545e-01, -4.284887942362600e-01, 1.903399269213862e+00, 1.233617700739015e+01};
@@ -1736,7 +1728,7 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
   for(dlong e=0; e<Nelements; ++e; @outer(0)){
     
     @shared dfloat s_D[p_cubNq][p_cubNq];
-    @shared dfloat s_I[p_cubNq][p_Nq];
+    //    @shared dfloat s_I[p_cubNq][p_Nq];
     
     @shared dfloat s_U[p_cubNq][p_cubNq];
     @shared dfloat s_V[p_cubNq][p_cubNq];
@@ -1761,7 +1753,6 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 #define s_W1 s_GWr
 #endif
     
-    @exclusive dfloat r_Ut, r_Vt, r_Wt;
     @exclusive dlong element;
     
     // heavy on registers (FP64, 2*3*8 for N=7)
@@ -1776,34 +1767,38 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 	element = elementList[e];
 	
         s_D[b][a] = D[p_cubNq*b+a]; 
-	
+
+#if 0
 	if(a<p_Nq){
 	  s_I[b][a] = I[p_Nq*b+a];
 	}
+#endif
+	for(int k = 0; k < p_cubNq; k++) {
+	  r_AU[k] = 0; r_AV[k] = 0; r_AW[k] = 0;
+	  r_U[k] = 0; r_V[k] = 0; r_W[k] = 0;
+	}
+
       }
     }
 
     for(int b=0;b<p_cubNq;++b;@inner(1)){
       for(int a=0;a<p_cubNq;++a;@inner(0)){
         // load pencil of u into register
-        const dlong base = a + b*p_Nq + element*p_Np;
-	
-	for(int k = 0; k < p_cubNq; k++) {
-	  r_AU[k] = 0; r_AV[k] = 0; r_AW[k] = 0;
-	  r_U[k] = 0; r_V[k] = 0; r_W[k] = 0;
-	}
 	
 	if(a<p_Nq && b<p_Nq){
-
 #pragma unroll p_Nq
 	  for(int c = 0; c < p_Nq; c++) {
-	    dfloat Uc = q[base + c*p_Nq*p_Nq + 0*offset];
-	    dfloat Vc = q[base + c*p_Nq*p_Nq + 1*offset];
-	    dfloat Wc = q[base + c*p_Nq*p_Nq + 2*offset];
+	    const dlong base = a + b*p_Nq + c*p_Nq*p_Nq + element*p_Np;
+
+	    const dfloat Uc = q[base + 0*offset];
+	    const dfloat Vc = q[base + 1*offset];
+	    const dfloat Wc = q[base + 2*offset];
 
 #pragma unroll p_cubNq
 	    for(int k=0;k<p_cubNq;++k){
-	      dfloat Ikc = s_I[k][c];
+	      //	      dfloat Ikc = s_I[k][c];
+	      //	      dfloat Ikc = c_I[k][c];
+	      dfloat Ikc = I[k*p_Nq+c];
 	      r_U[k] += Ikc*Uc;
 	      r_V[k] += Ikc*Vc;
 	      r_W[k] += Ikc*Wc;
@@ -1812,7 +1807,7 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 	}
       }
     }
-
+    
     // interpolate to quadrature by slabbing
 #pragma unroll p_cubNq
     for(int k = 0;k < p_cubNq; k++){
@@ -1834,11 +1829,13 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 
 #pragma unroll p_Nq
 	    for(int b=0;b<p_Nq;++b){
-	      dfloat Ijb = s_I[j][b];
+	      //	      dfloat Ijb = s_I[j][b];
+	      dfloat Ijb = I[j*p_Nq+b];
 	      Uj += Ijb*s_U[b][a];
 	      Vj += Ijb*s_V[b][a];
 	      Wj += Ijb*s_W[b][a];
 	    }
+
 	    s_U1[j][a] = Uj;
 	    s_V1[j][a] = Vj;
 	    s_W1[j][a] = Wj;
@@ -1852,7 +1849,8 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 
 #pragma unroll p_Nq
 	  for(int a=0;a<p_Nq;++a){
-	    dfloat Iia = s_I[i][a];
+	    //	    dfloat Iia = s_I[i][a];
+	    dfloat Iia = I[i*p_Nq + a];
 	    Ui += Iia*s_U1[j][a];
 	    Vi += Iia*s_V1[j][a];
 	    Wi += Iia*s_W1[j][a];
@@ -1864,74 +1862,84 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
       }
     }
 
-
 #pragma unroll p_cubNq
     for(int k = 0;k < p_cubNq; k++){
-      
+
+      @exclusive dfloat r_Ut, r_Vt, r_Wt;	  
+	  
       for(int j=0;j<p_cubNq;++j;@inner(1)){
 	for(int i=0;i<p_cubNq;++i;@inner(0)){
+          const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
 
+          r_AU[k] += GWJ*lambda*r_U[k];
+	  r_AV[k] += GWJ*lambda*r_V[k];
+	  r_AW[k] += GWJ*lambda*r_W[k];
+	  
 	  s_U[j][i] = r_U[k];
 	  s_V[j][i] = r_V[k];
 	  s_W[j][i] = r_W[k];
-	  
-          r_Ut = 0; r_Vt = 0; r_Wt = 0;	  
+
+	  r_Ut = 0; r_Vt = 0; r_Wt = 0;
+
 #pragma unroll p_cubNq
           for(int m = 0; m < p_cubNq; m++) {
-            dfloat Dkm = s_D[k][m];
+	    //dfloat Dkm = s_D[k][m];
+	    dfloat Dkm = D[k*p_cubNq+m];
             r_Ut += Dkm*r_U[m];
 	    r_Vt += Dkm*r_V[m];
 	    r_Wt += Dkm*r_W[m];
           }
-        }
+
+          // prefetch geometric factors
+	  //          const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	  //	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+
+	  
+	}
       }
 
+      @exclusive dfloat r_GUt, r_GVt, r_GWt;
+	    
       for(int j=0;j<p_cubNq;++j;@inner(1)){
         for(int i=0;i<p_cubNq;++i;@inner(0)){
 
+	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+          dfloat G00 = ggeo[gbase+p_G00ID*p_cubNp];
+	  dfloat G01 = ggeo[gbase+p_G01ID*p_cubNp];
+	  dfloat G02 = ggeo[gbase+p_G02ID*p_cubNp];	  
+	  dfloat G11 = ggeo[gbase+p_G11ID*p_cubNp];
+	  dfloat G12 = ggeo[gbase+p_G12ID*p_cubNp];
+	  dfloat G22 = ggeo[gbase+p_G22ID*p_cubNp];
+	  
           dfloat Ur = 0.f, Us = 0.f;
 	  dfloat Vr = 0.f, Vs = 0.f;
 	  dfloat Wr = 0.f, Ws = 0.f;
 
 #pragma unroll p_cubNq
           for(int m = 0; m < p_cubNq; m++) {
-            dfloat Dim = s_D[i][m];
-            dfloat Djm = s_D[j][m];
-	    
+	    dfloat Dim = s_D[i][m];
             Ur += Dim*s_U[j][m];
 	    Vr += Dim*s_V[j][m];
 	    Wr += Dim*s_W[j][m];
+
+	    dfloat Djm = s_D[j][m];
             Us += Djm*s_U[m][i];
             Vs += Djm*s_V[m][i];
 	    Ws += Djm*s_W[m][i];
-          }
+	  }
 
-          // prefetch geometric factors
-          const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+          dfloat r_GUr = G00*Ur; r_GUr += G01*Us; r_GUr += G02*r_Ut; s_GUr[j][i] = r_GUr;
+	  dfloat r_GVr = G00*Vr; r_GVr += G01*Vs; r_GVr += G02*r_Vt; s_GVr[j][i] = r_GVr;
+	  dfloat r_GWr = G00*Wr; r_GWr += G01*Ws; r_GWr += G02*r_Wt; s_GWr[j][i] = r_GWr;
 	  
-          const dfloat G00 = ggeo[gbase+p_G00ID*p_cubNp];
-          const dfloat G01 = ggeo[gbase+p_G01ID*p_cubNp];
-          const dfloat G02 = ggeo[gbase+p_G02ID*p_cubNp];
-          const dfloat G11 = ggeo[gbase+p_G11ID*p_cubNp];
-          const dfloat G12 = ggeo[gbase+p_G12ID*p_cubNp];
-          const dfloat G22 = ggeo[gbase+p_G22ID*p_cubNp];
-          const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
+	  dfloat r_GUs = G01*Ur; r_GUs += G11*Us; r_GUs += G12*r_Ut; s_GUs[j][i] = r_GUs;
+	  dfloat r_GVs = G01*Vr; r_GVs += G11*Vs; r_GVs += G12*r_Vt; s_GVs[j][i] = r_GVs;
+	  dfloat r_GWs = G01*Wr; r_GWs += G11*Ws; r_GWs += G12*r_Wt; s_GWs[j][i] = r_GWs;
 
-          s_GUr[j][i] = (G00*Ur + G01*Us + G02*r_Ut);
-	  s_GVr[j][i] = (G00*Vr + G01*Vs + G02*r_Vt);
-          s_GWr[j][i] = (G00*Wr + G01*Ws + G02*r_Wt);
-
-          s_GUs[j][i] = (G01*Ur + G11*Us + G12*r_Ut);
-	  s_GVs[j][i] = (G01*Vr + G11*Vs + G12*r_Vt);
-	  s_GWs[j][i] = (G01*Wr + G11*Ws + G12*r_Wt);
-
-          r_Ut = G02*Ur + G12*Us + G22*r_Ut;
-	  r_Vt = G02*Vr + G12*Vs + G22*r_Vt;
-	  r_Wt = G02*Wr + G12*Ws + G22*r_Wt;
-
-          r_AU[k] += GWJ*lambda*r_U[k];
-	  r_AV[k] += GWJ*lambda*r_V[k];
-	  r_AW[k] += GWJ*lambda*r_W[k];
+          r_GUt = G02*Ur; r_GUt += G12*Us; r_GUt += G22*r_Ut;
+	  r_GVt = G02*Vr; r_GVt += G12*Vs; r_GVt += G22*r_Vt;
+	  r_GWt = G02*Wr; r_GWt += G12*Ws; r_GWt += G22*r_Wt;
         }
       }
       
@@ -1939,24 +1947,24 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
         for(int i=0;i<p_cubNq;++i;@inner(0)){
 	  
 	  dfloat AUtmp = 0, AVtmp = 0, AWtmp = 0;
-	  
+
 #pragma unroll p_cubNq
           for(int m = 0; m < p_cubNq; m++){
-            dfloat Dmi = s_D[m][i];
-            dfloat Dmj = s_D[m][j];
-            dfloat Dkm = s_D[k][m];
-	    
+	    dfloat Dmi = s_D[m][i];
             AUtmp += Dmi*s_GUr[j][m];
 	    AVtmp += Dmi*s_GVr[j][m];
 	    AWtmp += Dmi*s_GWr[j][m];
-	    
+
+	    dfloat Dmj = s_D[m][j];
             AUtmp += Dmj*s_GUs[m][i];
 	    AVtmp += Dmj*s_GVs[m][i];
 	    AWtmp += Dmj*s_GWs[m][i];
 
-            r_AU[m] += Dkm*r_Ut;
-	    r_AV[m] += Dkm*r_Vt;
-	    r_AW[m] += Dkm*r_Wt;
+	    //            dfloat Dkm = s_D[k][m];
+	    dfloat Dkm = D[k*p_cubNq+m];
+            r_AU[m] += Dkm*r_GUt;
+	    r_AV[m] += Dkm*r_GVt;
+	    r_AW[m] += Dkm*r_GWt;
           }
 
           r_AU[k] += AUtmp;
@@ -1985,14 +1993,15 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 	  s_W[j][i] = r_AW[k];	  
 	}
       }
-
+    
       for(int j=0;j<p_cubNq;++j;@inner(1)){
 	for(int a=0;a<p_cubNq;++a;@inner(0)){
 	  if(a<p_Nq){
 	    dfloat Ua = 0, Va = 0, Wa = 0;
 #pragma unroll p_cubNq
 	    for(int i=0;i<p_cubNq;++i){
-	      dfloat Iia = s_I[i][a];
+	      //	      dfloat Iia = s_I[i][a];
+	      dfloat Iia = I[i*p_Nq+a];
 	      Ua += Iia*s_U[j][i];
 	      Va += Iia*s_V[j][i];
 	      Wa += Iia*s_W[j][i];
@@ -2010,7 +2019,8 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 	    dfloat Ub = 0, Vb = 0, Wb = 0;
 #pragma unroll p_cubNq
 	    for(int j=0;j<p_cubNq;++j){
-	      dfloat Ijb = s_I[j][b];
+	      //	      dfloat Ijb = s_I[j][b];
+	      dfloat Ijb = I[j*p_Nq+b];
 	      Ub += Ijb*s_U1[j][a];
 	      Vb += Ijb*s_V1[j][a];
 	      Wb += Ijb*s_W1[j][a];
@@ -2018,7 +2028,8 @@ const dfloat c_D[p_cubNq][p_cubNq] = {
 
 #pragma unroll p_Nq
 	    for(int c=0;c<p_Nq;++c){
-	      dfloat Ikc = s_I[k][c];
+	      //	      dfloat Ikc = s_I[k][c];
+	      dfloat Ikc = I[k*p_Nq+c];
 	      r_U[c] += Ikc*Ub;
 	      r_V[c] += Ikc*Vb;
 	      r_W[c] += Ikc*Wb;
