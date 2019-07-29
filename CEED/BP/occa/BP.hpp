@@ -135,6 +135,8 @@ typedef struct {
   
   occa::kernel norm2Kernel;
 
+  occa::kernel vecZeroKernel;
+  
   // combined PCG update step
   int             NthreadsUpdatePCG;
   dlong           NblocksUpdatePCG;

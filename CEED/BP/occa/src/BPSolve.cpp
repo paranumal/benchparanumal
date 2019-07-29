@@ -255,3 +255,169 @@ dfloat BPUpdatePCG(BP_t *BP,
   return rdotr1;
 }
 
+
+static int BPSMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f, occa::memory &u, int zeroInitialGuess)
+{
+  dfloat      a0, a1, a2, a3, del, gam, gamp, c, cp, s, sp, eta, Au;
+  dfloat      tol;
+  int         verbose, maxiter;
+
+  mesh_t *mesh = BP->mesh;
+  setupAide options = BP->options;
+  
+  options.getArgs("KRYLOV SOLVER ITERATION LIMIT", maxiter);
+  options.getArgs("KRYLOV SOLVER TOLERANCE",       tol);
+
+  verbose = 0;
+  if (options.compareArgs("VERBOSE", "TRUE"))
+    verbose = 1;
+
+  int Nq  = mesh->Nq;
+  int NqP = Nq-1;
+  int NpP = NqP*NqP*NqP;
+  
+  dlong Ndof = (mesh->Np*BP->dim + NpP)*mesh->Nelements;
+  
+  occa::memory p    = BP->o_solveWorkspace + 0*Ndof*sizeof(dfloat);
+  occa::memory z    = BP->o_solveWorkspace + 1*Ndof*sizeof(dfloat);
+  occa::memory r    = BP->o_solveWorkspace + 2*Ndof*sizeof(dfloat);
+  occa::memory w    = BP->o_solveWorkspace + 3*Ndof*sizeof(dfloat);
+  occa::memory rold = BP->o_solveWorkspace + 4*Ndof*sizeof(dfloat);
+  occa::memory wold = BP->o_solveWorkspace + 5*Ndof*sizeof(dfloat);
+  occa::memory res  = BP->o_solveWorkspace + 6*Ndof*sizeof(dfloat);
+
+  BP->vecZeroKernel(Ndof, p);
+  BP->vecZeroKernel(Ndof, z);
+  BP->vecZeroKernel(Ndof, r);
+  BP->vecZeroKernel(Ndof, rold);
+  BP->vecZeroKernel(Ndof, wold);
+
+  // TW: THIS NEEDS TO BE ZEROED
+  BP->vecZeroKernel(Ndof, w);
+  if(zeroInitialGuess)
+    BP->vecZeroKernel(Ndof, u);
+
+  BPOperator(BP, lambda, mu, u, r);                        /* r = f - Au               */
+
+  dfloat zeta = 0;
+  if(!zeroInitialGuess){
+    // Hegedus trick
+    dfloat normAx2;
+    BPVecNorm2(BP, r, &normAx2);
+    if (normAx2 != 0.0) {
+      dfloat bdotAx;
+      BPVecInnerProduct(BP, f, r, &bdotAx);
+
+      zeta = bdotAx/normAx2;
+      BPVecScale(BP, u, zeta);
+      BPVecScale(BP, r, zeta);
+    }
+  }
+
+  BPVecScaledAdd(BP, 1.0, f, -1.0, r);
+
+  dfloat normResidual;
+  BPVecNorm2(BP, r, &normResidual);
+  normResidual = sqrt(normResidual);
+
+  // no precon
+  z.copyFrom(r);
+
+  BPVecInnerProduct(BP, z, r, &gam);                   /* gam = sqrt(r'*z)         */
+  if (gam < 0) {
+    printf("BAD:  gam < 0.\n");
+    exit(-1);
+  }
+
+  gamp = 0.0;
+  gam  = sqrt(gam);
+  eta  = gam;
+  sp   = 0.0;
+  s    = 0.0;
+  cp   = 1.0;
+  c    = 1.0;
+
+  /* Adjust the tolerance to account for small initial residual norms. */
+#if 1
+  dfloat normf = 0.0;
+  BPVecNorm2(BP, f, &normf);
+  normf = sqrt(normf);
+  tol = tol*normf;
+#else
+  tol = mymax(tol*fabs(eta), tol);
+#endif
+  if (verbose && (BP->meshV->rank == 0))
+    printf("MINRES:  initial eta = % .15e, gamma = %.15e target %.15e\n", eta, gam, tol);
+
+  /* MINRES iteration loop. */
+  BP->meshV->device.finish();
+  dfloat tic = MPI_Wtime();
+
+  int i = 0;
+
+  for (i = 0; i < maxiter; i++) {
+
+    if (verbose && (BP->meshV->rank == 0))
+      printf("MINRES:  it % 3d  eta = % .15e, gamma = %.15e, normResidual = %.15e\n", i, eta, gam, fabs(normResidual));
+
+    //    if (fabs(eta) < tol && i>0) {
+    if (fabs(normResidual) < tol && i>0) {
+      if (verbose && (BP->meshV->rank == 0)) {
+        BP->meshV->device.finish();
+        dfloat toc = MPI_Wtime();
+        printf("MINRES [%d] converged in %d iterations (eta = % .15e, normResidual = %.15e\n) took %g seconds (zeta=%17.15lf for Hegedus trick)\n",
+            fsrPreconSwitch, i, eta, normResidual, toc-tic, zeta);
+      }
+
+      break;
+    }
+
+    BPVecScale(BP, z, (1./gam)); /* z = z/gam                */
+
+    BPOperator(BP, lambda, mu, z, p);                      /* p = Az                   */
+    BPVecInnerProduct(BP, p, z, &del);                 /* del = z'*p               */
+    a0 = c*del - cp*s*gam;
+    a2 = s*del + cp*c*gam;
+    a3 = sp*gam;
+
+    /* z = z - a2*w - a3*wold  */
+    /* wold = w                */
+    /* w = z                    */
+    /* z = r                    */
+    /* r = p - (del/gam)*r      */
+    /* r = r - (gam/gamp)*rold */
+    /* rold = z                */
+    dfloat alpha =  -(del/gam);
+    dfloat beta  = (i==0) ? 0: -(gam/gamp);
+
+    BP->updateMinresKernel(Ndof, -a2, -a3, alpha, beta,
+			       z, wold, w, rold, r, p);
+
+    // no precon
+    z.copyFrom(r);
+
+    gamp = gam;
+    BPVecInnerProduct(BP, z, r, &gam);                 /* gam = sqrt(r'*z)         */
+    gam = sqrt(gam);
+    a1 = sqrt(a0*a0 + gam*gam);
+    cp = c;
+    c  = a0/a1;
+    sp = s;
+    s  = gam/a1;
+    BPVecScale(BP, w, 1.0/a1);                         /* w = w/a1                 */
+    BPVecScaledAdd(BP, c*eta, w, 1.0, u);              /* u = u + c*eta*w          */
+
+    eta = -s*eta;
+
+#if 1
+    /* tmp = f - Au               */
+    BPOperator(BP, lambda, mu, u, res);
+    BPVecScaledAdd(BP, 1.0, f, -1.0, res);
+    BPVecNorm2(BP, res, &normResidual);
+    normResidual = sqrt(normResidual);
+#endif
+  }
+
+  return i;
+}
+

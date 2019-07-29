@@ -538,3 +538,16 @@ SOFTWARE.
     }
   }
 }
+
+
+/* Sets v = 0. */
+@kernel void vecZero(const dlong N,        /* Length of vector */
+		     @restrict dfloat *v)  /* Array of vector data */
+{
+  for (dlong n = 0; n < N; n += blockSize; @outer(0)) {
+    for (dlong i = n; i < (n + blockSize); i++; @inner(0)) {
+      if (i < N)
+        v[i] = 0.0;
+    }
+  }
+}

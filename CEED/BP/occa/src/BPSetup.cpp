@@ -362,6 +362,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       BP->dotDivideKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "dotDivide", kernelInfo);
 
+      BP->vecZeroKernel =
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecZero", kernelInfo);
+
       // add custom defines
       
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);
