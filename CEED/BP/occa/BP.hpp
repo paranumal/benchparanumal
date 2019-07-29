@@ -81,7 +81,10 @@ typedef struct {
   dfloat *q;
   
   // HOST shadow copies
-  dfloat *x, *Ax, *p, *r, *z, *Ap, *tmp, *grad;
+  dfloat *x, *r;
+  dfloat *solveWorkspace;
+  dfloat *tmp;
+  
   dfloat *invDegree;
 
   int *EToB;
@@ -95,16 +98,14 @@ typedef struct {
   occa::stream defaultStream;
   occa::stream dataStream;
 
-  occa::memory o_q;
+  occa::memory o_q, o_x, o_r;
 
-  occa::memory o_x;
-  occa::memory o_r;
-  occa::memory o_p; // search direction
-  occa::memory o_z; // preconditioner solution
+  // PCG storage
+  int NsolveWorkspace;
+  
+  occa::memory o_solveWorkspace;
   occa::memory o_res;
   occa::memory o_Sres;
-  occa::memory o_Ax; // A*initial guess
-  occa::memory o_Ap; // A*search direction
   occa::memory o_tmp; // temporary
   occa::memory o_tmp2; // temporary (second reduction)
   occa::memory o_grad; // temporary gradient storage (part of A*)
@@ -118,6 +119,8 @@ typedef struct {
   occa::memory o_gllzw; // GLL nodes and weights
 
   occa::kernel *BPKernel;
+
+  occa::kernel filterKernel;
 
   occa::kernel innerProductKernel;
 
@@ -136,6 +139,7 @@ typedef struct {
   occa::kernel norm2Kernel;
 
   occa::kernel vecZeroKernel;
+  occa::kernel vecScaleKernel;
   
   // combined PCG update step
   int             NthreadsUpdatePCG;
@@ -146,6 +150,7 @@ typedef struct {
 
   occa::kernel  updatePCGKernel;
   occa::kernel  updateMultiplePCGKernel;
+  occa::kernel  updateMINRESKernel;
 
   occa::memory o_zeroAtomic;
   occa::memory o_tmpAtomic;
@@ -164,23 +169,24 @@ typedef struct {
   
 }BP_t;
 
-BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAide options);
+BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide options);
 
-int  BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed);
+int  BPSolve(BP_t *BP, dfloat lambda, dfloat mu, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed);
 
-void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo);
+void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelInfo);
 
 void BPStartHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *sendBuffer, dfloat *recvBuffer);
 void BPInterimHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *sendBuffer, dfloat *recvBuffer);
 void BPEndHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *recvBuffer);
 
 //Linear solvers
-int BPPCG (BP_t* BP, dfloat lambda, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT, double *opElapsed); 
+int BPPCG   (BP_t* BP, dfloat lambda, dfloat mu, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT, double *opElapsed);
+int BPMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f,   occa::memory &u,   const dfloat tol, const int MAXIT,  double *opElapsed);
 
 void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::memory &o_b);
 dfloat BPWeightedInnerProduct(BP_t *BP, occa::memory &o_w, occa::memory &o_a, occa::memory &o_b);
 
-dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *, occa::streamTag *);
+dfloat BPOperator(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *, occa::streamTag *);
 
 dfloat BPWeightedNorm2(BP_t *BP, occa::memory &o_w, occa::memory &o_a);
 

@@ -26,7 +26,7 @@
 
 #include "BP.hpp"
 
-void runBPKernel(BP_t *BP,  dfloat lambda,
+void runBPKernel(BP_t *BP,  dfloat lambda, dfloat mu,
 		 hlong Nelements, occa::memory &o_elementList,
 		 occa::memory &o_q, occa::memory &o_Aq){
 
@@ -80,6 +80,9 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
       case 6:
 	BPKernel(Nelements, o_elementList, offset, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
 	break;
+      case 9:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_vgeo, mesh->o_D, mesh->o_filterMatrix, lambda, mu, o_q, o_Aq);
+	break;
       }
     }
     
@@ -105,12 +108,16 @@ void runBPKernel(BP_t *BP,  dfloat lambda,
       case 6:
 	BPKernel(Nelements, o_elementList, offset, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq, BP->o_tmpAtomic);
 	break;
+      case 9:
+	BPKernel(Nelements, o_elementList, offset, mesh->o_vgeo, mesh->o_D, mesh->o_filterMatrix, lambda, mu, o_q, o_Aq, BP->o_tmpAtomic);
+	break;
       }
     }
   }
 }
 
-dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *start, occa::streamTag *end){
+dfloat BPOperator(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, occa::memory &o_Aq,
+		  const char *precision, occa::streamTag *start, occa::streamTag *end){
 
   mesh_t *mesh = BP->mesh;
   setupAide &options = BP->options;
@@ -125,9 +132,8 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq
   dlong offset = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
   
   int BPid = BP->BPid;
-
   
-  runBPKernel(BP, lambda, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
+  runBPKernel(BP, lambda, mu, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
 
   if(BP->Nfields==1)
     ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
@@ -137,7 +143,7 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, occa::memory &o_q, occa::memory &o_Aq
   if(start)
     *start = BP->mesh->device.tagStream();
   
-  runBPKernel(BP, lambda, mesh->NlocalGatherElements, mesh->o_localGatherElementList, o_q, o_Aq);
+  runBPKernel(BP, lambda, mu, mesh->NlocalGatherElements, mesh->o_localGatherElementList, o_q, o_Aq);
 
   if(end)
     *end = BP->mesh->device.tagStream();

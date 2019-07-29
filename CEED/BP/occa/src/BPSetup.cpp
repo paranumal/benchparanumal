@@ -30,7 +30,7 @@ SOFTWARE.
 
 void reportMemoryUsage(occa::device &device, const char *mess);
 
-BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAide options){
+BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide options){
 
   BP_t *BP = new BP_t();
 
@@ -41,13 +41,20 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   int BP4 = options.compareArgs("BENCHMARK", "BP4");
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
   int BP6 = options.compareArgs("BENCHMARK", "BP6");
+  int BP9 = options.compareArgs("BENCHMARK", "BP9");
 
-  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6;
+  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6 + 9*BP9;
 
   if(BP1 || BP3 || BP5)
     BP->Nfields = 1;
-  else
+  else if(BP2 || BP4 || BP6)
     BP->Nfields = 3;
+  else if(BP9)
+    BP->Nfields = 4; // BP9
+  else{
+    printf("BP%d is not supported\n", BP->BPid);
+    exit(-1);
+  }
 
   options.getArgs("MESH DIMENSION", BP->dim);
   options.getArgs("ELEMENT TYPE", BP->elementType);
@@ -85,7 +92,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
   if (mesh->rank==0)
     reportMemoryUsage(mesh->device, "after occa setup");
 
-  BPSolveSetup(BP, lambda, kernelInfo);
+  BPSolveSetup(BP, lambda, mu, kernelInfo);
 
   dlong Ndof = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
   dlong Nall = BP->Nfields*Ndof;
@@ -152,6 +159,8 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 	cubrhs[fld][n] =
 	  (3.*M_PI*M_PI*mode*mode+lambda)*JW*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
       }
+      if(BP->BPid==9) // hack
+	cubrhs[BP->Nfields-1][n] = 0;
     }
 
     for(int fld=0;fld<BP->Nfields;++fld){
@@ -182,7 +191,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, occa::properties &kernelInfo, setupAi
 }
 
 
-void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
+void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelInfo){
 
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
@@ -204,23 +213,14 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
   BP->NthreadsUpdatePCG = NthreadsUpdatePCG;
   BP->NblocksUpdatePCG = NblocksUpdatePCG;
 
-  //tau
-  BP->tau = 2.0*(mesh->N+1)*(mesh->N+3);
+  BP->NsolveWorkspace = 10;
+  BP->solveWorkspace = (dfloat*) calloc(Nall*BP->NsolveWorkspace, sizeof(dfloat));
+  
+  BP->o_solveWorkspace  = mesh->device.malloc(Nall*BP->NsolveWorkspace*sizeof(dfloat), BP->solveWorkspace);
 
-  BP->p   = (dfloat*) calloc(Nall,   sizeof(dfloat));
-  BP->z   = (dfloat*) calloc(Nall,   sizeof(dfloat));
-  BP->Ax  = (dfloat*) calloc(Nall,   sizeof(dfloat));
-  BP->Ap  = (dfloat*) calloc(Nall,   sizeof(dfloat));
-  BP->tmp = (dfloat*) calloc(Nblock, sizeof(dfloat));
-
-  BP->o_p   = mesh->device.malloc(Nall*sizeof(dfloat), BP->p);
-  BP->o_rtmp= mesh->device.malloc(Nall*sizeof(dfloat), BP->p);
-  BP->o_z   = mesh->device.malloc(Nall*sizeof(dfloat), BP->z);
-
-  BP->o_res = mesh->device.malloc(Nall*sizeof(dfloat), BP->z);
-  BP->o_Sres = mesh->device.malloc(Nall*sizeof(dfloat), BP->z);
-  BP->o_Ax  = mesh->device.malloc(Nall*sizeof(dfloat), BP->p);
-  BP->o_Ap  = mesh->device.malloc(Nall*sizeof(dfloat), BP->Ap);
+  BP->tmp  = (dfloat*) calloc(Nblock, sizeof(dfloat));
+  //  BP->tmp2 = (dfloat*) calloc(Nblock2, sizeof(dfloat));
+  
   BP->o_tmp = mesh->device.malloc(Nblock*sizeof(dfloat), BP->tmp);
   BP->o_tmp2 = mesh->device.malloc(Nblock2*sizeof(dfloat), BP->tmp);
 
@@ -365,6 +365,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       BP->vecZeroKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "vecZero", kernelInfo);
 
+      BP->vecScaleKernel =
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecScale", kernelInfo);
+
       // add custom defines
       
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);
@@ -395,7 +398,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
       char kernelName[BUFSIZ], fileName[BUFSIZ];
-      BP->BPKernel = (occa::kernel*) new occa::kernel[7];
+      BP->BPKernel = (occa::kernel*) new occa::kernel[20];
       //      for(int bpid=1;bpid<=6;++bpid){
       int bpid = BP->BPid;
       {
@@ -420,6 +423,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, occa::properties &kernelInfo){
 
       BP->updateMultiplePCGKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPMultipleUpdatePCG", kernelInfo);
+
+      BP->updateMINRESKernel =
+	mesh->device.buildKernel(DBP "/okl/BPUpdateMINRES.okl", "BPUpdateMINRES", kernelInfo);
+
+      BP->filterKernel =
+	mesh->device.buildKernel(DBP "/okl/BP9.okl", "BPfilter", kernelInfo);
+
       
      occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
       nothingKernel();

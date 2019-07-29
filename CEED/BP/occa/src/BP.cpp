@@ -73,9 +73,10 @@ int main(int argc, char **argv){
   // set up mesh
   mesh = meshSetupBoxHex3D(N, cubN, options);
 
-  dfloat lambda;
+  dfloat lambda = 1, mu = 1;
   options.getArgs("LAMBDA", lambda);
-
+  options.getArgs("VISCOSITY",  mu);
+  
   // set up
   occa::properties kernelInfo;
   kernelInfo["defines"].asObject();
@@ -85,7 +86,7 @@ int main(int argc, char **argv){
 
   meshOccaSetup3D(mesh, options, kernelInfo);
   
-  BP_t *BP = BPSetup(mesh, lambda, kernelInfo, options);
+  BP_t *BP = BPSetup(mesh, lambda, mu, kernelInfo, options);
 
   occa::memory o_r =
     mesh->device.malloc(BP->Nfields*mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_r);
@@ -118,7 +119,7 @@ int main(int argc, char **argv){
       
       startTags[test] = mesh->device.tagStream();
       
-      it += BPSolve(BP, lambda, tol, BP->o_r, BP->o_x, &opElapsed);
+      it += BPSolve(BP, lambda, mu, tol, BP->o_r, BP->o_x, &opElapsed);
 
       stopTags[test] = mesh->device.tagStream();
     }
@@ -144,15 +145,18 @@ int main(int argc, char **argv){
       int knlId = 0;
       options.getArgs("KERNEL ID", knlId);
       
-      // PCG base 
-      NbytesPerElement = BP->Nfields*mesh->Np*(2+3+3+2+
-					       3+3+1); // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
-      
+      // PCG base
+      if(options.compareArgs("KRYLOV SOLVER", "PCG"))
+	NbytesPerElement = BP->Nfields*mesh->Np*(2+3+3+2+3+3+1);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+      else
+	NbytesPerElement = BP->Nfields*mesh->Np*(2+2+3+11+2+3+1+3); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
+
       if(!combineDot) NbytesPerElement += mesh->Np*2;
       
       if(BP->BPid==1 || BP->BPid==2) NbytesPerElement += mesh->cubNp;
       if(BP->BPid==3 || BP->BPid==4) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
       if(BP->BPid==5 || BP->BPid==6) NbytesPerElement += mesh->Nggeo*mesh->Np;
+      if(BP->BPid==9)                NbytesPerElement += (mesh->dim*mesh->dim+1)*mesh->Np;
       
       NbytesPerElement *= sizeof(dfloat);
       

@@ -37,7 +37,7 @@ double getTod(){
 }
 
 
-int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed){
+int BPSolve(BP_t *BP, dfloat lambda, dfloat mu, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed){
   
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
@@ -53,7 +53,10 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
     BPZeroMean(BP, o_r);
   
   // solve with preconditioned conjugate gradient (no precon)
-  Niter = BPPCG(BP, lambda, o_r, o_x, tol, maxIter, opElapsed);
+  if(options.compareArgs("KRYLOV SOLVER", "PCG"))
+    Niter = BPPCG(BP, lambda, mu, o_r, o_x, tol, maxIter, opElapsed);
+  else   if(options.compareArgs("KRYLOV SOLVER", "MINRES"))
+    Niter = BPMINRES(BP, lambda, mu, o_r, o_x, tol, maxIter, opElapsed);
 
   // zero mean of RHS
   if(BP->allNeumann) 
@@ -64,7 +67,7 @@ int BPSolve(BP_t *BP, dfloat lambda, dfloat tol, occa::memory &o_r, occa::memory
 }
 
 // FROM NEKBONE: not appropriate since it assumes zero initial data
-int BPPCG(BP_t* BP, dfloat lambda, 
+int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
 	  occa::memory &o_r, occa::memory &o_x, 
 	  const dfloat tol, const int MAXIT,
 	  double *opElapsed){
@@ -85,12 +88,16 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
   // now initialized
   dfloat alpha = 0, beta = 0;
+
+  dlong Ndof = mesh->Nelements*mesh->Np*BP->Nfields;
+  dlong Nbytes = Ndof*sizeof(dfloat);
   
   /*aux variables */
-  occa::memory &o_p  = BP->o_p;
-  occa::memory &o_z  = BP->o_z;
-  occa::memory &o_Ap = BP->o_Ap;
-  occa::memory &o_Ax = BP->o_Ax;
+  occa::memory o_p  = BP->o_solveWorkspace + 0*Ndof*sizeof(dfloat);
+  occa::memory o_z  = BP->o_solveWorkspace + 1*Ndof*sizeof(dfloat);
+  occa::memory o_Ap = BP->o_solveWorkspace + 2*Ndof*sizeof(dfloat);
+  occa::memory o_Ax = BP->o_solveWorkspace + 3*Ndof*sizeof(dfloat);
+  occa::memory o_res = BP->o_solveWorkspace + 4*Ndof*sizeof(dfloat);
 
   occa::streamTag starts[MAXIT+1];
   occa::streamTag ends[MAXIT+1];
@@ -100,7 +107,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
   dfloat rdotr0;
 
   // compute A*x
-  dfloat pAp = BPOperator(BP, lambda, o_x, BP->o_Ax, dfloatString, starts, ends); 
+  dfloat pAp = BPOperator(BP, lambda, mu, o_x, o_Ax, dfloatString, starts, ends); 
   
   // subtract r = b - A*x
   BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
@@ -117,7 +124,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
     // z = Precon^{-1} r
     // need to copy r to z
-    o_r.copyTo(o_z);
+    o_r.copyTo(o_z, Nbytes);
 
     rdotz2 = rdotz1;
 
@@ -137,7 +144,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
 
     // Ap and p.Ap
-    pAp = BPOperator(BP, lambda, o_p, o_Ap, dfloatString, starts+iter, ends+iter); 
+    pAp = BPOperator(BP, lambda, mu, o_p, o_Ap, dfloatString, starts+iter, ends+iter); 
     
     // alpha = r.z/p.Ap
     alpha = rdotz1/pAp;
@@ -172,7 +179,7 @@ int BPPCG(BP_t* BP, dfloat lambda,
 
   elapsed /= iter;
 
-  printf("%e, %e ; \%\% (OP(x): elapsed, GNodes/s)\n", elapsed, BP->mesh->Nelements*BP->mesh->Np/(1.e9*elapsed));
+  printf("CG: %e, %e ; \%\% (OP(x): elapsed, GNodes/s)\n", elapsed, BP->mesh->Nelements*BP->mesh->Np/(1.e9*elapsed));
   
   //  printf("Elapsed: Ax = %e, Dot = %e\n", elapsedAx, elapsedDot);
   
@@ -256,27 +263,24 @@ dfloat BPUpdatePCG(BP_t *BP,
 }
 
 
-static int BPSMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f, occa::memory &u, int zeroInitialGuess)
+int BPMINRES(BP_t *BP, dfloat lambda, dfloat mu,
+	     occa::memory &f, occa::memory &u,
+	     const dfloat tol, const int MAXIT,
+	     double *opElapsed)
 {
   dfloat      a0, a1, a2, a3, del, gam, gamp, c, cp, s, sp, eta, Au;
-  dfloat      tol;
   int         verbose, maxiter;
 
   mesh_t *mesh = BP->mesh;
   setupAide options = BP->options;
   
-  options.getArgs("KRYLOV SOLVER ITERATION LIMIT", maxiter);
-  options.getArgs("KRYLOV SOLVER TOLERANCE",       tol);
-
   verbose = 0;
   if (options.compareArgs("VERBOSE", "TRUE"))
     verbose = 1;
 
-  int Nq  = mesh->Nq;
-  int NqP = Nq-1;
-  int NpP = NqP*NqP*NqP;
-  
-  dlong Ndof = (mesh->Np*BP->dim + NpP)*mesh->Nelements;
+  // HACK at the moment, using C0 pressure filter 
+  dlong Ndof = (mesh->Np*BP->Nfields)*mesh->Nelements;
+  dlong Nbytes = Ndof*sizeof(dfloat);
   
   occa::memory p    = BP->o_solveWorkspace + 0*Ndof*sizeof(dfloat);
   occa::memory z    = BP->o_solveWorkspace + 1*Ndof*sizeof(dfloat);
@@ -286,44 +290,32 @@ static int BPSMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f, occa::
   occa::memory wold = BP->o_solveWorkspace + 5*Ndof*sizeof(dfloat);
   occa::memory res  = BP->o_solveWorkspace + 6*Ndof*sizeof(dfloat);
 
+  occa::streamTag starts[MAXIT+1];
+  occa::streamTag ends[MAXIT+1];
+  
   BP->vecZeroKernel(Ndof, p);
   BP->vecZeroKernel(Ndof, z);
   BP->vecZeroKernel(Ndof, r);
   BP->vecZeroKernel(Ndof, rold);
   BP->vecZeroKernel(Ndof, wold);
-
-  // TW: THIS NEEDS TO BE ZEROED
   BP->vecZeroKernel(Ndof, w);
-  if(zeroInitialGuess)
-    BP->vecZeroKernel(Ndof, u);
+  BP->vecZeroKernel(Ndof, u); // zero initial guess
 
-  BPOperator(BP, lambda, mu, u, r);                        /* r = f - Au               */
+  BP->filterKernel(mesh->Nelements, mesh->Np*mesh->Nelements, mesh->o_filterMatrix, u);
+  
+  BPOperator(BP, lambda, mu, u, r, dfloatString, starts, ends);                        /* r = f - Au               */
+  BP->scaledAddKernel(Ndof, (dfloat)1.0, f, (dfloat)-1.0, r);
 
-  dfloat zeta = 0;
-  if(!zeroInitialGuess){
-    // Hegedus trick
-    dfloat normAx2;
-    BPVecNorm2(BP, r, &normAx2);
-    if (normAx2 != 0.0) {
-      dfloat bdotAx;
-      BPVecInnerProduct(BP, f, r, &bdotAx);
-
-      zeta = bdotAx/normAx2;
-      BPVecScale(BP, u, zeta);
-      BPVecScale(BP, r, zeta);
-    }
-  }
-
-  BPVecScaledAdd(BP, 1.0, f, -1.0, r);
-
+  //  BP->filterKernel(mesh->Nelements, mesh->Np*mesh->Nelements, mesh->o_filterMatrix, r);
+  
   dfloat normResidual;
-  BPVecNorm2(BP, r, &normResidual);
+  normResidual = BPWeightedNorm2(BP, BP->o_invDegree, r);
   normResidual = sqrt(normResidual);
 
   // no precon
-  z.copyFrom(r);
+  z.copyFrom(r, Nbytes, 0);
 
-  BPVecInnerProduct(BP, z, r, &gam);                   /* gam = sqrt(r'*z)         */
+  gam = BPWeightedInnerProduct(BP, BP->o_invDegree, z, r);                   /* gam = sqrt(r'*z)         */
   if (gam < 0) {
     printf("BAD:  gam < 0.\n");
     exit(-1);
@@ -338,44 +330,23 @@ static int BPSMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f, occa::
   c    = 1.0;
 
   /* Adjust the tolerance to account for small initial residual norms. */
-#if 1
-  dfloat normf = 0.0;
-  BPVecNorm2(BP, f, &normf);
-  normf = sqrt(normf);
-  tol = tol*normf;
-#else
-  tol = mymax(tol*fabs(eta), tol);
-#endif
-  if (verbose && (BP->meshV->rank == 0))
+  if (verbose && (mesh->rank == 0))
     printf("MINRES:  initial eta = % .15e, gamma = %.15e target %.15e\n", eta, gam, tol);
 
   /* MINRES iteration loop. */
-  BP->meshV->device.finish();
+  mesh->device.finish();
   dfloat tic = MPI_Wtime();
 
-  int i = 0;
+  int iter = 0;
 
-  for (i = 0; i < maxiter; i++) {
+  for (iter = 1; iter <= MAXIT; ++iter) {
+    
+    if (verbose && (mesh->rank == 0))
+      printf("MINRES:  it % 3d  eta = % .15e, gamma = %.15e, normResidual = %.15e\n", iter, eta, gam, fabs(normResidual));
+    
+    BP->vecScaleKernel(Ndof, (dfloat) (1./gam), z); /* z = z/gam                */
 
-    if (verbose && (BP->meshV->rank == 0))
-      printf("MINRES:  it % 3d  eta = % .15e, gamma = %.15e, normResidual = %.15e\n", i, eta, gam, fabs(normResidual));
-
-    //    if (fabs(eta) < tol && i>0) {
-    if (fabs(normResidual) < tol && i>0) {
-      if (verbose && (BP->meshV->rank == 0)) {
-        BP->meshV->device.finish();
-        dfloat toc = MPI_Wtime();
-        printf("MINRES [%d] converged in %d iterations (eta = % .15e, normResidual = %.15e\n) took %g seconds (zeta=%17.15lf for Hegedus trick)\n",
-            fsrPreconSwitch, i, eta, normResidual, toc-tic, zeta);
-      }
-
-      break;
-    }
-
-    BPVecScale(BP, z, (1./gam)); /* z = z/gam                */
-
-    BPOperator(BP, lambda, mu, z, p);                      /* p = Az                   */
-    BPVecInnerProduct(BP, p, z, &del);                 /* del = z'*p               */
+    del = BPOperator(BP, lambda, mu, z, p, dfloatString, starts+iter, ends+iter);   /* p = Az, del = z'*p  */
     a0 = c*del - cp*s*gam;
     a2 = s*del + cp*c*gam;
     a3 = sp*gam;
@@ -388,36 +359,52 @@ static int BPSMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f, occa::
     /* r = r - (gam/gamp)*rold */
     /* rold = z                */
     dfloat alpha =  -(del/gam);
-    dfloat beta  = (i==0) ? 0: -(gam/gamp);
+    dfloat beta  = (iter==1) ? 0: -(gam/gamp);
 
-    BP->updateMinresKernel(Ndof, -a2, -a3, alpha, beta,
-			       z, wold, w, rold, r, p);
+    BP->updateMINRESKernel(Ndof, -a2, -a3, alpha, beta, z, wold, w, rold, r, p);
 
+    // filter out top modes of pressure residual
+    //    BP->filterKernel(mesh->Nelements, mesh->Np*mesh->Nelements, mesh->o_filterMatrix, r);
+    //    BP->filterKernel(mesh->Nelements, mesh->Np*mesh->Nelements, mesh->o_filterMatrix, r);
+    
     // no precon
-    z.copyFrom(r);
+    z.copyFrom(r, Nbytes, 0);
 
     gamp = gam;
-    BPVecInnerProduct(BP, z, r, &gam);                 /* gam = sqrt(r'*z)         */
+    gam = BPWeightedInnerProduct(BP, BP->o_invDegree, z, r);                 /* gam = sqrt(r'*z)         */
     gam = sqrt(gam);
     a1 = sqrt(a0*a0 + gam*gam);
     cp = c;
     c  = a0/a1;
     sp = s;
     s  = gam/a1;
-    BPVecScale(BP, w, 1.0/a1);                         /* w = w/a1                 */
-    BPVecScaledAdd(BP, c*eta, w, 1.0, u);              /* u = u + c*eta*w          */
+    BP->vecScaleKernel (Ndof, (dfloat)1.0/a1, w);         /* w = w/a1                 */
+    BP->scaledAddKernel(Ndof, c*eta, w, (dfloat)1.0, u);  /* u = u + c*eta*w          */
 
     eta = -s*eta;
 
-#if 1
-    /* tmp = f - Au               */
-    BPOperator(BP, lambda, mu, u, res);
-    BPVecScaledAdd(BP, 1.0, f, -1.0, res);
-    BPVecNorm2(BP, res, &normResidual);
+#if 0
+    BPOperator(BP, lambda, mu, u, res, dfloatString, starts, ends);                        /* r = f - Au               */
+    BP->scaledAddKernel(Ndof, (dfloat)1.0, f, (dfloat)-1.0, res);
+    
+    normResidual = BPWeightedNorm2(BP, BP->o_invDegree, res);
     normResidual = sqrt(normResidual);
 #endif
   }
 
-  return i;
+  BP->mesh->device.finish();
+
+  double elapsed = 0;
+  for(int it=0;it<iter;++it){
+    elapsed += BP->mesh->device.timeBetween(starts[it], ends[it]);
+  }
+
+  *opElapsed += elapsed;
+
+  elapsed /= iter;
+
+  printf("MINRES: %e, %e ; \%\% (OP(x): elapsed, GNodes/s)\n", elapsed, BP->mesh->Nelements*BP->mesh->Np/(1.e9*elapsed));
+  
+  return iter;
 }
 
