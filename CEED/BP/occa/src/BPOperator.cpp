@@ -134,7 +134,7 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, occa::m
   int BPid = BP->BPid;
   
   runBPKernel(BP, lambda, mu, mesh->NglobalGatherElements, mesh->o_globalGatherElementList, o_q, o_Aq);
-
+  
   if(BP->Nfields==1)
     ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
   else

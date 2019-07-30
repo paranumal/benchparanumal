@@ -37,13 +37,14 @@ CFLAGS = -I. -DOCCA_VERSION_1_0 $(compilerFlags) $(flags) -I$(HDRDIR) -I$(OGSDIR
 #-I../../3rdParty/parmetis-4.0.3/metis/GKlib -I../../3rdParty/parmetis-4.0.3/include -I../../3rdParty/parmetis-4.0.3/metis/include -I../../3rdParty/parmetis-4.0.3/libparmetis 
 
 # link flags to be used
-LDFLAGS	= -DOCCA_VERSION_1_0 $(compilerFlags) $(flags) $(LIBP_OPT_FLAGS) -llapack -lblas
+LDFLAGS	= -DOCCA_VERSION_1_0 $(compilerFlags) $(LIBP_OPT_FLAGS) -llapack -lblas 
 
 PARMETISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libparmetis/
 METISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libmetis
 
 # libraries to be linked in
-LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran -lcudart -lcuda
+LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran -lcuda -lcudart -fopenmp
+#-lcudart -lcuda
 #-lcudart -lcuda
 
 #-L$(PARMETISDIR) -lparmetis -L$(METISDIR) -lmetis  -L$(ALMONDDIR) -lparAlmond

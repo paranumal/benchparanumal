@@ -169,7 +169,7 @@ typedef struct {
   
 }BP_t;
 
-BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide options);
+BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide &options);
 
 int  BPSolve(BP_t *BP, dfloat lambda, dfloat mu, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed);
 

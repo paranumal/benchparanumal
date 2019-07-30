@@ -73,6 +73,9 @@ CUDA
 [LAMBDA]
 10
 
+[VISCOSITY]
+1
+
 # can add FLEXIBLE to PCG
 # can add NONBLOCKING (disable FLEXIBLE for the moment)
 [KRYLOV SOLVER]

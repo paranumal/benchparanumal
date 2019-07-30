@@ -90,7 +90,7 @@
   {						\
 						\
     /* lower in 'k' */				\
-    for(int j=0;j<p_Nq;++j;@inner(1)){		\
+    for(int j=0;j<p_Nq;++j;@inner(1)){	\
       for(int i=0;i<p_Nq;++i;@inner(0)){	\
 						\
 	for(int c=0;c<p_Nq;++c){		\
@@ -163,7 +163,7 @@
 		    @restrict const dfloat *F,
 		    const dfloat lambda,
 		    const dfloat mu,	
-		    @restrict dfloat *q,
+		    @restrict const dfloat *q,
 		    @restrict dfloat *Aq){
   
   for(dlong e=0; e<Nelements; ++e; @outer(0)){
@@ -198,22 +198,18 @@
 	s_F[j][i] = F[p_Nq*j+i];
 	
         // load pencil of u into register
-        const dlong base = i + j*p_Nq + e*p_Np;
-	
         for(int k = 0; k < p_Nq; k++) {
-          r_U[k] = q[base + k*p_Nq*p_Nq + 0*offset];
-          r_V[k] = q[base + k*p_Nq*p_Nq + 1*offset];
-          r_W[k] = q[base + k*p_Nq*p_Nq + 2*offset];
+	  const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
+
+          r_U[k] = q[base + 0*offset];
+          r_V[k] = q[base + 1*offset];
+          r_W[k] = q[base + 2*offset];
+	  r_p[k] = q[base + 3*offset];
 
           r_AU[k] = 0.f; // zero the accumulator
           r_AV[k] = 0.f; // zero the accumulator
           r_AW[k] = 0.f; // zero the accumulator
         }
-
-	const dlong baseP = i + j*p_Nq + e*p_Np + 3*offset;
-	for(int c = 0; c < p_Nq; c++) {
-	  r_p[c] = q[baseP + c*p_Nq*p_Nq];
-	}
       }
     }
 
@@ -269,8 +265,6 @@
             Wr += Dim*s_W[j][m];
             Ws += Djm*s_W[m][i];
           }
-
-          const dlong pid = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
 
 	  // use raised pressure
 	  const dfloat pk = r_p[k];
@@ -368,10 +362,8 @@
     
     // lower pressure degree
     filterTransposeHex3D(s_F, r_p);
-    //    filterHex3D(s_F, r_p);
     
     // write out
-    
     for(int j=0;j<p_Nq;++j;@inner(1)){
       for(int i=0;i<p_Nq;++i;@inner(0)){
 #pragma unroll p_Nq
@@ -380,16 +372,299 @@
           Aq[id+0*offset] = r_AU[k];
           Aq[id+1*offset] = r_AV[k];
           Aq[id+2*offset] = r_AW[k];
-        }
-	
-	for(int c = 0; c < p_Nq; c++){
-	  const dlong id = e*p_Np +c*p_Nq*p_Nq+ j*p_Nq + i + 3*offset;
-	  Aq[id] = r_p[c];
+	  Aq[id+3*offset] = r_p[k];
 	}
       }
     }
   }
 }
+
+
+@kernel void BP9Dot_v0(const dlong Nelements,
+		       @restrict const dlong *elementList,
+		       const dlong offset,
+		       @restrict const dfloat *vgeo,
+		       @restrict const dfloat *D,
+		       @restrict const dfloat *F,
+		       const dfloat lambda,
+		       const dfloat mu,	
+		       @restrict const dfloat *q,
+		       @restrict dfloat *Aq,
+		       @restrict dfloat *qAq){
+  
+  for(dlong e=0; e<Nelements; ++e; @outer(0)){
+
+    @shared dfloat s_Fp[p_Nq][p_Nq][p_Nq];	
+    
+    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared dfloat s_F[p_Nq][p_Nq];
+
+    @shared dfloat s_U[p_Nq][p_Nq];
+    @shared dfloat s_V[p_Nq][p_Nq];
+    @shared dfloat s_W[p_Nq][p_Nq];
+
+    @shared dfloat s_GUr[p_Nq][p_Nq];
+    @shared dfloat s_GUs[p_Nq][p_Nq];
+    @shared dfloat s_GVr[p_Nq][p_Nq];
+    @shared dfloat s_GVs[p_Nq][p_Nq];
+    @shared dfloat s_GWr[p_Nq][p_Nq];
+    @shared dfloat s_GWs[p_Nq][p_Nq];
+
+    @exclusive dfloat r_Ut, r_Vt, r_Wt;
+
+    // heavy on registers (FP64, 2*3*8 for N=7)
+    @exclusive dfloat r_U[p_Nq] , r_V[p_Nq],  r_W[p_Nq], r_p[p_Nq];
+    @exclusive dfloat r_AU[p_Nq], r_AV[p_Nq], r_AW[p_Nq], r_Ap[p_Nq];
+
+    // array of threads
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+        s_D[j][i] = D[p_Nq*j+i]; 
+	s_F[j][i] = F[p_Nq*j+i];
+	
+        // load pencil of u into register
+        for(int k = 0; k < p_Nq; k++) {
+	  const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
+
+          r_U[k] = q[base + 0*offset];
+          r_V[k] = q[base + 1*offset];
+          r_W[k] = q[base + 2*offset];
+	  r_p[k] = q[base + 3*offset];
+	  r_Ap[k] = r_p[k];
+	  
+          r_AU[k] = 0.f; // zero the accumulator
+          r_AV[k] = 0.f; // zero the accumulator
+          r_AW[k] = 0.f; // zero the accumulator
+        }
+      }
+    }
+
+    // raise pressure degree
+    filterHex3D(s_F, r_Ap);
+
+    // Layer by layer
+#pragma unroll p_Nq
+    for(int k = 0;k < p_Nq; k++){
+
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          // share u(:,:,k)
+          s_U[j][i] = r_U[k];
+          s_V[j][i] = r_V[k];
+          s_W[j][i] = r_W[k];
+
+          r_Ut = 0;
+          r_Vt = 0;
+          r_Wt = 0;
+
+#pragma unroll p_Nq
+          for(int m = 0; m < p_Nq; m++) {
+            // 1 shared, 6 flops => 12*6/(1*8) = 9 TFLOPSs > peak
+            dfloat Dkm = s_D[k][m];
+            r_Ut += Dkm*r_U[m];
+            r_Vt += Dkm*r_V[m];
+            r_Wt += Dkm*r_W[m];
+          }
+        }
+      }
+
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          dfloat Ur = 0.f, Us = 0.f;
+          dfloat Vr = 0.f, Vs = 0.f;
+          dfloat Wr = 0.f, Ws = 0.f;
+
+#pragma unroll p_Nq
+          for(int m = 0; m < p_Nq; m++) {
+            // 8 shared, 12 FLOPS => 12TB/s*12/(8*8) => 2.25TF on V100
+            dfloat Dim = s_D[i][m];
+            dfloat Djm = s_D[j][m];
+
+            Ur += Dim*s_U[j][m];
+            Us += Djm*s_U[m][i];
+
+            Vr += Dim*s_V[j][m];
+            Vs += Djm*s_V[m][i];
+
+            Wr += Dim*s_W[j][m];
+            Ws += Djm*s_W[m][i];
+          }
+
+	  // use raised pressure
+	  const dfloat pk = r_Ap[k];
+	  
+	  const dfloat eta_kji = mu;
+	  
+          // prefetch geometric factors
+          const dlong gbase = e*p_Nvgeo*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
+
+          const dfloat rx = vgeo[gbase+p_RXID*p_Np];
+          const dfloat sx = vgeo[gbase+p_SXID*p_Np];
+          const dfloat tx = vgeo[gbase+p_TXID*p_Np];
+
+          const dfloat ry = vgeo[gbase+p_RYID*p_Np];
+          const dfloat sy = vgeo[gbase+p_SYID*p_Np];
+          const dfloat ty = vgeo[gbase+p_TYID*p_Np];
+
+          const dfloat rz = vgeo[gbase+p_RZID*p_Np];
+          const dfloat sz = vgeo[gbase+p_SZID*p_Np];
+          const dfloat tz = vgeo[gbase+p_TZID*p_Np];
+
+          const dfloat JW = vgeo[gbase+p_JWID*p_Np];
+
+          const dfloat G00 = (rx*rx+ry*ry+rz*rz)*JW*eta_kji;
+          const dfloat G01 = (rx*sx+ry*sy+rz*sz)*JW*eta_kji;
+          const dfloat G02 = (rx*tx+ry*ty+rz*tz)*JW*eta_kji;
+          const dfloat G11 = (sx*sx+sy*sy+sz*sz)*JW*eta_kji;
+          const dfloat G12 = (sx*tx+sy*ty+sz*tz)*JW*eta_kji;
+          const dfloat G22 = (tx*tx+ty*ty+tz*tz)*JW*eta_kji;
+
+          const dfloat JWpk = -JW*pk;
+
+          // (grad phi, grad U - delta_x p)
+          // (grad phi, grad V - delta_y p)
+          // (grad phi, grad W - delta_z p)
+          s_GUr[j][i] = (G00*Ur + G01*Us + G02*r_Ut) + rx*JWpk;
+          s_GVr[j][i] = (G00*Vr + G01*Vs + G02*r_Vt) + ry*JWpk;
+          s_GWr[j][i] = (G00*Wr + G01*Ws + G02*r_Wt) + rz*JWpk;
+
+          s_GUs[j][i] = (G01*Ur + G11*Us + G12*r_Ut) + sx*JWpk;
+          s_GVs[j][i] = (G01*Vr + G11*Vs + G12*r_Vt) + sy*JWpk;
+          s_GWs[j][i] = (G01*Wr + G11*Ws + G12*r_Wt) + sz*JWpk;
+
+          // (phi, divU)
+          dfloat APk = 0;
+          APk += rx*Ur + sx*Us + tx*r_Ut;
+          APk += ry*Vr + sy*Vs + ty*r_Vt;
+          APk += rz*Wr + sz*Ws + tz*r_Wt;
+
+	  r_Ap[k] = -JW*APk;
+
+          r_Ut = G02*Ur + G12*Us + G22*r_Ut + tx*JWpk;
+          r_Vt = G02*Vr + G12*Vs + G22*r_Vt + ty*JWpk;
+          r_Wt = G02*Wr + G12*Ws + G22*r_Wt + tz*JWpk;
+
+          r_AU[k] += JW*lambda*r_U[k];
+          r_AV[k] += JW*lambda*r_V[k];
+          r_AW[k] += JW*lambda*r_W[k];
+
+        }
+      }
+
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          dfloat AUtmp = 0, AVtmp = 0, AWtmp = 0;
+
+#pragma unroll p_Nq
+          for(int m = 0; m < p_Nq; m++){
+            // 9 shared, 18 flops => 12TB/s*18/(9*8) = 3TFLOPS/s
+            dfloat Dmi = s_D[m][i];
+            dfloat Dmj = s_D[m][j];
+            dfloat Dkm = s_D[k][m];
+
+            AUtmp += Dmi*s_GUr[j][m];
+            AUtmp += Dmj*s_GUs[m][i];
+
+            AVtmp += Dmi*s_GVr[j][m];
+            AVtmp += Dmj*s_GVs[m][i];
+
+            AWtmp += Dmi*s_GWr[j][m];
+            AWtmp += Dmj*s_GWs[m][i];
+
+            r_AU[m] += Dkm*r_Ut;
+            r_AV[m] += Dkm*r_Vt;
+            r_AW[m] += Dkm*r_Wt;
+          }
+
+          r_AU[k] += AUtmp;
+          r_AV[k] += AVtmp;
+          r_AW[k] += AWtmp;
+        }
+      }
+    }
+    
+    // lower pressure degree
+    filterTransposeHex3D(s_F, r_Ap);
+
+#define p_Nthr (p_Nq*p_Nq)
+#define p_Nwarps (((p_Nthr)+31)/32)
+    
+    @shared volatile dfloat s_warp[p_Nwarps];
+    @shared volatile dfloat s_qAq[p_Nthr];
+    
+    // write out
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+	dfloat r_qAq = 0;
+#pragma unroll p_Nq
+        for(int k = 0; k < p_Nq; k++){
+          const dlong id = e*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+          Aq[id+0*offset] = r_AU[k];
+          Aq[id+1*offset] = r_AV[k];
+          Aq[id+2*offset] = r_AW[k];
+	  Aq[id+3*offset] = r_Ap[k];
+
+	  r_qAq += r_U[k]*r_AU[k];
+	  r_qAq += r_V[k]*r_AV[k];
+	  r_qAq += r_W[k]*r_AW[k];
+	  r_qAq += r_p[k]*r_Ap[k];
+	  
+	}
+	
+	s_qAq[j*p_Nq + i] = r_qAq;
+      }
+    }
+    
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+	for(int i=0;i<p_Nq;++i;@inner(0)){
+	  
+	  int r_t = j*p_Nq + i;
+	  int r_n = r_t%32;
+	  int r_w = r_t/32;
+
+	  if(r_n<16 && r_t+16<p_Nthr) s_qAq[r_t] += s_qAq[r_t+16];
+	  if(r_n< 8 && r_t+ 8<p_Nthr) s_qAq[r_t] += s_qAq[r_t+ 8];
+	  if(r_n< 4 && r_t+ 4<p_Nthr) s_qAq[r_t] += s_qAq[r_t+ 4];
+	  if(r_n< 2 && r_t+ 2<p_Nthr) s_qAq[r_t] += s_qAq[r_t+ 2];
+	  if(r_n< 1 && r_t+ 1<p_Nthr) s_qAq[r_t] += s_qAq[r_t+ 1];
+	  
+	  if(r_n==0) s_warp[r_w] = s_qAq[r_t];
+	}
+    }
+  
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+	
+	int r_t = j*p_Nq + i;
+	int r_n = r_t%32;
+	int r_w = r_t/32;
+	
+	if(r_w==0 && r_t<p_Nwarps){
+	  
+	  if(r_t<16 && r_t+16<p_Nwarps) s_warp[r_t] += s_warp[r_t+16];
+	  if(r_t< 8 && r_t+ 8<p_Nwarps) s_warp[r_t] += s_warp[r_t+8];
+	  if(r_t< 4 && r_t+ 4<p_Nwarps) s_warp[r_t] += s_warp[r_t+4];
+	  if(r_t< 2 && r_t+ 2<p_Nwarps) s_warp[r_t] += s_warp[r_t+2];
+	  if(r_t< 1 && r_t+ 1<p_Nwarps) s_warp[r_t] += s_warp[r_t+1];
+	  
+	  if(r_t==0){
+	    dfloat res = s_warp[0];
+	    atomicAdd(qAq, res);
+	  }
+	}
+      }
+    }
+    
+  }
+}
+
+
+
 
 @kernel void BPfilter(const dlong Nelements,
 		       const dlong offset,
@@ -430,7 +705,6 @@
 }
 
 
-#if 0
 @kernel void BP9_v1(const dlong Nelements,
 		     @restrict const dlong *elementList,
 		     const dlong offset,
@@ -471,28 +745,25 @@
 	s_F[j][i] = F[p_Nq*j+i];
 	
 	// load pencil of u into register
-	const dlong base = i + j*p_Nq + e*p_Np;
 	
 #pragma unroll p_Nq
         for(int k = 0; k < p_Nq; k++) {
-          s_U[k][j][i] = q[base + k*p_Nq*p_Nq + 0*offset];
-          s_V[k][j][i] = q[base + k*p_Nq*p_Nq + 1*offset];
-          s_W[k][j][i] = q[base + k*p_Nq*p_Nq + 2*offset];
+	  const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
+
+          s_U[k][j][i] = q[base + 0*offset];
+          s_V[k][j][i] = q[base + 1*offset];
+          s_W[k][j][i] = q[base + 2*offset];
+	  r_p[k] = q[base + 3*offset];
 
           r_AU[k] = 0.f; // zero the accumulator
           r_AV[k] = 0.f; // zero the accumulator
           r_AW[k] = 0.f; // zero the accumulator
         }
-
-	const dlong baseP = i + j*p_Nq + e*p_Np + 3*offset;
-	for(int c = 0; c < p_Nq; c++) {
-	  r_p[c] = q[baseP + c*p_Nq*p_Nq];
-	}
       }
     }
 
     // raise pressure degree
-    filterTransposeHex3D(s_F, r_p);
+    filterHex3D(s_F, r_p);
     
     // Layer by layer
 #pragma unroll p_Nq
@@ -524,8 +795,6 @@
 	    Vt += Dkm*s_V[m][j][i];
 	    Wt += Dkm*s_W[m][j][i];
           }
-
-          const dlong pid = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
 
 	  const dfloat pk = r_p[k];
 
@@ -625,7 +894,7 @@
     }
 
     // lower pressure degree
-    filterHex3D(s_F, r_p);
+    filterTransposeHex3D(s_F, r_p);
     
     // write out
 
@@ -687,24 +956,22 @@
 
       if(k==0)
 	s_D[j][i] = D[p_Nq*j+i]; 
-      
       if(k==1)
 	s_F[j][i] = F[p_Nq*j+i];
       
       // load pencil of u into register
       const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
       
-      s_U[k][j][i] = q[base + k*p_Nq*p_Nq + 0*offset];
-      s_V[k][j][i] = q[base + k*p_Nq*p_Nq + 1*offset];
-      s_W[k][j][i] = q[base + k*p_Nq*p_Nq + 2*offset];
+      s_U[k][j][i] = q[base + 0*offset];
+      s_V[k][j][i] = q[base + 1*offset];
+      s_W[k][j][i] = q[base + 2*offset];
+
+      r_p = q[base + 3*offset];
+      s_p[k][j][i] = r_p;
       
       r_AU = 0.f; // zero the accumulator
       r_AV = 0.f; // zero the accumulator
       r_AW = 0.f; // zero the accumulator
-      
-      const dlong baseP = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np + 3*offset;
-      r_p  = q[baseP];
-      s_p[k][j][i] = r_p;
     }
     
     // START raise pressure degree ----------------------------------------------------------
@@ -744,7 +1011,7 @@
       
 #pragma unroll p_Nq
       for(int m = 0; m < p_Nq; m++) {
-	// 12 shared, 18 flops => 12TB*18/(12*8) = 2.25TFLOPS/s
+
 	dfloat Dim = s_D[i][m];
 	dfloat Djm = s_D[j][m];
 	dfloat Dkm = s_D[k][m];
@@ -761,8 +1028,6 @@
 	Vt += Dkm*s_V[m][j][i];
 	Wt += Dkm*s_W[m][j][i];
       }
-      
-      const dlong pid = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
       
       const dfloat pk = r_p;
       
@@ -915,8 +1180,6 @@
 }
 
 
-
-
 @kernel void BP9_v3(const dlong Nelements,
 		     @restrict const dlong *elementList,
 		     const dlong offset,
@@ -962,22 +1225,18 @@
 	s_F[j][i] = F[p_Nq*j+i];
 	
         // load pencil of u into register
-        const dlong base = i + j*p_Nq + e*p_Np;
-	
         for(int k = 0; k < p_Nq; k++) {
-          s_U[k][j][i] = q[base + k*p_Nq*p_Nq + 0*offset];
-          s_V[k][j][i] = q[base + k*p_Nq*p_Nq + 1*offset];
-          s_W[k][j][i] = q[base + k*p_Nq*p_Nq + 2*offset];
-
+	  const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
+	  
+          s_U[k][j][i] = q[base+ 0*offset];
+          s_V[k][j][i] = q[base+ 1*offset];
+          s_W[k][j][i] = q[base+ 2*offset];
+	  s_p[k][j][i] = q[base+ 3*offset];
+	  
           s_AU[k][j][i] = 0.f; // zero the accumulator
           s_AV[k][j][i] = 0.f; // zero the accumulator
           s_AW[k][j][i] = 0.f; // zero the accumulator
         }
-
-	const dlong baseP = i + j*p_Nq + e*p_Np + 3*offset;
-	for(int c = 0; c < p_Nq; c++) {
-	  s_p[c][j][i] = q[baseP + c*p_Nq*p_Nq];
-	}
       }
     }
     
@@ -1044,7 +1303,7 @@
             // 8 shared, 12 FLOPS => 12TB/s*12/(8*8) => 2.25TF on V100
             dfloat Dim = s_D[i][m];
             dfloat Djm = s_D[j][m];
-            dfloat Dkm = s_D[k][m];
+           dfloat Dkm = s_D[k][m];
 	    
             Ur += Dim*s_U[k][j][m];
             Us += Djm*s_U[k][m][i];
@@ -1058,8 +1317,6 @@
             Ws += Djm*s_W[k][m][i];
 	    Wt += Dkm*s_W[m][j][i];
           }
-
-          const dlong pid = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
 
 	  // use raised pressure
 	  const dfloat pk = s_p[k][j][i];
@@ -1275,17 +1532,15 @@
       // load pencil of u into register
       const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
       
-      s_U[k][j][i] = q[base + k*p_Nq*p_Nq + 0*offset];
-      s_V[k][j][i] = q[base + k*p_Nq*p_Nq + 1*offset];
-      s_W[k][j][i] = q[base + k*p_Nq*p_Nq + 2*offset];
+      s_U[k][j][i] = q[base + 0*offset];
+      s_V[k][j][i] = q[base + 1*offset];
+      s_W[k][j][i] = q[base + 2*offset];
+      r_p = q[base + 3*offset];
+      s_p[k][j][i] = r_p;
       
       r_AU = 0.f; // zero the accumulator
       r_AV = 0.f; // zero the accumulator
       r_AW = 0.f; // zero the accumulator
-      
-      const dlong baseP = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np + 3*offset;
-      r_p  = q[baseP];
-      s_p[k][j][i] = r_p;
     }
     
     // START raise pressure degree ----------------------------------------------------------
@@ -1364,8 +1619,6 @@
 	Vt += Dkm*s_V[m][j][i];
 	Wt += Dkm*s_W[m][j][i];
       }
-      
-      const dlong pid = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
       
       const dfloat pk = r_p;
       
@@ -1509,7 +1762,7 @@
       dfloat res = 0;
 #pragma unroll p_Nq
       for(int k=0;k<p_Nq;++k){
-	dfloat Ikc = s_F[k][c]; // r_Ik[k]; // s_F[k][c]
+	//	dfloat Ikc = s_F[k][c]; // r_Ik[k]; // s_F[k][c]
 	res += r_OP[k]*s_p[k][j][i];	
       }					
       s_Fp[c][j][i] = res;
@@ -1517,36 +1770,34 @@
       for(int n=0;n<p_Nq;++n){
 	r_OP[n] = s_F[n][j];
       }						
-    
-      cubeThreads(c,b,i){				
-	dfloat res = 0;
-#pragma unroll p_Nq
-	for(int j=0;j<p_Nq;++j){
-	  res += r_OP[j]*s_Fp[c][j][i];	
-	}					
-      
-	s_p[c][b][i] = res;
-      
-	for(int n=0;n<p_Nq;++n){
-	  r_OP[n] = s_F[n][i];
-	}
-      }						
-    
-      cubeThreads(c,b,a){
-	dfloat res = 0;
-#pragma unroll p_Nq
-	for(int i=0;i<p_Nq;++i){
-	  res += r_OP[i]*s_p[c][b][i];		
-	}						
-	const dlong id = e*p_Np + c*p_Nq*p_Nq+ b*p_Nq + a + 3*offset;
-	Aq[id] = res;
-      }
-    
     }
-  
+    cubeThreads(c,b,i){				
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int j=0;j<p_Nq;++j){
+	res += r_OP[j]*s_Fp[c][j][i];	
+      }					
+      
+      s_p[c][b][i] = res;
+      
+      for(int n=0;n<p_Nq;++n){
+	r_OP[n] = s_F[n][i];
+      }
+    }						
+    
+    cubeThreads(c,b,a){
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int i=0;i<p_Nq;++i){
+	res += r_OP[i]*s_p[c][b][i];		
+      }						
+      const dlong id = e*p_Np + c*p_Nq*p_Nq+ b*p_Nq + a + 3*offset;
+      Aq[id] = res;
+    }
   }
 }
 
+#if 1
 
 @kernel void BP9_v5(const dlong Nelements,
 		     @restrict const dlong *elementList,
@@ -1596,21 +1847,17 @@
 	s_F[j][i] = F[p_Nq*j+i];
 	
 	// load pencil of u into register
-	const dlong base = i + j*p_Nq + e*p_Np;
-	
 	for(int k = 0; k < p_Nq; k++) {
-	  s_U[k][j][i] = q[base + k*p_Nq*p_Nq + 0*offset];
-	  s_V[k][j][i] = q[base + k*p_Nq*p_Nq + 1*offset];
-	  s_W[k][j][i] = q[base + k*p_Nq*p_Nq + 2*offset];
+	  const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
+
+	  s_U[k][j][i] = q[base + 0*offset];
+	  s_V[k][j][i] = q[base + 1*offset];
+	  s_W[k][j][i] = q[base + 2*offset];
+	  s_p[k][j][i] = q[base + 3*offset];
 
 	  s_AU[k][j][i] = 0.f; // zero the accumulator
 	  s_AV[k][j][i] = 0.f; // zero the accumulator
 	  s_AW[k][j][i] = 0.f; // zero the accumulator
-	}
-
-	const dlong baseP = i + j*p_Nq + e*p_Np + 3*offset;
-	for(int c = 0; c < p_Nq; c++) {
-	  s_p[c][j][i] = q[baseP + c*p_Nq*p_Nq];
 	}
       }
     }
@@ -1701,10 +1948,8 @@
 	    Wt += Dkm*s_W[m][j][i];
 	  }
 
-	  const dlong pid = i + j*p_Nq + k*p_Nq*p_Nq + e*p_Np;
-
 	  // use raised pressure
-	  const dfloat pk = s_p[k][j][i];
+	  const dfloat pk = s_Fp[k][j][i];
 
 	  const dfloat eta_kji = mu;
 	  
@@ -1832,7 +2077,7 @@
 	}					
       }						
     }						
-    
+  
     /* lower in 'i' */				
     for(int c=0;c<p_Nq;++c;@inner(1)){		
       for(int b=0;b<p_Nq;++b;@inner(0)){		
@@ -1845,7 +2090,7 @@
 	    res += s_F[i][a]*s_p[c][b][i];		
 	  }					
 	  
-	  s_p[c][b][a] = res;			
+	  s_Fp[c][b][a] = res;			
 	}					
       }						
     }						
@@ -1861,12 +2106,7 @@
 	  Aq[id+0*offset] = s_AU[k][j][i];
 	  Aq[id+1*offset] = s_AV[k][j][i];
 	  Aq[id+2*offset] = s_AW[k][j][i];
-	}
-	
-#pragma unroll p_Nq
-	for(int c = 0; c < p_Nq; c++){
-	  const dlong id = e*p_Np +c*p_Nq*p_Nq+ j*p_Nq + i + 3*offset;
-	  Aq[id] = s_p[c][j][i];
+	  Aq[id+3*offset] = s_Fp[k][j][i];
 	}
       }
     }

@@ -50,8 +50,8 @@ TRUE
 7
 
 # number of cubature nodes = "CUBATURE DEGREE" + 1
-[CUBATURE DEGREE]
-7
+[CUBATURE DEGREE INCREMENT]
+1
 
 [ELEMENT MAP]
 ISOPARAMETRIC
@@ -72,6 +72,9 @@ CUDA
 
 [LAMBDA]
 10
+
+[VISCOSITY]
+1
 
 # can add FLEXIBLE to PCG
 # can add NONBLOCKING (disable FLEXIBLE for the moment)

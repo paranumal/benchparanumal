@@ -301,7 +301,7 @@ int BPMINRES(BP_t *BP, dfloat lambda, dfloat mu,
   BP->vecZeroKernel(Ndof, w);
   BP->vecZeroKernel(Ndof, u); // zero initial guess
 
-  BP->filterKernel(mesh->Nelements, mesh->Np*mesh->Nelements, mesh->o_filterMatrix, u);
+  //  BP->filterKernel(mesh->Nelements, mesh->Np*mesh->Nelements, mesh->o_filterMatrix, u);
   
   BPOperator(BP, lambda, mu, u, r, dfloatString, starts, ends);                        /* r = f - Au               */
   BP->scaledAddKernel(Ndof, (dfloat)1.0, f, (dfloat)-1.0, r);
@@ -383,7 +383,7 @@ int BPMINRES(BP_t *BP, dfloat lambda, dfloat mu,
 
     eta = -s*eta;
 
-#if 0
+#if 1
     BPOperator(BP, lambda, mu, u, res, dfloatString, starts, ends);                        /* r = f - Au               */
     BP->scaledAddKernel(Ndof, (dfloat)1.0, f, (dfloat)-1.0, res);
     

@@ -2,12 +2,12 @@
 1.0
 
 [BENCHMARK]
-BP6
+BP1
 #BP1,BP2,BP3,BP4,BP5,BP6
 
 [COMBINE DOT PRODUCT]
-#FALSE
-TRUE
+FALSE
+#TRUE
 
 [KERNEL ID]
 0
@@ -78,6 +78,9 @@ CUDA
 
 [LAMBDA]
 10
+
+[VISCOSITY]
+1
 
 # can add FLEXIBLE to PCG
 # can add NONBLOCKING (disable FLEXIBLE for the moment)

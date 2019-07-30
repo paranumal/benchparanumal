@@ -30,7 +30,7 @@ SOFTWARE.
 
 void reportMemoryUsage(occa::device &device, const char *mess);
 
-BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide options){
+BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide &options){
 
   BP_t *BP = new BP_t();
 
@@ -43,6 +43,9 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
   int BP6 = options.compareArgs("BENCHMARK", "BP6");
   int BP9 = options.compareArgs("BENCHMARK", "BP9");
 
+  if(BP9)
+    options.setArgs("KRYLOV SOLVER", "MINRES");
+  
   BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6 + 9*BP9;
 
   if(BP1 || BP3 || BP5)
