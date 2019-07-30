@@ -151,7 +151,7 @@ int main(int argc, char **argv){
       else
 	NbytesPerElement = BP->Nfields*mesh->Np*(2+2+11+2+3+2+3); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
 
-      if(!combineDot) NbytesPerElement += mesh->Np*3; 
+      if(!combineDot) NbytesPerElement += BP->Nfields*mesh->Np*3;  // z.Az/deg
       
       if(BP->BPid==1 || BP->BPid==2) NbytesPerElement += mesh->cubNp;
       if(BP->BPid==3 || BP->BPid==4) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
