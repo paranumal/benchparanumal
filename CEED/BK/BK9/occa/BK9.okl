@@ -680,9 +680,9 @@
       // load pencil of u into register
       const dlong base = i + j*p_NqV + k*p_NqV*p_NqV + e*p_NpV;
       
-      s_U[k][j][i] = q[base + k*p_NqV*p_NqV + 0*offset];
-      s_V[k][j][i] = q[base + k*p_NqV*p_NqV + 1*offset];
-      s_W[k][j][i] = q[base + k*p_NqV*p_NqV + 2*offset];
+      s_U[k][j][i] = q[base+ 0*offset];
+      s_V[k][j][i] = q[base+ 1*offset];
+      s_W[k][j][i] = q[base+ 2*offset];
       
       r_AU = 0.f; // zero the accumulator
       r_AV = 0.f; // zero the accumulator
