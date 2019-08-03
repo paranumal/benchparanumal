@@ -104,12 +104,15 @@ int main(int argc, char **argv){
     BP->BPid = bpid;
     
     MPI_Barrier(mesh->comm);
+
+    // warm up
+    double opElapsed = 0;
+    BPSolve(BP, lambda, mu, tol, BP->o_r, BP->o_x, &opElapsed);
+    opElapsed = 0;
     
-    int Ntests = 4;
+    int Ntests = 10;
     occa::streamTag *startTags = new occa::streamTag[Ntests];
     occa::streamTag *stopTags  = new occa::streamTag[Ntests];
-
-    double opElapsed = 0;
 
     it = 0;
     for(int test=0;test<Ntests;++test){
@@ -147,11 +150,11 @@ int main(int argc, char **argv){
       
       // PCG base
       if(options.compareArgs("KRYLOV SOLVER", "PCG"))
-	NbytesPerElement = BP->Nfields*mesh->Np*(2+3+3+2+3+3+1);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+	NbytesPerElement = mesh->Np*(BP->Nfields*(2+2+3+2+3+3+1)+2);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
       else
-	NbytesPerElement = BP->Nfields*mesh->Np*(2+2+11+2+3+2+3); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
+	NbytesPerElement = mesh->Np*(BP->Nfields*(2+2+11+2+2+2+3)+2); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
 
-      if(!combineDot) NbytesPerElement += BP->Nfields*mesh->Np*3;  // z.Az/deg
+      if(!combineDot) NbytesPerElement += (BP->Nfields*2+1)*mesh->Np;  // z.Az/deg
       
       if(BP->BPid==1 || BP->BPid==2) NbytesPerElement += mesh->cubNp;
       if(BP->BPid==3 || BP->BPid==4) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
@@ -160,7 +163,7 @@ int main(int argc, char **argv){
       
       NbytesPerElement *= sizeof(dfloat);
       
-      double bw = mesh->Nelements*(it*NbytesPerElement/(globalElapsed*1.e9));
+      double bw = mesh->Nelements*(it*(NbytesPerElement/(globalElapsed*1.e9)));
       
       printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
 	     elapsed, globalElapsed, globalNelements);

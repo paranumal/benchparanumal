@@ -189,6 +189,10 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
     else
       ogsGatherScatterMany(BP->o_r, BP->Nfields, Ndof, ogsDfloat, ogsAdd, mesh->ogs);
   }
+
+  if (mesh->rank==0)
+    reportMemoryUsage(mesh->device, "after BP setup");
+
   
   return BP;
 }
