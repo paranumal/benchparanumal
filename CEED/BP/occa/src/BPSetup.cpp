@@ -214,8 +214,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
   dlong Nblock  = mymax(1,(Ntotal+blockSize-1)/blockSize);
   dlong Nblock2 = mymax(1,(Nblock+blockSize-1)/blockSize);
 
-  dlong NthreadsUpdatePCG = 256;
-  dlong NblocksUpdatePCG = mymin((Ntotal+NthreadsUpdatePCG-1)/NthreadsUpdatePCG, 160);
+  dlong NthreadsUpdatePCG = 1024; // was 256
+  dlong NblocksUpdatePCG = mymin((Ntotal+NthreadsUpdatePCG-1)/NthreadsUpdatePCG, 640);
+  //  dlong NblocksUpdatePCG = (Ntotal+NthreadsUpdatePCG-1)/NthreadsUpdatePCG;x
  
   BP->NthreadsUpdatePCG = NthreadsUpdatePCG;
   BP->NblocksUpdatePCG = NblocksUpdatePCG;
@@ -375,6 +376,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->vecScaleKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "vecScale", kernelInfo);
 
+      BP->vecCopyKernel =
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecCopy", kernelInfo);
+
+      
       // add custom defines
       
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);

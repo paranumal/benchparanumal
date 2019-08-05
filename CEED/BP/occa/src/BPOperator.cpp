@@ -149,10 +149,12 @@ dfloat BPOperator(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, occa::m
     *end = BP->mesh->device.tagStream();
   
   // finalize gather using local and global contributions
+#if 1
   if(BP->Nfields==1)
     ogsGatherScatterFinish(o_Aq, ogsDfloat, ogsAdd, ogs);
   else
     ogsGatherScatterManyFinish(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
+#endif
   
   dfloat pAp = 0;
 

@@ -43,7 +43,8 @@ PARMETISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libparmetis/
 METISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libmetis
 
 # libraries to be linked in
-LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran -lcuda -lcudart -fopenmp
+LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran -fopenmp
+#-lcuda -lcudart -fopenmp
 #-lcudart -lcuda
 #-lcudart -lcuda
 
@@ -76,10 +77,10 @@ $(OGSDIR)/ogs.hpp \
 
 # add this object for USE_STEFAN_MXM ./src/BPSerialLocalAxHex3D.o\
 
+# ./src/BK5.o\
 
 # list of objects to be compiled
 AOBJS    = \
-./src/BK5.o\
 ./src/BP.o \
 ./src/BPSetup.o \
 ./src/BPSolve.o\

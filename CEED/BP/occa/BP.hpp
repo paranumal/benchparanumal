@@ -36,7 +36,7 @@ SOFTWARE.
 #include "mesh.h"
 
 // block size for reduction (hard coded)
-#define blockSize 256
+#define blockSize 1024
 
 
 typedef struct{
@@ -140,6 +140,7 @@ typedef struct {
 
   occa::kernel vecZeroKernel;
   occa::kernel vecScaleKernel;
+  occa::kernel vecCopyKernel;
   
   // combined PCG update step
   int             NthreadsUpdatePCG;

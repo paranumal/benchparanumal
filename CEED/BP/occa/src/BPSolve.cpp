@@ -101,7 +101,7 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
 
   occa::streamTag starts[MAXIT+1];
   occa::streamTag ends[MAXIT+1];
-  
+
   rdotz1 = 1;
 
   dfloat rdotr0;
@@ -116,21 +116,51 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
 
   dfloat TOL =  mymax(tol*tol*rdotr0,tol*tol);
 
+  double elapsedCopy = 0;
+  double elapsedPupdate = 0;
   double elapsedAx = 0;
   double elapsedDot = 0;
+  double elapsedUpdate = 0;
+  double elapsedOp = 0;
+  double elapsedOverall = 0;
+
+
+  occa::streamTag startCopy;
+  occa::streamTag endCopy;
+
+  occa::streamTag startPupdate;
+  occa::streamTag endPupdate;
+
+  occa::streamTag startUpdate;
+  occa::streamTag endUpdate;
+
+  occa::streamTag startDot;
+  occa::streamTag endDot;
+
+  occa::streamTag startOp;
+  occa::streamTag endOp;
+
+  occa::streamTag startOverall;
+  occa::streamTag endOverall;
   
   int iter;
+
+  startOverall = BP->mesh->device.tagStream();
+  
   for(iter=1;iter<=MAXIT;++iter){
 
-    // z = Precon^{-1} r
-    // need to copy r to z
-    o_r.copyTo(o_z, Nbytes);
-
+    // z = Precon^{-1} r [ just a copy for this example ]
+    startCopy = BP->mesh->device.tagStream();
+    //    o_r.copyTo(o_z, Nbytes);
+    BP->vecCopyKernel(Ndof, o_r, o_z);
+    endCopy = BP->mesh->device.tagStream();
+    
     rdotz2 = rdotz1;
 
     // r.z
+    startDot = BP->mesh->device.tagStream();
     rdotz1 = BPWeightedInnerProduct(BP, BP->o_invDegree, o_r, o_z); 
-
+    
     if(flexible){
       dfloat zdotAp = BPWeightedInnerProduct(BP, BP->o_invDegree, o_z, o_Ap);  
       
@@ -139,12 +169,17 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
     else{
       beta = (iter==1) ? 0:rdotz1/rdotz2;
     }  
-    
+    endDot = BP->mesh->device.tagStream();
+  
     // p = z + beta*p
+    startPupdate = BP->mesh->device.tagStream();
     BPScaledAdd(BP, 1.f, o_z, beta, o_p);
-
+    endPupdate = BP->mesh->device.tagStream();
+	
     // Ap and p.Ap
-    pAp = BPOperator(BP, lambda, mu, o_p, o_Ap, dfloatString, starts+iter, ends+iter); 
+    startOp = BP->mesh->device.tagStream();
+    pAp = BPOperator(BP, lambda, mu, o_p, o_Ap, dfloatString, starts+iter, ends+iter);
+    endOp = BP->mesh->device.tagStream();
     
     // alpha = r.z/p.Ap
     alpha = rdotz1/pAp;
@@ -152,9 +187,18 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
     //  x <= x + alpha*p
     //  r <= r - alpha*A*p
     //  dot(r,r)
-    
+
+    startUpdate = BP->mesh->device.tagStream();
     dfloat rdotr = BPUpdatePCG(BP, o_p, o_Ap, alpha, o_x, o_r);
-    // 2 + 2 + 3 + 7 + 3 + 8 = 25
+    endUpdate = BP->mesh->device.tagStream();
+
+    BP->mesh->device.finish();
+    
+    elapsedUpdate  += BP->mesh->device.timeBetween(startUpdate,  endUpdate);
+    elapsedCopy    += BP->mesh->device.timeBetween(startCopy,    endCopy);
+    elapsedPupdate += BP->mesh->device.timeBetween(startPupdate, endPupdate);    
+    elapsedDot     += BP->mesh->device.timeBetween(startDot,     endDot);
+    elapsedOp      += BP->mesh->device.timeBetween(startOp,      endOp);
 
     if (verbose&&(mesh->rank==0)) {
 
@@ -165,12 +209,39 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
     }
     
     if(rdotr<=TOL && !fixedIterationCountFlag) break;
-    
   }
 
+  endOverall = BP->mesh->device.tagStream();
+  
   BP->mesh->device.finish();
+  
+  elapsedOverall += BP->mesh->device.timeBetween(startOverall,endOverall);
+  
+  printf("Elapsed: overall: %g, PCG Update %g, Pupdate: %g, Copy: %g, dot: %g, op: %g\n",
+	 elapsedOverall, elapsedUpdate, elapsedPupdate, elapsedCopy, elapsedDot, elapsedOp);
 
+  double gbytesPCG = 7.*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  double gbytesCopy = Nbytes/1.e9;
+  double gbytesOp = (7+2*BP->Nfields)*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  double gbytesDot = (2*BP->Nfields+1)*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  double gbytesPupdate =  3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+
+  int combineDot = 0;
+  combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+
+  if(!combineDot)
+    gbytesOp += 3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+
+  printf("Bandwidth (GB/s): PCG update: %g, Copy: %g, Op: %g, Dot: %g, Pupdate: %g\n",
+	 gbytesPCG*iter/elapsedUpdate,
+	 gbytesCopy*iter/elapsedCopy,
+	 gbytesOp*iter/elapsedOp,
+	 gbytesDot*iter/elapsedDot,
+	 gbytesPupdate*iter/elapsedPupdate);
+  
+  
   double elapsed = 0;
+
   for(int it=0;it<iter;++it){
     elapsed += BP->mesh->device.timeBetween(starts[it], ends[it]);
   }
