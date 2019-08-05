@@ -73,6 +73,9 @@
     
 #pragma unroll p_Nq
     for(int k = 0;k < p_Nq; k++){
+
+      @barrier("local");
+
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
 	  for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -100,8 +103,6 @@
 	}
       }
 
-      @barrier("local");
-      
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
 	  for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -132,8 +133,6 @@
 	  }
 	}
       }
-      
-      @barrier("local");
       
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
@@ -220,6 +219,9 @@
     
 #pragma unroll p_Nq
     for(int k = 0;k < p_Nq; k++){
+
+      @barrier("local");
+      
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
 	  for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -247,8 +249,6 @@
 	}
       }
 
-      @barrier("local");
-      
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
 	  for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -279,8 +279,6 @@
 	  }
 	}
       }
-      
-      @barrier("local");
       
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
@@ -436,7 +434,7 @@
       r_AV = GWJ*lambda*s_V[k][j][i];
       r_AW = GWJ*lambda*s_W[k][j][i];
       
-#pragma unroll
+#pragma unroll p_Nq
       for(int m = 0; m < p_Nq; m++) {
 	dfloat Dim = s_D[i][m];
 	dfloat Djm = s_D[j][m];
@@ -472,7 +470,7 @@
     }
     
     cubeThreads{
-#pragma unroll
+#pragma unroll p_Nq
       for(int m = 0; m < p_Nq; m++){
 	dfloat Dmi = s_D[m][i];
 	r_AU += Dmi*s_U[k][j][m];
@@ -489,7 +487,7 @@
 
 
     cubeThreads{
-#pragma unroll
+#pragma unroll p_Nq
       for(int m = 0; m < p_Nq; m++){
 	dfloat Dmj = s_D[m][j];
 	r_AU += Dmj*s_U[k][m][i];
@@ -505,7 +503,7 @@
     }
 
     cubeThreads{
-#pragma unroll
+#pragma unroll p_Nq
       for(int m = 0; m < p_Nq; m++){
 	dfloat Dmk = s_D[m][k];
 	r_AU += Dmk*s_U[m][j][i];
