@@ -769,6 +769,8 @@
 #pragma unroll p_Nq
     for(int k = 0;k < p_Nq; k++){
 
+      @barrier("local");
+
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
 
@@ -1290,6 +1292,8 @@
     // Layer by layer
 #pragma unroll p_Nq
     for(int k = 0;k < p_Nq; k++){
+
+      @barrier("local");
       
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -1300,10 +1304,9 @@
 
 #pragma unroll p_Nq
           for(int m = 0; m < p_Nq; m++) {
-            // 8 shared, 12 FLOPS => 12TB/s*12/(8*8) => 2.25TF on V100
             dfloat Dim = s_D[i][m];
             dfloat Djm = s_D[j][m];
-           dfloat Dkm = s_D[k][m];
+	    dfloat Dkm = s_D[k][m];
 	    
             Ur += Dim*s_U[k][j][m];
             Us += Djm*s_U[k][m][i];
@@ -1319,7 +1322,7 @@
           }
 
 	  // use raised pressure
-	  const dfloat pk = s_p[k][j][i];
+	  const dfloat pk = s_Fp[k][j][i];
 
 	  const dfloat eta_kji = mu;
 	  
@@ -1460,7 +1463,7 @@
 	    res += s_F[i][a]*s_p[c][b][i];		
 	  }					
 	  
-	  s_p[c][b][a] = res;			
+	  s_Fp[c][b][a] = res;			
 	}						
       }						
     }						
@@ -1476,12 +1479,7 @@
           Aq[id+0*offset] = s_AU[k][j][i];
           Aq[id+1*offset] = s_AV[k][j][i];
           Aq[id+2*offset] = s_AW[k][j][i];
-        }
-	
-#pragma unroll p_Nq
-	for(int c = 0; c < p_Nq; c++){
-	  const dlong id = e*p_Np +c*p_Nq*p_Nq+ j*p_Nq + i + 3*offset;
-	  Aq[id] = s_p[c][j][i];
+	  Aq[id+3*offset] = s_Fp[k][j][i];
 	}
       }
     }
@@ -1756,7 +1754,7 @@
       }
     }
   
-    // START lower pressure degree ---------------------------------------
+       // START lower pressure degree ---------------------------------------
     cubeThreads(c,j,i){
       
       dfloat res = 0;
@@ -1862,7 +1860,7 @@
       }
     }
     
-    // raise pressure degree
+   // raise pressure degree
     for(int b=0;b<p_Nq;++b;@inner(1)){		
       for(int a=0;a<p_Nq;++a;@inner(0)){	
 #pragma unroll p_Nq
@@ -1921,6 +1919,8 @@
     // Layer by layer
 #pragma unroll p_Nq
     for(int k = 0;k < p_Nq; k++){
+
+      @barrier("local");
       
       for(int j=0;j<p_Nq;++j;@inner(1)){
 	for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -2115,3 +2115,244 @@
 
 
 #endif
+
+
+@kernel void BP9_v6(const dlong Nelements,
+		    @restrict const dlong *elementList,
+		    const dlong offset,
+		    @restrict const dfloat *vgeo,
+		    @restrict const dfloat *D,
+		    @restrict const dfloat *F,
+		    const dfloat lambda,
+		    const dfloat mu,	
+		    @restrict const dfloat *q,
+		    @restrict dfloat *Aq){
+  
+  for(int e=0;e<Nelements;++e;@outer(0)){
+    
+    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared dfloat s_F[p_Nq][p_Nq];
+    @shared dfloat s_U[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_V[p_Nq][p_Nq][p_Nq];
+    @shared dfloat s_W[p_Nq][p_Nq][p_Nq];
+    
+    @exclusive dfloat r_AU, r_GUr, r_GUs, r_GUt;
+    @exclusive dfloat r_AV, r_GVr, r_GVs, r_GVt;
+    @exclusive dfloat r_AW, r_GWr, r_GWs, r_GWt, r_p;
+
+    @exclusive dlong element;
+    
+    cubeThreads(k,j,i){
+	  
+      if(k==0){
+	s_D[j][i] = D[j*p_Nq+i];
+      	s_F[j][i] = F[p_Nq*j+i];
+      }
+      
+      element = elementList[e];
+      
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      s_U[k][j][i] = q[id+3*offset];
+    }
+
+    // START raise pressure degree ----------------------------------------------------------
+    cubeThreads(k,b,a){
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int c=0;c<p_Nq;++c){		
+	res += s_F[k][c]*s_U[c][b][a];
+      }					
+      s_V[k][b][a] = res;		
+    }						
+    
+    cubeThreads(k,j,a){				
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int b=0;b<p_Nq;++b){		
+	res += s_F[j][b]*s_V[k][b][a];
+      }					
+      s_W[k][j][a] = res;			
+    }						
+    
+    cubeThreads(k,j,i){				
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int a=0;a<p_Nq;++a){			
+	res += s_F[i][a]*s_W[k][j][a];		
+      }						
+      r_p = res;
+    }
+    // END raise pressure degree ----------------------------------------------------------
+    
+    cubeThreads(k,j,i){
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      s_U[k][j][i] = q[id+0*offset];
+      s_V[k][j][i] = q[id+1*offset];
+      s_W[k][j][i] = q[id+2*offset];
+    }
+
+    cubeThreads(k,j,i){
+
+      // prefetch geometric factors
+      const dlong gbase = e*p_Nvgeo*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
+      const dfloat GWJ = vgeo[gbase+p_JWID*p_Np];
+
+      dfloat Ur = 0.f, Vr = 0.f, Wr = 0.f;
+      dfloat Us = 0.f, Vs = 0.f, Ws = 0.f;
+      dfloat Ut = 0.f, Vt = 0.f, Wt = 0.f;
+
+      r_AU = GWJ*lambda*s_U[k][j][i];
+      r_AV = GWJ*lambda*s_V[k][j][i];
+      r_AW = GWJ*lambda*s_W[k][j][i];
+      
+#pragma nounroll
+      for(int m = 0; m < p_Nq; m++) {
+	dfloat Dim = s_D[i][m];
+	dfloat Djm = s_D[j][m];
+	dfloat Dkm = s_D[k][m];
+	
+	Ur += Dim*s_U[k][j][m];
+	Vr += Dim*s_V[k][j][m];
+	Wr += Dim*s_W[k][j][m];
+
+	Us += Djm*s_U[k][m][i];
+	Vs += Djm*s_V[k][m][i];
+	Ws += Djm*s_W[k][m][i];
+
+	Ut += Dkm*s_U[m][j][i];
+	Vt += Dkm*s_V[m][j][i];
+	Wt += Dkm*s_W[m][j][i];
+      }
+
+      const dfloat rx = vgeo[gbase+p_RXID*p_Np];
+      const dfloat sx = vgeo[gbase+p_SXID*p_Np];
+      const dfloat tx = vgeo[gbase+p_TXID*p_Np];
+      
+      const dfloat ry = vgeo[gbase+p_RYID*p_Np];
+      const dfloat sy = vgeo[gbase+p_SYID*p_Np];
+      const dfloat ty = vgeo[gbase+p_TYID*p_Np];
+      
+      const dfloat rz = vgeo[gbase+p_RZID*p_Np];
+      const dfloat sz = vgeo[gbase+p_SZID*p_Np];
+      const dfloat tz = vgeo[gbase+p_TZID*p_Np];
+
+      dfloat divU = 0;
+      divU += rx*Ur + sx*Us + tx*Ut;
+      divU += ry*Vr + sy*Vs + ty*Vt;
+      divU += rz*Wr + sz*Ws + tz*Wt;
+
+      const dfloat JWp = -GWJ*r_p;
+      r_p = -GWJ*divU; // -div U => s_p
+      
+      const dfloat G00 = (rx*rx+ry*ry+rz*rz)*GWJ;
+      const dfloat G01 = (rx*sx+ry*sy+rz*sz)*GWJ;
+      const dfloat G02 = (rx*tx+ry*ty+rz*tz)*GWJ;
+      const dfloat G11 = (sx*sx+sy*sy+sz*sz)*GWJ;
+      const dfloat G12 = (sx*tx+sy*ty+sz*tz)*GWJ;
+      const dfloat G22 = (tx*tx+ty*ty+tz*tz)*GWJ;
+      
+      r_GUr = mu*(G00*Ur + G01*Us + G02*Ut) + rx*JWp;
+      r_GUs = mu*(G01*Ur + G11*Us + G12*Ut) + sx*JWp;
+      r_GUt = mu*(G02*Ur + G12*Us + G22*Ut) + tx*JWp;
+
+      r_GVr = mu*(G00*Vr + G01*Vs + G02*Vt) + ry*JWp;
+      r_GVs = mu*(G01*Vr + G11*Vs + G12*Vt) + sy*JWp;
+      r_GVt = mu*(G02*Vr + G12*Vs + G22*Vt) + ty*JWp;
+
+      r_GWr = mu*(G00*Wr + G01*Ws + G02*Wt) + rz*JWp;
+      r_GWs = mu*(G01*Wr + G11*Ws + G12*Wt) + sz*JWp;
+      r_GWt = mu*(G02*Wr + G12*Ws + G22*Wt) + tz*JWp;
+    }
+    
+    // START lower pressure degree ---------------------------------------
+    
+    cubeThreads(k,j,i){
+      s_U[k][j][i] = r_p;
+    }
+
+    cubeThreads(c,j,i){
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int k=0;k<p_Nq;++k){
+	res += s_F[k][c]*s_U[k][j][i];	
+      }					
+      s_V[c][j][i] = res;
+    }
+
+    cubeThreads(c,b,i){				
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int j=0;j<p_Nq;++j){
+	res += s_F[j][b]*s_V[c][j][i];	
+      }					
+      s_W[c][b][i] = res;
+    }						
+    
+    cubeThreads(c,b,a){
+      dfloat res = 0;
+#pragma unroll p_Nq
+      for(int i=0;i<p_Nq;++i){
+	res += s_F[i][a]*s_W[c][b][i];		
+      }
+      int id = a + b*p_Nq + c*p_Nq*p_Nq + element*p_Np;
+      Aq[id+3*offset] = res;
+    }
+    
+    cubeThreads(k,j,i){
+      s_U[k][j][i] = r_GUr;
+      s_V[k][j][i] = r_GVr;
+      s_W[k][j][i] = r_GWr;
+    }
+    
+    cubeThreads(k,j,i){
+#pragma unroll p_Nq
+      for(int m = 0; m < p_Nq; m++){
+	dfloat Dmi = s_D[m][i];
+	r_AU += Dmi*s_U[k][j][m];
+	r_AV += Dmi*s_V[k][j][m];
+	r_AW += Dmi*s_W[k][j][m];
+      }
+    }
+
+    cubeThreads(k,j,i){
+      s_U[k][j][i] = r_GUs;
+      s_V[k][j][i] = r_GVs;
+      s_W[k][j][i] = r_GWs;
+    }
+    
+    cubeThreads(k,j,i){
+#pragma unroll p_Nq
+      for(int m = 0; m < p_Nq; m++){
+	dfloat Dmj = s_D[m][j];
+	r_AU += Dmj*s_U[k][m][i];
+	r_AV += Dmj*s_V[k][m][i];
+	r_AW += Dmj*s_W[k][m][i];
+      }
+    }
+    
+    cubeThreads(k,j,i){
+      s_U[k][j][i] = r_GUt;
+      s_V[k][j][i] = r_GVt;
+      s_W[k][j][i] = r_GWt;
+    }
+    
+    cubeThreads(k,j,i){
+#pragma unroll p_Nq
+      for(int m = 0; m < p_Nq; m++){
+	dfloat Dmk = s_D[m][k];
+	r_AU += Dmk*s_U[m][j][i];
+	r_AV += Dmk*s_V[m][j][i];
+	r_AW += Dmk*s_W[m][j][i];
+      }
+      
+     int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      Aq[id+0*offset] = r_AU;
+      Aq[id+1*offset] = r_AV;
+      Aq[id+2*offset] = r_AW;
+      Aq[id+3*offset] = r_p;
+      
+    }
+  }
+}
+
+

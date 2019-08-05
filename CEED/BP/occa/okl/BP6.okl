@@ -37,7 +37,7 @@
 
   for(dlong e=0; e<Nelements; ++e; @outer(0)){
 
-    @shared dfloat s_D[p_Nq][p_Nq];
+    @shared dfloat s_D[p_Nq][p_Nq+1];
     @shared dfloat s_q[p_Nfields][p_Nq][p_Nq];
 
     @shared dfloat s_Gqr[p_Nfields][p_Nq][p_Nq];
@@ -509,6 +509,152 @@
 	r_AU += Dmk*s_U[m][j][i];
 	r_AV += Dmk*s_V[m][j][i];
 	r_AW += Dmk*s_W[m][j][i];
+      }
+
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      Aq[id+0*offset] = r_AU;
+      Aq[id+1*offset] = r_AV;
+      Aq[id+2*offset] = r_AW;
+    }
+  }
+  
+}
+
+
+
+@kernel void BP6_v2(const dlong Nelements,
+		    @restrict const dlong *elementList,
+		    const dlong offset,
+		    @restrict const dfloat *ggeo,
+		    @restrict const dfloat *D,
+		    const dfloat lambda,
+		    @restrict const dfloat *q,
+		    @restrict dfloat * Aq){
+  
+  for(int e=0;e<Nelements;++e;@outer(0)){
+  
+    @shared dfloat s_D[p_Nq][p_Nq+1];
+    @shared dfloat s_UVW[p_Nq][p_Nq][p_Nq][p_Nfields];
+    
+    @exclusive dfloat r_AU, r_GUr, r_GUs, r_GUt;
+    @exclusive dfloat r_AV, r_GVr, r_GVs, r_GVt;
+    @exclusive dfloat r_AW, r_GWr, r_GWs, r_GWt;
+
+    @exclusive dlong element;
+    
+    cubeThreads{
+	  
+      if(k==0)
+	s_D[j][i] = D[j*p_Nq+i];
+      
+      element = elementList[e];
+      
+      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      
+      s_UVW[k][j][i][0] = q[id+0*offset];
+      s_UVW[k][j][i][1] = q[id+1*offset];
+      s_UVW[k][j][i][2] = q[id+2*offset];
+    }
+
+    
+    cubeThreads{
+	  
+      // prefetch geometric factors
+      const int gbase = element*p_Nggeo*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+
+      dfloat GWJ = ggeo[gbase+p_GWJID*p_Np];	  
+      dfloat G00 = ggeo[gbase+p_G00ID*p_Np];
+      dfloat G01 = ggeo[gbase+p_G01ID*p_Np];
+      dfloat G02 = ggeo[gbase+p_G02ID*p_Np];
+      dfloat G11 = ggeo[gbase+p_G11ID*p_Np];
+      dfloat G12 = ggeo[gbase+p_G12ID*p_Np];
+      dfloat G22 = ggeo[gbase+p_G22ID*p_Np];
+      
+      dfloat Ur = 0.f, Vr = 0.f, Wr = 0.f;
+      dfloat Us = 0.f, Vs = 0.f, Ws = 0.f;
+      dfloat Ut = 0.f, Vt = 0.f, Wt = 0.f;
+
+      r_AU = GWJ*lambda*s_UVW[k][j][i][0];
+      r_AV = GWJ*lambda*s_UVW[k][j][i][1];
+      r_AW = GWJ*lambda*s_UVW[k][j][i][2];
+
+      //            p_Nq
+      //#pragma nounroll
+#pragma unroll 2
+      for(int m = 0; m < p_Nq; m++) {
+	dfloat Dim = s_D[i][m];
+	dfloat Djm = s_D[j][m];
+	dfloat Dkm = s_D[k][m];
+	Ur += Dim*s_UVW[k][j][m][0];
+	Us += Djm*s_UVW[k][m][i][0];
+	Ut += Dkm*s_UVW[m][j][i][0];
+	Vr += Dim*s_UVW[k][j][m][1];
+	Vs += Djm*s_UVW[k][m][i][1];
+	Vt += Dkm*s_UVW[m][j][i][1];
+	Wr += Dim*s_UVW[k][j][m][2];
+	Ws += Djm*s_UVW[k][m][i][2];
+	Wt += Dkm*s_UVW[m][j][i][2];
+      }
+      
+      r_GUr = (G00*Ur + G01*Us + G02*Ut);
+      r_GUs = (G01*Ur + G11*Us + G12*Ut);
+      r_GUt = (G02*Ur + G12*Us + G22*Ut);
+
+      r_GVr = (G00*Vr + G01*Vs + G02*Vt);
+      r_GVs = (G01*Vr + G11*Vs + G12*Vt);
+      r_GVt = (G02*Vr + G12*Vs + G22*Vt);
+
+      r_GWr = (G00*Wr + G01*Ws + G02*Wt);
+      r_GWs = (G01*Wr + G11*Ws + G12*Wt);
+      r_GWt = (G02*Wr + G12*Ws + G22*Wt);
+    }
+    
+    cubeThreads{
+      s_UVW[k][j][i][0] = r_GUr;
+      s_UVW[k][j][i][1] = r_GVr;
+      s_UVW[k][j][i][2] = r_GWr;
+    }
+    
+    cubeThreads{
+#pragma unroll p_Nq
+      for(int m = 0; m < p_Nq; m++){
+	dfloat Dmi = s_D[m][i];
+	r_AU += Dmi*s_UVW[k][j][m][0];
+	r_AV += Dmi*s_UVW[k][j][m][1];
+	r_AW += Dmi*s_UVW[k][j][m][2];
+      }
+    }
+
+    cubeThreads{
+      s_UVW[k][j][i][0] = r_GUs;
+      s_UVW[k][j][i][1] = r_GVs;
+      s_UVW[k][j][i][2] = r_GWs;
+    }
+
+
+    cubeThreads{
+#pragma unroll p_Nq
+      for(int m = 0; m < p_Nq; m++){
+	dfloat Dmj = s_D[m][j];
+	r_AU += Dmj*s_UVW[k][m][i][0];
+	r_AV += Dmj*s_UVW[k][m][i][1];
+	r_AW += Dmj*s_UVW[k][m][i][2];
+      }
+    }
+
+    cubeThreads{
+      s_UVW[k][j][i][0] = r_GUt;
+      s_UVW[k][j][i][1] = r_GVt;
+      s_UVW[k][j][i][2] = r_GWt;
+    }
+
+    cubeThreads{
+#pragma unroll p_Nq
+      for(int m = 0; m < p_Nq; m++){
+	dfloat Dmk = s_D[m][k];
+	r_AU += Dmk*s_UVW[m][j][i][0];
+	r_AV += Dmk*s_UVW[m][j][i][1];
+	r_AW += Dmk*s_UVW[m][j][i][2];
       }
 
       int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
