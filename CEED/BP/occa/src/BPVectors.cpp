@@ -26,6 +26,55 @@ SOFTWARE.
 
 #include "BP.hpp"
 
+dfloat BPNorm2(BP_t *BP, dlong Ntotal, dlong offset, occa::memory &o_a){
+
+  mesh_t *mesh = BP->mesh;
+  
+  setupAide &options = BP->options;
+
+  dfloat *tmp = BP->tmp;
+  dlong Nblock = BP->Nblock;
+  dlong Nblock2 = BP->Nblock2;
+
+  occa::memory &o_tmp = BP->o_tmp;
+  occa::memory &o_tmp2 = BP->o_tmp2;
+
+  if(BP->Nfields==1)
+    BP->norm2Kernel(Ntotal, o_a, o_tmp);
+  else
+    BP->multipleNorm2Kernel(Ntotal, offset, o_a, o_tmp);
+
+  /* add a second sweep if Nblock>Ncutoff */
+  dlong Ncutoff = 100;
+  dlong Nfinal;
+  if(Nblock>Ncutoff){
+
+    mesh->sumKernel(Nblock, o_tmp, o_tmp2);
+
+    o_tmp2.copyTo(tmp);
+
+    Nfinal = Nblock2;
+	
+  }
+  else{
+    o_tmp.copyTo(tmp);
+    
+    Nfinal = Nblock;
+
+  }    
+
+  dfloat wa2 = 0;
+  for(dlong n=0;n<Nfinal;++n){
+    wa2 += tmp[n];
+  }
+
+  dfloat globalwa2 = 0;
+  MPI_Allreduce(&wa2, &globalwa2, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
+
+  return globalwa2;
+}
+
+
 dfloat BPWeightedNorm2(BP_t *BP, occa::memory &o_w, occa::memory &o_a){
 
   setupAide &options = BP->options;
@@ -121,6 +170,55 @@ dfloat BPWeightedInnerProduct(BP_t *BP, occa::memory &o_w, occa::memory &o_a, oc
 
   return globalwab;
 }
+
+dfloat BPInnerProduct(BP_t *BP, dlong Ntotal, dlong offset, occa::memory &o_a, occa::memory &o_b){
+
+  setupAide &options = BP->options;
+
+  mesh_t *mesh = BP->mesh;
+  dfloat *tmp = BP->tmp;
+  dlong Nblock = BP->Nblock;
+  dlong Nblock2 = BP->Nblock2;
+
+  occa::memory &o_tmp = BP->o_tmp;
+  occa::memory &o_tmp2 = BP->o_tmp2;
+
+  if(BP->Nfields==1)
+    BP->innerProduct2Kernel(Ntotal, o_a, o_b, o_tmp);
+  else
+    BP->multipleInnerProduct2Kernel(Ntotal, offset, o_a, o_b, o_tmp);
+
+  /* add a second sweep if Nblock>Ncutoff */
+  dlong Ncutoff = 100;
+  dlong Nfinal;
+  if(Nblock>Ncutoff){
+
+    mesh->sumKernel(Nblock, o_tmp, o_tmp2);
+
+    o_tmp2.copyTo(tmp);
+
+    Nfinal = Nblock2;
+	
+  }
+  else{
+    o_tmp.copyTo(tmp);
+    
+    Nfinal = Nblock;
+
+  }    
+
+  dfloat wab = 0;
+  for(dlong n=0;n<Nfinal;++n){
+    wab += tmp[n];
+  }
+
+  dfloat globalwab = 0;
+  MPI_Allreduce(&wab, &globalwab, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
+
+  return globalwab;
+}
+
+
 
 
 // b[n] = alpha*a[n] + beta*b[n] n\in [0,Ntotal)

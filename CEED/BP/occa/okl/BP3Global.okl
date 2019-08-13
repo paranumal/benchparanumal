@@ -109,7 +109,7 @@
 	  }						\
 	}						\
       }							\
-    }							\
+   }							\
     for(int c=0;c<p_cubNq;++c;@inner(1)){		\
       for(int b=0;b<p_cubNq;++b;@inner(0)){		\
 							\
@@ -132,14 +132,15 @@
   }						
 
 
-@kernel void BP3_v0(const dlong Nelements,
-		     @restrict const dlong  *elementList,
-		     @restrict const dfloat *ggeo,
-		     @restrict const dfloat *D,
-		     @restrict const dfloat *I,
-		     const dfloat lambda,
-		     @restrict const dfloat *q,
-		     @restrict dfloat *Aq){
+@kernel void BP3Global_v0(const dlong Nelements,
+			  @restrict const dlong  *elementList,
+			  @restrict const dlong *localizedIds,
+			  @restrict const dfloat *ggeo,
+			  @restrict const dfloat *D,
+			  @restrict const dfloat *I,
+			  const dfloat lambda,
+ 			  @restrict const dfloat *q,
+			  @restrict dfloat *Aq){
   
   for(dlong e=0; e<Nelements; ++e; @outer(0)){
     
@@ -175,7 +176,8 @@
 	
 	if(i<p_Nq && j<p_Nq){
 	  for(int k = 0; k < p_Nq; k++) {
-	    r_q[k] = q[base + k*p_Nq*p_Nq];
+	    dlong localId = localizedIds[base+k*p_Nq*p_Nq]-1;
+	    r_q[k] = q[localId];
 	  }
 	}
 
@@ -273,7 +275,9 @@
 #pragma unroll p_Nq
 	  for(int k = 0; k < p_Nq; k++){
 	    const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
-	    Aq[id] = s_Iq[k][j][i];
+	    dlong localId = localizedIds[id]-1;
+	    dfloat res = s_Iq[k][j][i];
+	    atomicAdd(Aq+id, res); // atomic assumes Aq zerod
 	  }
 	}
       }
@@ -281,10 +285,12 @@
   }
 }
 
+#if 0
 
 
 @kernel void BP3Dot_v0(const dlong Nelements,
 		    @restrict const dlong  *elementList,
+		       @restrict const dlong *localizedIds,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *D,
 		    @restrict const dfloat *I,
@@ -497,6 +503,7 @@
 
 @kernel void BP3_v1(const dlong Nelements,
 		     @restrict const dlong  *elementList,
+		    @restrict const dlong *localizedIds,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *D,
 		     @restrict const dfloat *I,
@@ -776,6 +783,7 @@
 // assume ggeo encodes built blocks
 @kernel void BP3_v2(const dlong Nelements,
 		     @restrict const dlong  *elementList,
+		    @restrict const dlong *localizedIds,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *D,
 		     @restrict const dfloat *I,
@@ -808,6 +816,7 @@
 // assume ggeo encodes built blocks
 @kernel void BP3Dot_v2(const dlong Nelements,
 		       @restrict const dlong  *elementList,
+		       @restrict const dlong *localizedIds,
 		       @restrict const dfloat *ggeo,
 		       @restrict const dfloat *D,
 		       @restrict const dfloat *I,
@@ -876,6 +885,7 @@
 
 @kernel void BP3_v3(const dlong Nelements,
 		     @restrict const dlong  *elementList,
+		    @restrict const dlong *localizedIds,
 		     @restrict const dfloat *ggeo,
 		     @restrict const dfloat *D,
 		     @restrict const dfloat *I,
@@ -916,3 +926,4 @@
 
 
       
+#endif

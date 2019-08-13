@@ -88,10 +88,18 @@ int main(int argc, char **argv){
   
   BP_t *BP = BPSetup(mesh, lambda, mu, kernelInfo, options);
 
-  occa::memory o_r =
-    mesh->device.malloc(BP->Nfields*mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_r);
-  occa::memory o_x =
-    mesh->device.malloc(BP->Nfields*mesh->Np*mesh->Nelements*sizeof(dfloat), BP->o_x);    
+  occa::memory o_r, o_x;
+
+  int useGlobal  = options.compareArgs("USE GLOBAL STORAGE", "TRUE");
+
+  dlong Ndofs = (useGlobal) ? mesh->Nlocalized: mesh->Np*mesh->Nelements;
+  Ndofs *= BP->Nfields;
+  if(!useGlobal)
+    o_r = mesh->device.malloc(Ndofs*sizeof(dfloat), BP->o_r);
+  else
+    o_r = mesh->device.malloc(Ndofs*sizeof(dfloat), BP->o_gr);
+
+  o_x = mesh->device.malloc(Ndofs*sizeof(dfloat), BP->o_x);    
   
   // convergence tolerance
   dfloat tol = 1e-8;
@@ -107,7 +115,12 @@ int main(int argc, char **argv){
 
     // warm up
     double opElapsed = 0;
-    BPSolve(BP, lambda, mu, tol, BP->o_r, BP->o_x, &opElapsed);
+
+    if(!useGlobal)
+      BPSolve(BP, lambda, mu, tol, BP->o_r, BP->o_x, &opElapsed);
+    else
+      BPSolveGlobal(BP, lambda, mu, tol, BP->o_gr, BP->o_x, &opElapsed);
+    
     opElapsed = 0;
     
     int Ntests = 10;
@@ -117,12 +130,19 @@ int main(int argc, char **argv){
     it = 0;
     for(int test=0;test<Ntests;++test){
 
-      o_r.copyTo(BP->o_r);
+      if(!useGlobal)
+	o_r.copyTo(BP->o_r);
+      else
+	o_r.copyTo(BP->o_gr);
+
       o_x.copyTo(BP->o_x);
       
       startTags[test] = mesh->device.tagStream();
-      
-      it += BPSolve(BP, lambda, mu, tol, BP->o_r, BP->o_x, &opElapsed);
+
+      if(!useGlobal)
+	it += BPSolve(BP, lambda, mu, tol, BP->o_r, BP->o_x, &opElapsed);
+      else
+	it += BPSolveGlobal(BP, lambda, mu, tol, BP->o_gr, BP->o_x, &opElapsed);
 
       stopTags[test] = mesh->device.tagStream();
     }
@@ -195,10 +215,18 @@ int main(int argc, char **argv){
     }
   
     // copy solution from DEVICE to HOST
-    BP->o_x.copyTo(BP->q);
+    if(!useGlobal)
+      BP->o_x.copyTo(BP->q);
+    else{
+      occa::memory o_x = mesh->device.malloc(Ndofs*sizeof(dfloat));
 
+      BP->vecScatterKernel(Ndofs, mesh->o_localizedIds, BP->o_x, o_x);
+      o_x.copyTo(BP->q);
+    }
+      
+      
     //  BPPlotVTU(BP, "foo", 0);
-  
+    
     dfloat maxError = 0;
     for(dlong e=0;e<mesh->Nelements;++e){
       for(int n=0;n<mesh->Np;++n){

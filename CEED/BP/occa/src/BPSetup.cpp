@@ -42,11 +42,12 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
   int BP5 = options.compareArgs("BENCHMARK", "BP5");
   int BP6 = options.compareArgs("BENCHMARK", "BP6");
   int BP9 = options.compareArgs("BENCHMARK", "BP9");
+  int BP10 = options.compareArgs("BENCHMARK", "BP10");
 
   if(BP9)
     options.setArgs("KRYLOV SOLVER", "MINRES");
   
-  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6 + 9*BP9;
+  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6 + 9*BP9 + 10*BP10;
 
   if(BP1 || BP3 || BP5)
     BP->Nfields = 1;
@@ -95,6 +96,7 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
   if (mesh->rank==0)
     reportMemoryUsage(mesh->device, "after occa setup");
 
+  printf("ENTERING BPSOLVESETUP\n");
   BPSolveSetup(BP, lambda, mu, kernelInfo);
 
   dlong Ndof = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
@@ -177,17 +179,28 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
   }
 #endif
   //copy to occa buffers
-  BP->o_r   = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
-  BP->o_x   = mesh->device.malloc(Nall*sizeof(dfloat), BP->x);
-  
-  char *suffix = strdup("Hex3D");
-  
-  // gather-scatterd
-  if(options.compareArgs("DISCRETIZATION","CONTINUOUS")){
-    if(BP->Nfields == 1)
-      ogsGatherScatter(BP->o_r, ogsDfloat, ogsAdd, mesh->ogs);
-    else
-      ogsGatherScatterMany(BP->o_r, BP->Nfields, Ndof, ogsDfloat, ogsAdd, mesh->ogs);
+
+  int useGlobal  = options.compareArgs("USE GLOBAL STORAGE", "TRUE");
+  if(!useGlobal){
+    BP->o_r   = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
+    BP->o_x   = mesh->device.malloc(Nall*sizeof(dfloat), BP->x);
+    
+    char *suffix = strdup("Hex3D");
+    
+    // gather-scatterd
+    if(options.compareArgs("DISCRETIZATION","CONTINUOUS")){
+      if(BP->Nfields == 1)
+	ogsGatherScatter(BP->o_r, ogsDfloat, ogsAdd, mesh->ogs);
+      else
+	ogsGatherScatterMany(BP->o_r, BP->Nfields, Ndof, ogsDfloat, ogsAdd, mesh->ogs);
+    }
+  }
+  else{
+    BP->o_r   = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
+    BP->o_gr  = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x); //ZERO !
+    BP->o_x  = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x);
+
+    BP->vecAtomicGatherKernel(mesh->Np*mesh->Nelements, mesh->o_localizedIds, BP->o_r, BP->o_gr);
   }
 
   if (mesh->rank==0)
@@ -310,6 +323,8 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
 
   kernelInfo["defines/" "p_blockSize"]= blockSize;
   kernelInfo["defines/" "p_Nfields"]= BP->Nfields;
+
+  printf("ENTERING KERNEL BUILDS\n");
   
   for (int r=0;r<2;r++){
     if ((r==0 && mesh->rank==0) || (r==1 && mesh->rank>0)) {      
@@ -346,7 +361,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->weightedMultipleInnerProduct2Kernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl", "weightedMultipleInnerProduct2", kernelInfo);
 
+      BP->multipleInnerProduct2Kernel =
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "multipleInnerProduct2", kernelInfo);
+
       BP->innerProductKernel =
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "innerProduct", kernelInfo);
+
+      BP->innerProduct2Kernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl", "innerProduct", kernelInfo);
 
       BP->weightedNorm2Kernel =
@@ -358,6 +379,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->norm2Kernel =
         mesh->device.buildKernel(DBP "/okl/utils.okl", "norm2", kernelInfo);
 
+      BP->multipleNorm2Kernel =
+        mesh->device.buildKernel(DBP "/okl/utils.okl", "multipleNorm2", kernelInfo);
+
+      
       BP->scaledAddKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "scaledAdd", kernelInfo);
 
@@ -379,8 +404,16 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->vecCopyKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "vecCopy", kernelInfo);
 
+      BP->vecAtomicGatherKernel =
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicGather", kernelInfo);
+
+
+      BP->vecScatterKernel =
+	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecScatter", kernelInfo);
+
       
       // add custom defines
+      kernelInfo["defines/" "p_NpTet"]= mesh->Nq*(mesh->Nq+1)*(mesh->Nq+2)/6;
       
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);
       kernelInfo["defines/" "p_Nverts"]= mesh->Nverts;
@@ -410,24 +443,45 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       kernelInfo["defines/" "p_NwarpsUpdatePCG"] = (int) (NthreadsUpdatePCG/32); // WARNING: CUDA SPECIFIC
 
       char kernelName[BUFSIZ], fileName[BUFSIZ];
+
       BP->BPKernel = (occa::kernel*) new occa::kernel[20];
+      BP->BPKernelGlobal = (occa::kernel*) new occa::kernel[20];
+
       //      for(int bpid=1;bpid<=6;++bpid){
       int bpid = BP->BPid;
-      {
+      int useGlobal = 0;
+      int combineDot = 0;
 
+      useGlobal  = options.compareArgs("USE GLOBAL STORAGE", "TRUE");
+      combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+
+      printf("useGlobal=%d\n", useGlobal);
+
+      if(!useGlobal){
+	printf("BUILDING LOCAL STORAGE KERNELS\n");
 	sprintf(fileName, "%s/okl/BP%d.okl", DBP, bpid);
-	
-	int combineDot = 0;
-	combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
+
 	if(!combineDot)
 	  sprintf(kernelName, "BP%d_v%d", bpid, knlId);
 	else
 	  sprintf(kernelName, "BP%dDot_v%d", bpid, knlId);
       
-	printf("Loading: %s from %s\n", kernelName, fileName);
-	
 	BP->BPKernel[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
       }
+      else{
+	printf("BUILDING GLOBAL KERNELS\n");
+	
+	sprintf(fileName, "%s/okl/BP%dGlobal.okl", DBP, bpid);
+	
+	if(!combineDot)
+	  sprintf(kernelName, "BP%dGlobal_v%d", bpid, knlId);
+	else
+	  sprintf(kernelName, "BP%dDotGlobal_v%d", bpid, knlId);
+	
+	BP->BPKernelGlobal[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
+      }
+      
+      printf("Loaded: %s from %s\n", kernelName, fileName);
       
       // combined PCG update and r.r kernel
       BP->updatePCGKernel =
@@ -439,6 +493,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->updateMINRESKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdateMINRES.okl", "BPUpdateMINRES", kernelInfo);
 
+      BP->updatePCGGlobalKernel =
+	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPUpdatePCGGlobal", kernelInfo);
+
+      BP->updateMultiplePCGGlobalKernel =
+	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPMultipleUpdatePCGGlobal", kernelInfo);
+
+      
       BP->filterKernel =
 	mesh->device.buildKernel(DBP "/okl/BP9.okl", "BPfilter", kernelInfo);
 

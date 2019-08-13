@@ -100,6 +100,8 @@ typedef struct {
 
   occa::memory o_q, o_x, o_r;
 
+  occa::memory o_gr; // gathered RHS
+  
   // PCG storage
   int NsolveWorkspace;
   
@@ -119,6 +121,7 @@ typedef struct {
   occa::memory o_gllzw; // GLL nodes and weights
 
   occa::kernel *BPKernel;
+  occa::kernel *BPKernelGlobal;
 
   occa::kernel filterKernel;
 
@@ -127,6 +130,9 @@ typedef struct {
   occa::kernel weightedInnerProduct1Kernel;
   occa::kernel weightedInnerProduct2Kernel;
   occa::kernel weightedMultipleInnerProduct2Kernel;
+
+  occa::kernel innerProduct2Kernel;
+  occa::kernel multipleInnerProduct2Kernel;
   
   occa::kernel scaledAddKernel;
   occa::kernel dotMultiplyKernel;
@@ -137,10 +143,14 @@ typedef struct {
   occa::kernel weightedMultipleNorm2Kernel;
   
   occa::kernel norm2Kernel;
-
+  occa::kernel multipleNorm2Kernel;
+  
   occa::kernel vecZeroKernel;
   occa::kernel vecScaleKernel;
   occa::kernel vecCopyKernel;
+
+  occa::kernel vecAtomicGatherKernel;
+  occa::kernel vecScatterKernel;
   
   // combined PCG update step
   int             NthreadsUpdatePCG;
@@ -152,6 +162,9 @@ typedef struct {
   occa::kernel  updatePCGKernel;
   occa::kernel  updateMultiplePCGKernel;
   occa::kernel  updateMINRESKernel;
+
+  occa::kernel  updatePCGGlobalKernel;
+  occa::kernel  updateMultiplePCGGlobalKernel;
 
   occa::memory o_zeroAtomic;
   occa::memory o_tmpAtomic;
@@ -173,6 +186,7 @@ typedef struct {
 BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelInfo, setupAide &options);
 
 int  BPSolve(BP_t *BP, dfloat lambda, dfloat mu, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed);
+int BPSolveGlobal(BP_t *BP, dfloat lambda, dfloat mu, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed);
 
 void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelInfo);
 
@@ -183,11 +197,15 @@ void BPEndHaloExchange(BP_t *BP, occa::memory &o_q, int Nentries, dfloat *recvBu
 //Linear solvers
 int BPPCG   (BP_t* BP, dfloat lambda, dfloat mu, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT, double *opElapsed);
 int BPMINRES(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &f,   occa::memory &u,   const dfloat tol, const int MAXIT,  double *opElapsed);
+int BPPCGGlobal (BP_t* BP, dfloat lambda, dfloat mu, occa::memory &o_r, occa::memory &o_x, const dfloat tol, const int MAXIT, double *opElapsed);
 
 void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::memory &o_b);
 dfloat BPWeightedInnerProduct(BP_t *BP, occa::memory &o_w, occa::memory &o_a, occa::memory &o_b);
 
 dfloat BPOperator(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *, occa::streamTag *);
+
+dfloat BPOperatorGlobal(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, occa::memory &o_Aq, const char *precision, occa::streamTag *, occa::streamTag *);
+
 
 dfloat BPWeightedNorm2(BP_t *BP, occa::memory &o_w, occa::memory &o_a);
 
@@ -198,6 +216,9 @@ void BPBuildJacobi(BP_t *BP, dfloat lambda, dfloat **invDiagA);
 
 dfloat BPUpdatePCG(BP_t *BP, occa::memory &o_p, occa::memory &o_Ap, dfloat alpha,
 		    occa::memory &o_x, occa::memory &o_r);
+
+dfloat BPUpdatePCGGlobal(BP_t *BP, occa::memory &o_p, occa::memory &o_Ap, dfloat alpha,
+			 occa::memory &o_x, occa::memory &o_r);
 
 #define maxNthreads 256
 
@@ -215,5 +236,7 @@ void BK5Setup(int numElements, int Nq, dfloat *h_DofToDofD,
 	      dfloat **c_DofToDofD, dfloat **c_oddDofToDofD, dfloat **c_evenDofToDofD);
 
 
+dfloat BPNorm2(BP_t *BP, dlong Ntotal, dlong offset, occa::memory &o_a);
+dfloat BPInnerProduct(BP_t *BP, dlong Ntotal, dlong offset, occa::memory &o_a, occa::memory &o_b);
 #endif
 

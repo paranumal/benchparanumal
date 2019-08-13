@@ -84,7 +84,9 @@ AOBJS    = \
 ./src/BP.o \
 ./src/BPSetup.o \
 ./src/BPSolve.o\
+./src/BPSolveGlobal.o\
 ./src/BPOperator.o\
+./src/BPOperatorGlobal.o\
 ./src/BPVectors.o \
 ./src/BPPlotVTU.o
 
