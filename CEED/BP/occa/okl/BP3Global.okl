@@ -284,214 +284,6 @@
   }
 }
 
-#if 0
-
-
-@kernel void BP3Dot_v0(const dlong Nelements,
-		    @restrict const dlong  *elementList,
-		       @restrict const dlong *localizedIds,
-		    @restrict const dfloat *ggeo,
-		    @restrict const dfloat *D,
-		    @restrict const dfloat *I,
-		    const dfloat lambda,
-		    @restrict const dfloat *q,
-		    @restrict dfloat *Aq,
-		    @restrict dfloat *qAq){
-  
-  for(dlong e=0; e<Nelements; ++e; @outer(0)){
-    
-    @shared dfloat s_Iq[p_cubNq][p_cubNq][p_cubNq];	
-    
-    @shared dfloat s_D[p_cubNq][p_cubNq];
-    @shared dfloat s_I[p_cubNq][p_Nq];
-    
-    @shared dfloat s_Gqr[p_cubNq][p_cubNq];
-    @shared dfloat s_Gqs[p_cubNq][p_cubNq];
-
-    @exclusive dfloat r_qt;
-    
-    // heavy on registers (FP64, 2*3*8 for N=7)
-    @exclusive dfloat r_q[p_cubNq], r_Aq[p_cubNq];
-
-    @exclusive dlong element;
-    
-    // array of threads
-    for(int j=0;j<p_cubNq;++j;@inner(1)){
-      for(int i=0;i<p_cubNq;++i;@inner(0)){
-	
-        s_D[j][i] = D[p_cubNq*j+i]; 
-	
-	if(i<p_Nq){
-	  s_I[j][i] = I[p_Nq*j+i];
-	}
-	
-	element = elementList[e];
-	
-        // load pencil of u into register
-        const dlong base = i + j*p_Nq + element*p_Np;
-	
-	if(i<p_Nq && j<p_Nq){
-	  for(int k = 0; k < p_Nq; k++) {
-	    r_q[k] = q[base + k*p_Nq*p_Nq];
-	  }
-	}
-
-	for(int k = 0; k < p_cubNq; k++) {
-	  r_Aq[k] = 0.f; // zero the accumulator
-	}
-      }
-    }
-    
-    // raise pressure degree
-    interpolateHex3D(s_I, r_q, r_Aq, s_Iq);
-
-
-    for(int j=0;j<p_cubNq;++j;@inner(1)){
-      for(int i=0;i<p_cubNq;++i;@inner(0)){
-	
-	for(int k = 0; k < p_cubNq; k++) {
-	  r_Aq[k] = 0.f; // zero the accumulator
-	}
-      }
-    }
-    
-    
-    // Layer by layer
-#pragma unroll p_cubNq
-    for(int k = 0;k < p_cubNq; k++){
-      
-      @barrier("local");
-      
-      for(int j=0;j<p_cubNq;++j;@inner(1)){
-        for(int i=0;i<p_cubNq;++i;@inner(0)){
-	  
-          r_qt = 0;
-	  
-#pragma unroll p_cubNq
-          for(int m = 0; m < p_cubNq; m++) {
-            dfloat Dkm = s_D[k][m];
-            r_qt += Dkm*s_Iq[m][j][i];
-          }
-
-          dfloat qr = 0.f, qs = 0.f;
-	  
-#pragma unroll p_cubNq
-          for(int m = 0; m < p_cubNq; m++) {
-            dfloat Dim = s_D[i][m];
-            dfloat Djm = s_D[j][m];
-	    
-            qr += Dim*s_Iq[k][j][m];
-            qs += Djm*s_Iq[k][m][i];
-          }
-	  
-          // prefetch geometric factors
-          const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
-	  
-          const dfloat G00 = ggeo[gbase+p_G00ID*p_cubNp];
-          const dfloat G01 = ggeo[gbase+p_G01ID*p_cubNp];
-          const dfloat G02 = ggeo[gbase+p_G02ID*p_cubNp];
-          const dfloat G11 = ggeo[gbase+p_G11ID*p_cubNp];
-          const dfloat G12 = ggeo[gbase+p_G12ID*p_cubNp];
-          const dfloat G22 = ggeo[gbase+p_G22ID*p_cubNp];
-          const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
-
-          s_Gqr[j][i] = (G00*qr + G01*qs + G02*r_qt);
-          s_Gqs[j][i] = (G01*qr + G11*qs + G12*r_qt);
-	  
-          r_qt = G02*qr + G12*qs + G22*r_qt;
-	  
-          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
-        }
-      }
-
-      for(int j=0;j<p_cubNq;++j;@inner(1)){
-        for(int i=0;i<p_cubNq;++i;@inner(0)){
-	  
-	  dfloat Aqtmp = 0;
-
-#pragma unroll p_cubNq
-          for(int m = 0; m < p_cubNq; m++){
-            dfloat Dmi = s_D[m][i];
-            dfloat Dmj = s_D[m][j];
-            dfloat Dkm = s_D[k][m];
-	    
-            Aqtmp += Dmi*s_Gqr[j][m];
-            Aqtmp += Dmj*s_Gqs[m][i];
-            r_Aq[m] += Dkm*r_qt;
-          }
-
-          r_Aq[k] += Aqtmp;
-        }
-      }
-    }
-      
-    // lower pressure degree
-    testHex3D(s_I, r_Aq, s_Iq);
-    
-    // write out
-    @shared volatile dfloat s_qAq[p_Nq*p_Nq];
-    
-    for(int j=0;j<p_cubNq;++j;@inner(1)){
-      for(int i=0;i<p_cubNq;++i;@inner(0)){
-
-	dfloat res = 0;
-	
-	if(i<p_Nq && j<p_Nq){
-#pragma unroll p_cubNq
-	  for(int k = 0; k < p_Nq; k++){
-	    const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
-	    Aq[id] = s_Iq[k][j][i];
-	    res += r_q[k]*s_Iq[k][j][i];
-	  }
-
-	  s_qAq[j*p_Nq+i] = res;
-	}
-      }
-    }
-
-    @shared volatile dfloat s_warp[32];
-    
-    // do partial reduction on p.Ap [ two phase vSIMD32 sync ]
-    for(int j=0;j<p_cubNq;++j;@inner(1)){
-      for(int i=0;i<p_cubNq;++i;@inner(0)){
-	int t = j*p_cubNq + i;
-	int n = t%32;
-	int w = t/32;
-	if(t<p_Nq*p_Nq){
-	  // totally hard wired for SIMD32
-	  if(n<16 && t+16<p_Nq*p_Nq) s_qAq[t] += s_qAq[t+16];
-	  if(n< 8 && t+8<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+8];
-	  if(n< 4 && t+4<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+4];
-	  if(n< 2 && t+2<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+2];
-	  if(n< 1 && t+1<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+1];
-	  if(n==0) s_warp[w] = s_qAq[t];
-	}
-      }
-    }
-    
-    for(int j=0;j<p_cubNq;++j;@inner(1)){
-      for(int i=0;i<p_cubNq;++i;@inner(0)){
-	int t = j*p_cubNq + i;
-	int n = t%32;
-	int w = t/32;
-	
-	if(w==0 && n*32<p_Nq*p_Nq){ // is this the base warp, and was there an entry from above
-	  if( n<16 && ((n+16)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+16];
-	  if( n< 8 && ((n+ 8)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 8];
-	  if( n< 4 && ((n+ 4)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 4];
-	  if( n< 2 && ((n+ 2)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 2];
-	  if( n< 1 && ((n+ 1)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 1];
-	  
-	  if(n==0){
-	    dfloat res = s_warp[0];
-	    atomicAdd(qAq, res);
-	  }
-	}
-      }
-    }
-  }
-}
-
 #if p_cubNq==3
 #define p_Nblk 3
 #elif p_cubNq==4
@@ -500,7 +292,7 @@
 #define p_Nblk 1
 #endif
 
-@kernel void BP3_v1(const dlong Nelements,
+@kernel void BP3Global_v1(const dlong Nelements,
 		     @restrict const dlong  *elementList,
 		    @restrict const dlong *localizedIds,
 		     @restrict const dfloat *ggeo,
@@ -545,16 +337,18 @@
 	    element = elementList[r_e];
 	    
 	    // load pencil of u into register
-	    const dlong base = i + j*p_Nq + element*p_Np;
 	    
 	    if(i<p_Nq && j<p_Nq){
 	      for(int k = 0; k < p_Nq; k++) {
-		r_q[k] = q[base + k*p_Nq*p_Nq];
+		//		const dlong base = i + j*p_Nq + element*p_Np;
+//		r_q[k] = q[base + k*p_Nq*p_Nq];
+		const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+		dlong localId = localizedIds[id]-1;
+		r_q[k] = q[localId];
 	      }
 	    }
 	  }
 	}
-
       }
     }
     
@@ -768,8 +562,11 @@
 	    if(i<p_Nq && j<p_Nq){
 #pragma unroll p_Nq
 	      for(int k = 0; k < p_Nq; k++){
+		//Aq[id] = s_Iq[es][k][j][i];
 		const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
-		Aq[id] = s_Iq[es][k][j][i];
+		dlong localId = localizedIds[id]-1;
+		dfloat res  = s_Iq[es][k][j][i];
+		atomicAdd(Aq+localId, res);
 	      }
 	    }
 	  }
@@ -779,8 +576,9 @@
   }
 }
 
+#if 0
 // assume ggeo encodes built blocks
-@kernel void BP3_v2(const dlong Nelements,
+@kernel void BP3Global_v2(const dlong Nelements,
 		     @restrict const dlong  *elementList,
 		    @restrict const dlong *localizedIds,
 		     @restrict const dfloat *ggeo,
@@ -881,16 +679,15 @@
   }
 }
 
-
-@kernel void BP3_v3(const dlong Nelements,
-		     @restrict const dlong  *elementList,
-		    @restrict const dlong *localizedIds,
-		     @restrict const dfloat *ggeo,
-		     @restrict const dfloat *D,
-		     @restrict const dfloat *I,
-		     const dfloat lambda,
-		     @restrict const dfloat *q,
-		     @restrict dfloat *Aq){
+@kernel void BP3Global_v2(const dlong Nelements,
+			  @restrict const dlong  *elementList,
+			  @restrict const dlong *localizedIds,
+			  @restrict const dfloat *ggeo,
+			  @restrict const dfloat *D,
+			  @restrict const dfloat *I,
+			  const dfloat lambda,
+			  @restrict const dfloat *q,
+			  @restrict dfloat *Aq){
   
   for(dlong eo=0; eo<Nelements; eo+=p_Nblk; @outer(0)){
 
@@ -923,6 +720,4 @@
   }
 }
 
-
-      
 #endif
