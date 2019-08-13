@@ -327,7 +327,7 @@
 			       @restrict dfloat *r,
 			       @restrict dfloat *redr){
   
-#define p_NblocksReset ((N+p_NthreadsUpdatePCG-1)/p_NthreadsUpdatePCG)/4
+#define p_NblocksReset ((N+p_NthreadsUpdatePCG-1)/p_NthreadsUpdatePCG)
   
   for(dlong b=0;b<p_NblocksReset;++b;@outer(0)){
 

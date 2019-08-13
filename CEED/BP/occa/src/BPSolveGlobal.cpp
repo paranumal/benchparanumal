@@ -28,6 +28,7 @@ SOFTWARE.
 
 double getTod();
 
+
 int BPSolveGlobal(BP_t *BP, dfloat lambda, dfloat mu, dfloat tol, occa::memory &o_r, occa::memory &o_x, double *opElapsed){
   
   mesh_t *mesh = BP->mesh;
@@ -93,7 +94,7 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
   //  BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
   BP->scaledAddKernel(Ndof, (dfloat)-1.f, o_Ap, (dfloat)1.0f, o_r);
 
-  rdotr0 = BPNorm2(BP, Ndof, Ndof, o_r);
+  rdotr0 = BPAtomicInnerProduct(BP, Ndof, o_r, o_r);
 
   dfloat TOL =  mymax(tol*tol*rdotr0,tol*tol);
 
@@ -140,10 +141,12 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
 
     // r.z
     startDot = BP->mesh->device.tagStream();
-    rdotz1 = BPInnerProduct(BP, Ndof, Ndof, o_r, o_z); 
-    
+    //    rdotz1 = BPInnerProduct(BP, Ndof, Ndof, o_r, o_z);
+    rdotz1 = BPAtomicInnerProduct(BP, Ndof, o_r, o_z);
+
     if(flexible){
-      dfloat zdotAp = BPInnerProduct(BP, Ndof, Ndof, o_z, o_Ap);  
+      //      dfloat zdotAp = BPInnerProduct(BP, Ndof, Ndof, o_z, o_Ap);
+      dfloat zdotAp = BPAtomicInnerProduct(BP, Ndof, o_z, o_Ap);
       
       beta = -alpha*zdotAp/rdotz2;
     }

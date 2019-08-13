@@ -85,7 +85,8 @@ dfloat BPOperatorGlobal(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, o
     ogsGatherScatterManyFinish(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
 #endif
   
-  dfloat pAp = BPInnerProduct(BP, Ndof, Ndof, o_q, o_Aq);
+  //  dfloat pAp = BPInnerProduct(BP, Ndof, Ndof, o_q, o_Aq);
+  dfloat pAp = BPAtomicInnerProduct(BP, Ndof, o_q, o_Aq);
   
   return pAp;
 }

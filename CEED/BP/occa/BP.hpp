@@ -150,6 +150,7 @@ typedef struct {
   occa::kernel vecCopyKernel;
 
   occa::kernel vecAtomicGatherKernel;
+  occa::kernel vecAtomicInnerProductKernel;
   occa::kernel vecScatterKernel;
   
   // combined PCG update step
@@ -238,5 +239,9 @@ void BK5Setup(int numElements, int Nq, dfloat *h_DofToDofD,
 
 dfloat BPNorm2(BP_t *BP, dlong Ntotal, dlong offset, occa::memory &o_a);
 dfloat BPInnerProduct(BP_t *BP, dlong Ntotal, dlong offset, occa::memory &o_a, occa::memory &o_b);
+
+dfloat BPAtomicInnerProduct(BP_t *BP, dlong N, occa::memory &o_a, occa::memory &o_b);
+
+
 #endif
 

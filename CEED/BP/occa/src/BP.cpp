@@ -218,14 +218,15 @@ int main(int argc, char **argv){
     if(!useGlobal)
       BP->o_x.copyTo(BP->q);
     else{
-      occa::memory o_x = mesh->device.malloc(Ndofs*sizeof(dfloat));
+      occa::memory o_x = mesh->device.malloc(mesh->Np*mesh->Nelements*BP->Nfields*sizeof(dfloat));
 
-      BP->vecScatterKernel(Ndofs, mesh->o_localizedIds, BP->o_x, o_x);
+      //      BP->vecScatterKernel(mesh->Np*mesh->Nelements, mesh->o_localizedIds, BP->o_x, o_x);
+      BP->vecScatterKernel(mesh->Np*mesh->Nelements, mesh->o_localizedIds, BP->o_x, o_x);
       o_x.copyTo(BP->q);
     }
       
       
-    //  BPPlotVTU(BP, "foo", 0);
+    BPPlotVTU(BP, "foo", 0);
     
     dfloat maxError = 0;
     for(dlong e=0;e<mesh->Nelements;++e){

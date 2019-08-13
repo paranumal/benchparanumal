@@ -230,3 +230,18 @@ void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::m
 
   BP->scaledAddKernel(Ntotal, alpha, o_a, beta, o_b);
 }
+
+dfloat BPAtomicInnerProduct(BP_t *BP, dlong N, occa::memory &o_a, occa::memory &o_b){
+
+  BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
+  
+  BP->vecAtomicInnerProductKernel(N, o_a, o_b, BP->o_tmpAtomic);
+
+  BP->o_tmpAtomic.copyTo(BP->tmpAtomic);
+  
+  dfloat globaladotb = 0;
+
+  MPI_Allreduce(BP->tmpAtomic, &globaladotb, 1, MPI_DFLOAT, MPI_SUM, BP->mesh->comm);
+
+  return globaladotb;
+}

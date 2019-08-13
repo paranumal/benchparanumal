@@ -407,6 +407,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->vecAtomicGatherKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicGather", kernelInfo);
 
+      BP->vecAtomicInnerProductKernel =
+	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicInnerProduct", kernelInfo);
+
+      
 
       BP->vecScatterKernel =
 	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecScatter", kernelInfo);
