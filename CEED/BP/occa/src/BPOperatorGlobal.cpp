@@ -36,8 +36,14 @@ void runBPGlobalKernel(BP_t *BP,  dfloat lambda, dfloat mu,
 
     occa::kernel &BPKernel = BP->BPKernelGlobal[BP->BPid];
 
-    BPKernel(Nelements, o_elementList, mesh->o_localizedIds,
-	     mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
+    switch(BP->BPid){
+    case 1:
+      BPKernel(Nelements, o_elementList, mesh->o_localizedIds, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
+      break;
+    case 3:
+      BPKernel(Nelements, o_elementList, mesh->o_localizedIds, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
+      break;
+    }
   }
 }
 
