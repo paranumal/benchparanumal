@@ -196,11 +196,12 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
     }
   }
   else{
-    BP->o_r   = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
-    BP->o_gr  = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x); //ZERO !
+    BP->o_r  = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
+    BP->o_gr = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x); //ZERO !
     BP->o_x  = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x);
 
-    BP->vecAtomicGatherKernel(mesh->Np*mesh->Nelements, mesh->o_localizedIds, BP->o_r, BP->o_gr);
+    BP->vecAtomicMultipleGatherKernel(mesh->Np*mesh->Nelements, mesh->Nlocalized,
+				      mesh->o_localizedIds, BP->o_r, BP->o_gr);
   }
 
   if (mesh->rank==0)
@@ -407,6 +408,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->vecAtomicGatherKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicGather", kernelInfo);
 
+      BP->vecAtomicMultipleGatherKernel =
+          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicMultipleGather", kernelInfo);
+
       BP->vecAtomicInnerProductKernel =
 	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicInnerProduct", kernelInfo);
 
@@ -414,6 +418,9 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
 
       BP->vecScatterKernel =
 	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecScatter", kernelInfo);
+      
+      BP->vecMultipleScatterKernel =
+	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecMultipleScatter", kernelInfo);
 
       
       // add custom defines

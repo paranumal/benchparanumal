@@ -40,8 +40,14 @@ void runBPGlobalKernel(BP_t *BP,  dfloat lambda, dfloat mu,
     case 1:
       BPKernel(Nelements, o_elementList, mesh->o_localizedIds, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
       break;
+    case 2:
+      BPKernel(Nelements, o_elementList, mesh->Nlocalized, mesh->o_localizedIds, mesh->o_cubggeo, mesh->o_cubInterp, o_q, o_Aq);
+      break;
     case 3:
       BPKernel(Nelements, o_elementList, mesh->o_localizedIds, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);
+      break;
+    case 4:
+      BPKernel(Nelements, o_elementList, mesh->Nlocalized, mesh->o_localizedIds, mesh->o_cubggeo, mesh->o_cubD, mesh->o_cubInterp, lambda, o_q, o_Aq);	
       break;
     case 5:
       BPKernel(Nelements, o_elementList, mesh->o_localizedIds, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
@@ -57,7 +63,7 @@ dfloat BPOperatorGlobal(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, o
   setupAide &options = BP->options;
   ogs_t *ogs = BP->ogs;
 
-  dlong Ndof = mesh->Nlocalized;
+  dlong Ndof = mesh->Nlocalized*BP->Nfields;
   
   dlong offset = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
   
@@ -69,13 +75,6 @@ dfloat BPOperatorGlobal(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, o
   runBPGlobalKernel(BP, lambda, mu, mesh->NglobalGatherElements, mesh->o_globalGatherElementList,
 		    mesh->o_localizedIds, o_q, o_Aq);
   
-#if 0
-  if(BP->Nfields==1)
-    ogsGatherScatterStart(o_Aq, ogsDfloat, ogsAdd, ogs);
-  else
-    ogsGatherScatterManyStart(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
-#endif
-  
   if(start)
     *start = BP->mesh->device.tagStream();
 
@@ -86,15 +85,7 @@ dfloat BPOperatorGlobal(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, o
   if(end)
     *end = BP->mesh->device.tagStream();
   
-  // finalize gather using local and global contributions
-#if 0
-  if(BP->Nfields==1)
-    ogsGatherScatterFinish(o_Aq, ogsDfloat, ogsAdd, ogs);
-  else
-    ogsGatherScatterManyFinish(o_Aq, BP->Nfields, offset, ogsDfloat, ogsAdd, ogs);
-#endif
   
-  //  dfloat pAp = BPInnerProduct(BP, Ndof, Ndof, o_q, o_Aq);
   dfloat pAp = BPAtomicInnerProduct(BP, Ndof, o_q, o_Aq);
   
   return pAp;

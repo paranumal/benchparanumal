@@ -226,7 +226,7 @@ int main(int argc, char **argv){
       occa::memory o_x = mesh->device.malloc(mesh->Np*mesh->Nelements*BP->Nfields*sizeof(dfloat));
 
       //      BP->vecScatterKernel(mesh->Np*mesh->Nelements, mesh->o_localizedIds, BP->o_x, o_x);
-      BP->vecScatterKernel(mesh->Np*mesh->Nelements, mesh->o_localizedIds, BP->o_x, o_x);
+      BP->vecMultipleScatterKernel(mesh->Np*mesh->Nelements, mesh->Nlocalized, mesh->o_localizedIds, BP->o_x, o_x);
       o_x.copyTo(BP->q);
     }
       

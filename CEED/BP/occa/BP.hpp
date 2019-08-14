@@ -150,8 +150,10 @@ typedef struct {
   occa::kernel vecCopyKernel;
 
   occa::kernel vecAtomicGatherKernel;
+  occa::kernel vecAtomicMultipleGatherKernel;
   occa::kernel vecAtomicInnerProductKernel;
   occa::kernel vecScatterKernel;
+  occa::kernel vecMultipleScatterKernel;
   
   // combined PCG update step
   int             NthreadsUpdatePCG;

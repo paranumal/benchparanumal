@@ -717,6 +717,7 @@ SOFTWARE.
   }  
 #endif
 }
+
 // assumes gv is zerod
 @kernel void vecAtomicGather(const dlong N,        /* Length of vector */
 			     @restrict const dlong *localizedIds,
@@ -729,6 +730,27 @@ SOFTWARE.
 	dlong id  = localizedIds[i]-1;
 	dfloat vi = v[i];
         atomicAdd(gv+id, vi);
+      }
+    }
+  }
+}
+
+
+// assumes gv is zerod
+@kernel void vecAtomicMultipleGather(const dlong N,        /* Length of vector */
+				     const dlong offset, // gather field offset
+				     @restrict const dlong *localizedIds,
+				     @restrict const dfloat *v,
+				     @restrict dfloat *gv)
+{
+  for (dlong n = 0; n < N; n +=p_blockSize; @outer(0)) {
+    for (dlong i = n; i < (n +p_blockSize); i++; @inner(0)) {
+      if (i < N){
+	dlong id  = localizedIds[i]-1;
+	for(int fld=0;fld<p_Nfields;++fld){
+	  dfloat vi = v[i+fld*N];
+	  atomicAdd(gv+id+offset*fld, vi);
+	}
       }
     }
   }
@@ -749,6 +771,25 @@ SOFTWARE.
     }
   }
 }
+
+@kernel void vecMultipleScatter(const dlong N,        /* Length of vector */
+				const dlong offset,
+				@restrict const dlong *localizedIds,
+				@restrict const dfloat *v,
+				@restrict dfloat *sv)
+{
+  for (dlong n = 0; n < N; n +=p_blockSize; @outer(0)) {
+    for (dlong i = n; i < (n +p_blockSize); i++; @inner(0)) {
+      if (i < N){
+	dlong id  = localizedIds[i]-1;
+	for(int fld=0;fld<p_Nfields;++fld)
+	  sv[i+N*fld] = v[id+offset*fld];
+      }
+    }
+  }
+}
+
+
 
 
 @kernel void vecAtomicInnerProduct(const dlong N,

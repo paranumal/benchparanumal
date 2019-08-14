@@ -1,0 +1,448 @@
+/*
+
+  The MIT License (MIT)
+
+  Copyright (c) 2017 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*/
+
+#define interpolateHex3D(s_I, r_q, r_Aq)		\
+  {							\
+    for(int b=0;b<p_cubNq;++b;@inner(1)){		\
+      for(int a=0;a<p_cubNq;++a;@inner(0)){		\
+	if(a<p_Nq && b<p_Nq){				\
+	  for(int k=0;k<p_cubNq;++k){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+	    for(int c=0;c<p_Nq;++c){			\
+	      dfloat Ikc = s_I[k][c];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Ikc*r_q[fld][c];		\
+	      }						\
+	    }						\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][k][b][a] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+    							\
+    @barrier("local");					\
+    							\
+    /* raise in b */					\
+    for(int k=0;k<p_cubNq;++k;@inner(1)){		\
+      for(int a=0;a<p_cubNq;++a;@inner(0)){		\
+	if(a<p_Nq){					\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    for(int b=0;b<p_Nq;++b){			\
+	      r_Aq[fld][b] = s_Iq[fld][k][b][a];	\
+	    }						\
+	  }						\
+	  for(int j=0;j<p_cubNq;++j){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+	    for(int b=0;b<p_Nq;++b){			\
+	      dfloat Ijb = s_I[j][b];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Ijb*r_Aq[fld][b];		\
+	      }						\
+	    }						\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][k][j][a] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+							\
+    @barrier("local");					\
+							\
+    /* raise in a */					\
+    for(int k=0;k<p_cubNq;++k;@inner(1)){		\
+      for(int j=0;j<p_cubNq;++j;@inner(0)){		\
+	for(int a=0;a<p_Nq;++a){			\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    r_Aq[fld][a] = s_Iq[fld][k][j][a];		\
+	  }						\
+	}						\
+							\
+	for(int i=0;i<p_cubNq;++i){			\
+	  dfloat res[p_Nfields];			\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    res[fld] = 0;				\
+	  }						\
+	  for(int a=0;a<p_Nq;++a){			\
+	    dfloat Iia = s_I[i][a];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] += Iia*r_Aq[fld][a];		\
+	    }						\
+	  }						\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    s_Iq[fld][k][j][i] = res[fld];		\
+	  }						\
+	}						\
+      }							\
+    }							\
+      							\
+    @barrier("local");					\
+							\
+    /* copy back to registers */			\
+    for(int j=0;j<p_cubNq;++j;@inner(1)){		\
+      for(int i=0;i<p_cubNq;++i;@inner(0)){		\
+	for(int fld=0;fld<p_Nfields;++fld){		\
+	  for(int k=0;k<p_cubNq;++k){			\
+	    r_Aq[fld][k] = s_Iq[fld][k][j][i];		\
+	  }						\
+	}						\
+      }							\
+    }							\
+    @barrier("local");					\
+  }							
+
+#define testHex3D(s_I, r_q)				\
+  {							\
+  /* lower in 'k' */					\
+  for(int j=0;j<p_cubNq;++j;@inner(1)){			\
+    for(int i=0;i<p_cubNq;++i;@inner(0)){		\
+      							\
+      for(int c=0;c<p_Nq;++c){				\
+	dfloat res[p_Nfields];				\
+	for(int fld=0;fld<p_Nfields;++fld){		\
+	  res[fld] = 0;					\
+	}						\
+	for(int k=0;k<p_cubNq;++k){			\
+	  dfloat Ikc = s_I[k][c];			\
+	  for(int fld=0;fld<p_Nfields;++fld){		\
+	    res[fld] += Ikc*r_q[fld][k];		\
+	  }						\
+	}						\
+	for(int fld=0;fld<p_Nfields;++fld){		\
+	  s_Iq[fld][c][j][i] = res[fld];		\
+	}						\
+      }							\
+    }							\
+  }							\
+    							\
+    @barrier("local");					\
+    							\
+    /* lower in 'j' */					\
+    for(int c=0;c<p_cubNq;++c;@inner(1)){		\
+      for(int i=0;i<p_cubNq;++i;@inner(0)){		\
+							\
+	if(c<p_Nq){					\
+	  for(int j=0;j<p_cubNq;++j){			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      r_q[fld][j] = s_Iq[fld][c][j][i];		\
+	    }						\
+	  }						\
+							\
+	  for(int b=0;b<p_Nq;++b){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+	    for(int j=0;j<p_cubNq;++j){			\
+	      dfloat Ijb = s_I[j][b];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Ijb*r_q[fld][j];		\
+	      }						\
+	    }						\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][c][b][i] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+    							\
+    @barrier("local");					\
+							\
+    /* lower in 'i' */					\
+    for(int c=0;c<p_cubNq;++c;@inner(1)){		\
+      for(int b=0;b<p_cubNq;++b;@inner(0)){		\
+							\
+	if(b<p_Nq && c<p_Nq){				\
+	  for(int i=0;i<p_cubNq;++i){			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      r_q[fld][i] = s_Iq[fld][c][b][i];		\
+	    }						\
+	  }						\
+	  for(int a=0;a<p_Nq;++a){			\
+	    dfloat res[p_Nfields];			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      res[fld] = 0;				\
+	    }						\
+							\
+	    for(int i=0;i<p_cubNq;++i){			\
+	      dfloat Iia = s_I[i][a];			\
+	      for(int fld=0;fld<p_Nfields;++fld){	\
+		res[fld] += Iia*r_q[fld][i];		\
+	      }						\
+	    }						\
+							\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      s_Iq[fld][c][b][a] = res[fld];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+							\
+    @barrier("local");					\
+							\
+    /* copy back to registers */			\
+    for(int b=0;b<p_cubNq;++b;@inner(1)){		\
+      for(int a=0;a<p_cubNq;++a;@inner(0)){		\
+	if(a<p_Nq && b<p_Nq){				\
+	  for(int c=0;c<p_Nq;++c){			\
+	    for(int fld=0;fld<p_Nfields;++fld){		\
+	      r_q[fld][c] = s_Iq[fld][c][b][a];		\
+	    }						\
+	  }						\
+	}						\
+      }							\
+    }							\
+    							\
+    @barrier("local");					\
+  }							\
+
+
+@kernel void BP2Global_v0(const dlong Nelements,
+			  @restrict const dlong *elementList,			  
+			  const dlong offset,
+			  @restrict const dlong *localizedIds,
+			  @restrict const dfloat *ggeo,
+			  @restrict const dfloat *I,
+			  @restrict const dfloat *q,
+			  @restrict dfloat *Aq){
+  
+  for(dlong e=0; e<Nelements; ++e; @outer(0)){
+    
+    @shared dfloat s_Iq[p_Nfields][p_cubNq][p_cubNq][p_cubNq];	
+    
+    @shared dfloat s_I[p_cubNq][p_Nq];
+    
+    @exclusive dfloat r_q[p_Nfields][p_cubNq], r_Aq[p_Nfields][p_cubNq];
+
+    @exclusive dlong element;
+    
+    // array of threads
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+	
+	if(i<p_Nq){
+	  s_I[j][i] = I[p_Nq*j+i];
+	}
+	
+	element = elementList[e];
+	
+	if(i<p_Nq && j<p_Nq){
+	  
+	  for(int k = 0; k < p_Nq; k++) {
+	    const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+	    dlong localId = localizedIds[id]-1;
+	    for(int fld=0;fld<p_Nfields;++fld){
+	      r_q[fld][k] = q[localId+fld*offset];
+	    }
+	  }
+	}
+      }
+    }
+
+    // raise pressure degree
+    interpolateHex3D(s_I, r_q, r_Aq);
+    
+    @barrier("local");
+      
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+#pragma unroll p_cubNq
+	for(int k = 0;k < p_cubNq; k++){
+	  // prefetch geometric factors
+	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
+	  for(int fld=0;fld<p_Nfields;++fld){
+	    r_Aq[fld][k] *= GWJ;
+	  }
+	}
+      }    
+    }
+
+    @barrier("local");
+    
+    // lower pressure degree
+    testHex3D(s_I, r_Aq);
+    
+    // write out
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+
+	if(i<p_Nq && j<p_Nq){
+	  for(int k = 0; k < p_Nq; k++){
+	    const dlong id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+	    dlong localId = localizedIds[id]-1;
+	    for(int fld=0;fld<p_Nfields;++fld){
+	      dfloat res = r_Aq[fld][k];
+	      atomicAdd(Aq+localId + fld*offset, res); // atomic assumes Aq zerod
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+
+@kernel void BP2Dot_v0(const dlong Nelements,
+		       @restrict const dlong *elementList,
+		       const dlong offset,
+		       @restrict const dfloat *ggeo,
+		       @restrict const dfloat *I,
+		       @restrict const dfloat *q,
+		       @restrict dfloat *Aq,
+		       @restrict dfloat *qAq){
+  
+  for(dlong e=0; e<Nelements; ++e; @outer(0)){
+    
+    @shared dfloat s_Iq[p_Nfields][p_cubNq][p_cubNq][p_cubNq];	
+    
+    @shared dfloat s_I[p_cubNq][p_Nq];
+    
+    @exclusive dfloat r_q[p_Nfields][p_cubNq];
+    @exclusive dfloat r_Aq[p_Nfields][p_cubNq];
+
+    @exclusive dlong element;
+    
+    // array of threads
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+	
+	if(i<p_Nq){
+	  s_I[j][i] = I[p_Nq*j+i];
+	}
+
+	element = elementList[e];
+	// load pencil of u into register
+	
+	if(i<p_Nq && j<p_Nq){
+	  for(int fld=0;fld<p_Nfields;++fld){
+	    const dlong base = i + j*p_Nq + element*p_Np + fld*offset;
+	    for(int k = 0; k < p_Nq; k++) {
+	      r_q[fld][k] = q[base + k*p_Nq*p_Nq];
+	    }
+	  }
+	}
+      }
+    }
+
+    // raise pressure degree
+    interpolateHex3D(s_I, r_q, r_Aq);
+    
+    @barrier("local");
+      
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+#pragma unroll p_cubNq
+	for(int k = 0;k < p_cubNq; k++){
+	  // prefetch geometric factors
+	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
+	  
+	  for(int fld=0;fld<p_Nfields;++fld){
+	    r_Aq[fld][k] *= GWJ;
+	  }
+	}
+      }    
+    }
+
+    @barrier("local");
+    
+    // lower pressure degree
+    testHex3D(s_I, r_Aq);
+
+    @shared volatile dfloat s_qAq[p_Nq*p_Nq];
+    
+    // write out
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+	dfloat res = 0;
+	
+	if(i<p_Nq && j<p_Nq){
+	  for(int fld=0;fld<p_Nfields;++fld){
+#pragma unroll p_cubNq
+	    for(int k = 0; k < p_Nq; k++){
+	      const dlong id = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i + fld*offset;
+	      Aq[id] = r_Aq[fld][k];
+	      res += r_q[fld][k]*r_Aq[fld][k];
+	    }
+	  }
+	  s_qAq[j*p_Nq+i] = res;
+	}
+      }
+    }
+
+    @shared volatile dfloat s_warp[32];
+    
+    // do partial reduction on p.Ap [ two phase vSIMD32 sync ]
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+	int t = j*p_cubNq + i;
+	int n = t%32;
+	int w = t/32;
+	if(t<p_Nq*p_Nq){
+	  // totally hard wired for SIMD32
+	  if(n<16 && t+16<p_Nq*p_Nq) s_qAq[t] += s_qAq[t+16];
+	  if(n< 8 && t+8<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+8];
+	  if(n< 4 && t+4<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+4];
+	  if(n< 2 && t+2<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+2];
+	  if(n< 1 && t+1<p_Nq*p_Nq)  s_qAq[t] += s_qAq[t+1];
+	  if(n==0) s_warp[w] = s_qAq[t];
+	}
+      }
+    }
+    
+    for(int j=0;j<p_cubNq;++j;@inner(1)){
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+	int t = j*p_cubNq + i;
+	int n = t%32;
+	int w = t/32;
+
+	if(w==0 && n*32<p_Nq*p_Nq){ // is this the base warp, and was there an entry from above
+	  if( n<16 && ((n+16)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+16];
+	  if( n< 8 && ((n+ 8)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 8];
+	  if( n< 4 && ((n+ 4)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 4];
+	  if( n< 2 && ((n+ 2)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 2];
+	  if( n< 1 && ((n+ 1)*32)<p_Nq*p_Nq) s_warp[n] += s_warp[n+ 1];
+	  
+	  if(n==0){
+	    dfloat res = s_warp[0];
+	    atomicAdd(qAq, res);
+	  }
+	}
+      }
+    }
+  }
+}

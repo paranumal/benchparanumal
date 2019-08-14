@@ -106,7 +106,6 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
   double elapsedOp = 0;
   double elapsedOverall = 0;
 
-
   occa::streamTag startCopy;
   occa::streamTag endCopy;
 
@@ -141,11 +140,9 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
 
     // r.z
     startDot = BP->mesh->device.tagStream();
-    //    rdotz1 = BPInnerProduct(BP, Ndof, Ndof, o_r, o_z);
     rdotz1 = BPAtomicInnerProduct(BP, Ndof, o_r, o_z);
 
     if(flexible){
-      //      dfloat zdotAp = BPInnerProduct(BP, Ndof, Ndof, o_z, o_Ap);
       dfloat zdotAp = BPAtomicInnerProduct(BP, Ndof, o_z, o_Ap);
       
       beta = -alpha*zdotAp/rdotz2;
@@ -157,7 +154,6 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
   
     // p = z + beta*p
     startPupdate = BP->mesh->device.tagStream();
-    //    BPScaledAdd(BP, 1.f, o_z, beta, o_p);
     BP->scaledAddKernel(Ndof, (dfloat)1.f, o_z, beta, o_p);
     endPupdate = BP->mesh->device.tagStream();
 	
@@ -262,13 +258,8 @@ dfloat BPUpdatePCGGlobal(BP_t *BP,
   // zero accumulator
   BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
 
-  dlong offset = mesh->Nlocalized*BP->Nfields;
-
-  if(BP->Nfields==1)
-    BP->updatePCGGlobalKernel(mesh->Nlocalized*BP->Nfields, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpAtomic);
-  else
-    BP->updateMultiplePCGGlobalKernel(mesh->Nlocalized, offset, BP->NblocksUpdatePCG,
-				      o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpAtomic);
+  // do this for all  (no invDegree)
+  BP->updatePCGGlobalKernel(mesh->Nlocalized*BP->Nfields, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpAtomic);
   
   BP->o_tmpAtomic.copyTo(BP->tmpAtomic);
   
