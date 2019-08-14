@@ -30,7 +30,7 @@
       for(int i=0;i<p_cubNq;++i;@inner(0)){		\
 	for(int k=0;k<p_cubNq;++k){			\
 	  dfloat res = 0;				\
-	  int m = i + j*p_cubNq  k*p_cubNq*k*p_cubNq;	\
+	  int m = i + j*p_cubNq + k*p_cubNq*p_cubNq;	\
 	  for(int n=0;n<p_NpTet;++n){			\
 	    res += I[m*p_NpTet+n]*s_qTet[n];		\
 	  }						\
@@ -60,7 +60,7 @@
 
 
 
-@kernel void BP1_v0(const dlong Nelements,
+@kernel void BP1Tet_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *I,

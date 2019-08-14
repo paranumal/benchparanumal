@@ -461,26 +461,32 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
 
       printf("useGlobal=%d\n", useGlobal);
 
+      char suffix[BUFSIZ];
+      if(mesh->elementType==HEXAHEDRA)
+	sprintf(suffix, "");
+      else
+      	sprintf(suffix, "Tet");
+
       if(!useGlobal){
 	printf("BUILDING LOCAL STORAGE KERNELS\n");
-	sprintf(fileName, "%s/okl/BP%d.okl", DBP, bpid);
+	sprintf(fileName, "%s/okl/BP%d%s.okl", DBP, bpid, suffix);
 
 	if(!combineDot)
-	  sprintf(kernelName, "BP%d_v%d", bpid, knlId);
+	  sprintf(kernelName, "BP%d%s_v%d", bpid, suffix, knlId);
 	else
-	  sprintf(kernelName, "BP%dDot_v%d", bpid, knlId);
+	  sprintf(kernelName, "BP%d%sDot_v%d", bpid, suffix, knlId);
       
 	BP->BPKernel[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
       }
       else{
 	printf("BUILDING GLOBAL KERNELS\n");
 	
-	sprintf(fileName, "%s/okl/BP%dGlobal.okl", DBP, bpid);
+	sprintf(fileName, "%s/okl/BP%d%sGlobal.okl", DBP, bpid, suffix);
 	
 	if(!combineDot)
-	  sprintf(kernelName, "BP%dGlobal_v%d", bpid, knlId);
+	  sprintf(kernelName, "BP%d%sGlobal_v%d", bpid, suffix, knlId);
 	else
-	  sprintf(kernelName, "BP%dDotGlobal_v%d", bpid, knlId);
+	  sprintf(kernelName, "BP%d%sDotGlobal_v%d", bpid, suffix, knlId);
 	
 	BP->BPKernelGlobal[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
       }

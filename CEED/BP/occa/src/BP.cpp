@@ -69,10 +69,15 @@ int main(int argc, char **argv){
   combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
   mesh_t *mesh;
-
+  
   // set up mesh
-  mesh = meshSetupBoxHex3D(N, cubN, options);
+  if(elementType==HEXAHEDRA)
+    mesh = meshSetupBoxHex3D(N, cubN, options);
+  else
+    mesh = meshSetupBoxTet3D(N, cubN, options);
 
+  mesh->elementType = elementType;
+  
   dfloat lambda = 1, mu = 1;
   options.getArgs("LAMBDA", lambda);
   options.getArgs("VISCOSITY",  mu);
