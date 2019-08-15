@@ -1,3 +1,17 @@
+
+#define p_G00ID 0
+#define p_G01ID 1
+#define p_G02ID 2
+#define p_G11ID 3
+#define p_G12ID 4
+#define p_G22ID 5
+
+
+#define p_Nq (p_N+1)
+#define p_cubNq (p_N+2)
+#define p_Np ( p_Nq*p_Nq*p_Nq )
+#define p_cubNp ( p_cubNq*p_cubNq*p_cubNq )
+
 __global__ void benchpBP3Global_v0(const int Nelements,
 				   void *context,
 				   CudaFieldsInt * __restrict__ localizedIds,
@@ -45,7 +59,7 @@ __global__ void benchpBP3Global_v0(const int Nelements,
       for(int k=0;k<p_cubNq;++k){			
 	double res = 0;				
 	for(int c=0;c<p_Nq;++c){			
-	  res += s_I[k][c]*r_p[c];			
+	  res += s_I[k][c]*r_q[c];			
 	}						
 	s_Iq[k][b][a] = res;			
       }						
@@ -58,13 +72,13 @@ __global__ void benchpBP3Global_v0(const int Nelements,
     int k = ty, a = tx;
     if(a<p_Nq){					
       for(int b=0;b<p_Nq;++b){			
-	r_Ip[b] = s_Iq[k][b][a];			
+	r_Aq[b] = s_Iq[k][b][a];			
       }						
       
       for(int j=0;j<p_cubNq;++j){			
 	double res = 0;				
 	for(int b=0;b<p_Nq;++b){			
-	  res += s_I[j][b]*r_Ip[b];			
+	  res += s_I[j][b]*r_Aq[b];			
 	}						
 	s_Iq[k][j][a] = res;			
       }						
@@ -76,158 +90,157 @@ __global__ void benchpBP3Global_v0(const int Nelements,
   {
     int k = ty, j = tx;
     for(int a=0;a<p_Nq;++a){			
-      r_Ip[a] = s_Iq[k][j][a];			
+      r_Aq[a] = s_Iq[k][j][a];			
     }						
     
     for(int i=0;i<p_cubNq;++i){			
       double res = 0;				
       for(int a=0;a<p_Nq;++a){			
-	res += s_I[i][a]*r_Ip[a];			
+	res += s_I[i][a]*r_Aq[a];			
       }						
       s_Iq[k][j][i] = res;				
     }						
   }							
   
   {
-    int j = ty, i = tx;
-	
     for(int k = 0; k < p_cubNq; k++) {
       r_Aq[k] = 0.f; // zero the accumulator
     }
   }
   
-    // Layer by layer
+  // Layer by layer
 #pragma unroll p_cubNq
-    for(int k = 0;k < p_cubNq; k++){
+  for(int k = 0;k < p_cubNq; k++){
+    
+    __syncthreads();
+    
+    int j = ty, i = tx;
       
-      __syncthreads();
+    // share u(:,:,k)
+    double qr = 0, qs = 0;
+      
+    r_qt = 0;
+      
+#pragma unroll p_cubNq
+    for(int m = 0; m < p_cubNq; m++) {
+      double Dim = s_D[i][m];
+      double Djm = s_D[j][m];
+      double Dkm = s_D[k][m];
+	
+      qr += Dim*s_Iq[k][j][m];
+      qs += Djm*s_Iq[k][m][i];
+      r_qt += Dkm*s_Iq[m][j][i];	    
+    }
+      
+    // prefetch geometric factors
+    //    const int gbase = e*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+    const int gbase = e*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+    const int stride = p_cubNp*Nelements;
 
-      int j = ty, i = tx;
+    const double G00 = ggeo[gbase+p_G00ID*stride];
+    const double G01 = ggeo[gbase+p_G01ID*stride];
+    const double G02 = ggeo[gbase+p_G02ID*stride];
+    const double G11 = ggeo[gbase+p_G11ID*stride];
+    const double G12 = ggeo[gbase+p_G12ID*stride];
+    const double G22 = ggeo[gbase+p_G22ID*stride];
       
-      // share u(:,:,k)
-      double qr = 0, qs = 0;
+    s_Gqr[j][i] = (G00*qr + G01*qs + G02*r_qt);
+    s_Gqs[j][i] = (G01*qr + G11*qs + G12*r_qt);
       
-      r_qt = 0;
+    r_qt = G02*qr + G12*qs + G22*r_qt;
       
-#pragma unroll p_cubNq
-      for(int m = 0; m < p_cubNq; m++) {
-	double Dim = s_D[i][m];
-	double Djm = s_D[j][m];
-	double Dkm = s_D[k][m];
-	
-	qr += Dim*s_Iq[k][j][m];
-	qs += Djm*s_Iq[k][m][i];
-	r_qt += Dkm*s_Iq[m][j][i];	    
-      }
-      
-      // prefetch geometric factors
-      const int gbase = e*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
-      
-      const double G00 = ggeo[gbase+p_G00ID*p_cubNp];
-      const double G01 = ggeo[gbase+p_G01ID*p_cubNp];
-      const double G02 = ggeo[gbase+p_G02ID*p_cubNp];
-      const double G11 = ggeo[gbase+p_G11ID*p_cubNp];
-      const double G12 = ggeo[gbase+p_G12ID*p_cubNp];
-      const double G22 = ggeo[gbase+p_G22ID*p_cubNp];
-      const double GWJ = ggeo[gbase+p_GWJID*p_cubNp];
-      
-      s_Gqr[j][i] = (G00*qr + G01*qs + G02*r_qt);
-      s_Gqs[j][i] = (G01*qr + G11*qs + G12*r_qt);
-      
-      r_qt = G02*qr + G12*qs + G22*r_qt;
-      
-      __syncthreads();
+    __syncthreads();
 	  
-      double Aqtmp = 0;
+    double Aqtmp = 0;
       
 #pragma unroll p_cubNq
-      for(int m = 0; m < p_cubNq; m++){
-	double Dmi = s_D[m][i];
-	double Dmj = s_D[m][j];
-	double Dkm = s_D[k][m];
+    for(int m = 0; m < p_cubNq; m++){
+      double Dmi = s_D[m][i];
+      double Dmj = s_D[m][j];
+      double Dkm = s_D[k][m];
 	
-	Aqtmp += Dmi*s_Gqr[j][m];
-	Aqtmp += Dmj*s_Gqs[m][i];
-	r_Aq[m] += Dkm*r_qt;
-      }
+      Aqtmp += Dmi*s_Gqr[j][m];
+      Aqtmp += Dmj*s_Gqs[m][i];
+      r_Aq[m] += Dkm*r_qt;
+    }
       
-      r_Aq[k] += Aqtmp;
+    r_Aq[k] += Aqtmp;
+  }
+
+  __syncthreads();
+
+  {							
+    /* lower 'k' */
+    {
+      int j = ty, i = tx;
+      							
+      for(int c=0;c<p_Nq;++c){			
+	double res = 0;				
+	for(int k=0;k<p_cubNq;++k){			
+	  res += s_I[k][c]*r_q[k];			
+	}						
+	s_Iq[c][j][i] = res;				
+      }						
+    }
+
+    __syncthreads();
+      
+    {
+      int c = ty, i = tx;
+							
+      if(c<p_Nq){					
+	for(int j=0;j<p_cubNq;++j){			
+	  r_q[j] = s_Iq[c][j][i];			
+	}						
+	  
+	for(int b=0;b<p_Nq;++b){			
+	  double res = 0;				
+	  for(int j=0;j<p_cubNq;++j){			
+	    res += s_I[j][b]*r_q[j];			
+	  }						
+	    
+	  s_Iq[c][b][i] = res;			
+	}						
+      }						
     }
 
     __syncthreads();
 
-    {							
-      /* lower 'k' */
-      {
-	int j = ty, i = tx;
-      							
-	for(int c=0;c<p_Nq;++c){			
-	  double res = 0;				
-	  for(int k=0;k<p_cubNq;++k){			
-	    res += s_I[k][c]*r_p[k];			
-	  }						
-	  s_Iq[c][j][i] = res;				
-	}						
-      }
-
-      __syncthreads();
-      
-      {
-	int c = ty, i = tx;
-							
-	if(c<p_Nq){					
-	  for(int j=0;j<p_cubNq;++j){			
-	    r_p[j] = s_Iq[c][j][i];			
-	  }						
-	  
-	  for(int b=0;b<p_Nq;++b){			
-	    double res = 0;				
-	    for(int j=0;j<p_cubNq;++j){			
-	      res += s_I[j][b]*r_p[j];			
-	    }						
-	    
-	    s_Iq[c][b][i] = res;			
-	  }						
-	}						
-      }
-
-      __syncthreads();
-
-      {
-	int c = ty, b = tx;
-							
-	if(b<p_Nq && c<p_Nq){				
-	  for(int i=0;i<p_cubNq;++i){			
-	    r_p[i] = s_Iq[c][b][i];			
-	  }						
-	  
-	  for(int a=0;a<p_Nq;++a){			
-	    double res = 0;				
-	    for(int i=0;i<p_cubNq;++i){			
-	      res += s_I[i][a]*r_p[i];			
-	    }						
-	    
-	    s_Iq[c][b][a] = res;			
-	  }						
-	}						
-      }							
-    }
-    
-    // write out
-
     {
-      int j = ty, i = tx;
-      if(i<p_Nq && j<p_Nq){
+      int c = ty, b = tx;
+							
+      if(b<p_Nq && c<p_Nq){				
+	for(int i=0;i<p_cubNq;++i){			
+	  r_q[i] = s_Iq[c][b][i];			
+	}						
+	  
+	for(int a=0;a<p_Nq;++a){			
+	  double res = 0;				
+	  for(int i=0;i<p_cubNq;++i){			
+	    res += s_I[i][a]*r_q[i];			
+	  }						
+	    
+	  s_Iq[c][b][a] = res;			
+	}						
+      }						
+    }							
+  }
+    
+  // write out
+
+  {
+    int j = ty, i = tx;
+    if(i<p_Nq && j<p_Nq){
 #pragma unroll p_Nq
-	for(int k = 0; k < p_Nq; k++){
-	  const int id = e*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
-	  int localId = localizedIds[id]-1;
-	  double res = s_Iq[k][j][i];
-	  atomicAdd(Aq+localId, res); // atomic assumes Aq zerod
-	}
+      for(int k = 0; k < p_Nq; k++){
+	const int id = e*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+	int localId = localizedIds[id]-1;
+	double res = s_Iq[k][j][i];
+	atomicAdd(Aq+localId, res); // atomic assumes Aq zerod
       }
     }
   }
+}
 }
 
 #if p_cubNq==3
@@ -240,7 +253,7 @@ __global__ void benchpBP3Global_v0(const int Nelements,
 
 __global__ void BP3Global_v1(const int Nelements,
 			     void *context,
-			     const int * __restrict__ localizedIds,
+			     CudaFieldsInt * __restrict__ localizedIds,
 			     const double * __restrict__ q,
 			     const double * __restrict__ ggeo,
 			     const double * __restrict__ I,
@@ -379,15 +392,15 @@ __global__ void BP3Global_v1(const int Nelements,
 	}
 	  
 	// prefetch geometric factors
-	const int gbase = r_e*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
-	  
-	const double G00 = ggeo[gbase+p_G00ID*p_cubNp];
-	const double G01 = ggeo[gbase+p_G01ID*p_cubNp];
-	const double G02 = ggeo[gbase+p_G02ID*p_cubNp];
-	const double G11 = ggeo[gbase+p_G11ID*p_cubNp];
-	const double G12 = ggeo[gbase+p_G12ID*p_cubNp];
-	const double G22 = ggeo[gbase+p_G22ID*p_cubNp];
-	const double GWJ = ggeo[gbase+p_GWJID*p_cubNp];
+	const int gbase = r_e*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	const int stride = p_cubNp*Nelements;
+	
+	const double G00 = ggeo[gbase+p_G00ID*stride];
+	const double G01 = ggeo[gbase+p_G01ID*stride];
+	const double G02 = ggeo[gbase+p_G02ID*stride];
+	const double G11 = ggeo[gbase+p_G11ID*stride];
+	const double G12 = ggeo[gbase+p_G12ID*stride];
+	const double G22 = ggeo[gbase+p_G22ID*stride];
 	  
 	s_Gqr[es][j][i] = (G00*qr + G01*qs + G02*r_qt);
 	s_Gqs[es][j][i] = (G01*qr + G11*qs + G12*r_qt);
@@ -501,14 +514,14 @@ __global__ void BP3Global_v1(const int Nelements,
 
 #if 0
 __global__ void BP3Global_v2(const int Nelements,
-			  @restrict const int  *elementList,
-			  @restrict const int *localizedIds,
-			  @restrict const double *ggeo,
-			  @restrict const double *D,
-			  @restrict const double *I,
-			  const double lambda,
- 			  @restrict const double *q,
-			  @restrict double *Aq){
+			     @restrict const int  *elementList,
+			     @restrict const int *localizedIds,
+			     @restrict const double *ggeo,
+			     @restrict const double *D,
+			     @restrict const double *I,
+			     const double lambda,
+			     @restrict const double *q,
+			     @restrict double *Aq){
   
   for(int e=0; e<Nelements; ++e; @outer(0)){
     
@@ -629,22 +642,21 @@ __global__ void BP3Global_v2(const int Nelements,
           }
 	  
           // prefetch geometric factors
-          const int gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+          const int gbase = element*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	  const int stride = p_cubNp*Nelements;
 	  
-          const double G00 = ggeo[gbase+p_G00ID*p_cubNp];
-          const double G01 = ggeo[gbase+p_G01ID*p_cubNp];
-          const double G02 = ggeo[gbase+p_G02ID*p_cubNp];
-          const double G11 = ggeo[gbase+p_G11ID*p_cubNp];
-          const double G12 = ggeo[gbase+p_G12ID*p_cubNp];
-          const double G22 = ggeo[gbase+p_G22ID*p_cubNp];
-          const double GWJ = ggeo[gbase+p_GWJID*p_cubNp];
+          const double G00 = ggeo[gbase+p_G00ID*stride];
+          const double G01 = ggeo[gbase+p_G01ID*stride];
+          const double G02 = ggeo[gbase+p_G02ID*stride];
+          const double G11 = ggeo[gbase+p_G11ID*stride];
+          const double G12 = ggeo[gbase+p_G12ID*stride];
+          const double G22 = ggeo[gbase+p_G22ID*stride];
 	  
           s_Gqr[j][i] = (G00*qr + G01*qs + G02*r_qt);
           s_Gqs[j][i] = (G01*qr + G11*qs + G12*r_qt);
 
           r_qt = G02*qr + G12*qs + G22*r_qt;
 
-          r_q[k] += GWJ*lambda*s_Iq[k][j][i];
         }
       }
       
@@ -700,14 +712,14 @@ __global__ void BP3Global_v2(const int Nelements,
 #if 0
 // assume ggeo encodes built blocks
 __global__ void BP3Global_v2(const int Nelements,
-		     @restrict const int  *elementList,
-		    @restrict const int *localizedIds,
-		     @restrict const double *ggeo,
-		     @restrict const double *D,
-		     @restrict const double *I,
-		     const double lambda,
-		     @restrict const double *q,
-		     @restrict double *Aq){
+			     @restrict const int  *elementList,
+			     @restrict const int *localizedIds,
+			     @restrict const double *ggeo,
+			     @restrict const double *D,
+			     @restrict const double *I,
+			     const double lambda,
+			     @restrict const double *q,
+			     @restrict double *Aq){
   
   for(int e=0; e<Nelements; ++e; @outer(0)){
 
@@ -733,15 +745,15 @@ __global__ void BP3Global_v2(const int Nelements,
 
 // assume ggeo encodes built blocks
 __global__ void BP3Dot_v2(const int Nelements,
-		       @restrict const int  *elementList,
-		       @restrict const int *localizedIds,
-		       @restrict const double *ggeo,
-		       @restrict const double *D,
-		       @restrict const double *I,
-		       const double lambda,
-		       @restrict const double *q,
-		       @restrict double *Aq,
-		       @restrict double *qAq){
+			  @restrict const int  *elementList,
+			  @restrict const int *localizedIds,
+			  @restrict const double *ggeo,
+			  @restrict const double *D,
+			  @restrict const double *I,
+			  const double lambda,
+			  @restrict const double *q,
+			  @restrict double *Aq,
+			  @restrict double *qAq){
   
   for(int e=0; e<Nelements; ++e; @outer(0)){
 
@@ -801,14 +813,14 @@ __global__ void BP3Dot_v2(const int Nelements,
 }
 
 __global__ void BP3Global_v2(const int Nelements,
-			  @restrict const int  *elementList,
-			  @restrict const int *localizedIds,
-			  @restrict const double *ggeo,
-			  @restrict const double *D,
-			  @restrict const double *I,
-			  const double lambda,
-			  @restrict const double *q,
-			  @restrict double *Aq){
+			     @restrict const int  *elementList,
+			     @restrict const int *localizedIds,
+			     @restrict const double *ggeo,
+			     @restrict const double *D,
+			     @restrict const double *I,
+			     const double lambda,
+			     @restrict const double *q,
+			     @restrict double *Aq){
   
   for(int eo=0; eo<Nelements; eo+=p_Nblk; @outer(0)){
 
