@@ -128,7 +128,7 @@ int main(int argc, char **argv){
     
     opElapsed = 0;
     
-    int Ntests = 10;
+    int Ntests = 2;
     occa::streamTag *startTags = new occa::streamTag[Ntests];
     occa::streamTag *stopTags  = new occa::streamTag[Ntests];
 
@@ -167,7 +167,7 @@ int main(int argc, char **argv){
     
     if(mesh->rank==0){
       
-      int NbytesPerElement;
+      double NGbytes;
       int combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
       
       int knlId = 0;
@@ -175,37 +175,38 @@ int main(int argc, char **argv){
       
       // PCG base
       if(options.compareArgs("KRYLOV SOLVER", "PCG"))
-	NbytesPerElement = mesh->Np*(BP->Nfields*(2+2+3+2+3+3+1)+2);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+	NGbytes = mesh->Nlocalized*((BP->Nfields*(2+2+3+2+3+3+1)+2)/1.e9);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
       else
-	NbytesPerElement = mesh->Np*(BP->Nfields*(2+2+11+2+2+2+3)+2); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
-
-      if(!combineDot) NbytesPerElement += (BP->Nfields*2+1)*mesh->Np;  // z.Az/deg
+	NGbytes = mesh->Nlocalized*((BP->Nfields*(2+2+11+2+2+2+3)+2)/1.e9); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
       
-      if(BP->BPid==1 || BP->BPid==2) NbytesPerElement += mesh->cubNp;
-      if(BP->BPid==3 || BP->BPid==4) NbytesPerElement += mesh->Nggeo*mesh->cubNp;
-      if(BP->BPid==5 || BP->BPid==6) NbytesPerElement += mesh->Nggeo*mesh->Np;
-      if(BP->BPid==9)                NbytesPerElement += (mesh->dim*mesh->dim+1)*mesh->Np;
+      if(!combineDot) NGbytes += (BP->Nfields*2+1)*(mesh->Nlocalized/1.e9);  // z.Az/deg
       
-      NbytesPerElement *= sizeof(dfloat);
+      if(BP->BPid==1 || BP->BPid==2) NGbytes += mesh->Nelements*(mesh->cubNp/1.e9);
+      if(BP->BPid==3 || BP->BPid==4) NGbytes += mesh->Nelements*(mesh->Nggeo*mesh->cubNp/1.e9);
+      if(BP->BPid==5 || BP->BPid==6) NGbytes += mesh->Nelements*(mesh->Nggeo*mesh->Np/1.e9);
+      if(BP->BPid==9)                NGbytes += mesh->Nelements*((mesh->dim*mesh->dim+1)*mesh->Np/1.e9);
       
-      double bw = mesh->Nelements*(it*(NbytesPerElement/(globalElapsed*1.e9)));
+      NGbytes *= sizeof(dfloat);
+      
+      double bw = (it*(NGbytes/(globalElapsed)));
       
       printf("elapsed = %lf, globalElapsed = %lf, globalNelements = %lld\n",
 	     elapsed, globalElapsed, globalNelements);
       
-      printf("%d, %d, %d, %g, %d, %g, %g, %g, %d, %d, %g, %d; "
-	     "\%\% global: N, Nelements, dofs, elapsed, iterations, time per node, fields*nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid\n",
+      printf("%d, %d, %d, %d, %g, %d, %g, %g, %g, %d, %d, %g, %d; "
+	     "\%\% global: N, Nelements, dofs, globalDofs, elapsed, iterations, time per global node, fields*global nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid\n",
 	     mesh->N,
 	     mesh->Nelements,
 	     globalNelements*mesh->Np,
+	     mesh->Nlocalized,
 	     globalElapsed,
 	     it,
-	     globalElapsed/(mesh->Np*globalNelements),
-	     BP->Nfields*globalNelements*(it*mesh->Np/globalElapsed),
+	     globalElapsed/((double)it*mesh->Nlocalized),
+	     BP->Nfields*(it*(mesh->Nlocalized/globalElapsed)),
 	     bw,
 	     knlId,
 	     combineDot,
-	     (it*BP->Nfields*mesh->Np)*(globalNelements/opElapsed),
+	     (it*BP->Nfields)*(mesh->Nlocalized/opElapsed),
 	     BP->BPid);
     }
     
@@ -231,7 +232,7 @@ int main(int argc, char **argv){
     }
       
       
-    BPPlotVTU(BP, "foo", 0);
+    //    BPPlotVTU(BP, "foo", 0);
     
     dfloat maxError = 0;
     for(dlong e=0;e<mesh->Nelements;++e){
