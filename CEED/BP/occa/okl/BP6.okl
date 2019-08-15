@@ -103,6 +103,8 @@
 	}
       }
 
+      @barrier("local");
+      
       for(int fld=0;fld<p_Nfields;++fld;@inner(2)){
 	for(int j=0;j<p_Nq;++j;@inner(1)){
 	  for(int i=0;i<p_Nq;++i;@inner(0)){
@@ -404,7 +406,7 @@
       
       element = elementList[e];
       
-      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      dlong id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
       
       s_U[k][j][i] = q[id+0*offset];
       s_V[k][j][i] = q[id+1*offset];
@@ -439,12 +441,15 @@
 	dfloat Dim = s_D[i][m];
 	dfloat Djm = s_D[j][m];
 	dfloat Dkm = s_D[k][m];
+
 	Ur += Dim*s_U[k][j][m];
 	Us += Djm*s_U[k][m][i];
 	Ut += Dkm*s_U[m][j][i];
+
 	Vr += Dim*s_V[k][j][m];
 	Vs += Djm*s_V[k][m][i];
 	Vt += Dkm*s_V[m][j][i];
+
 	Wr += Dim*s_W[k][j][m];
 	Ws += Djm*s_W[k][m][i];
 	Wt += Dkm*s_W[m][j][i];
@@ -462,6 +467,8 @@
       r_GWs = (G01*Wr + G11*Ws + G12*Wt);
       r_GWt = (G02*Wr + G12*Ws + G22*Wt);
     }
+
+    @barrier("local");
     
     cubeThreads{
       s_U[k][j][i] = r_GUr;
@@ -479,6 +486,8 @@
       }
     }
 
+    @barrier("local");
+    
     cubeThreads{
       s_U[k][j][i] = r_GUs;
       s_V[k][j][i] = r_GVs;
@@ -496,6 +505,8 @@
       }
     }
 
+    @barrier("local");
+    
     cubeThreads{
       s_U[k][j][i] = r_GUt;
       s_V[k][j][i] = r_GVt;
@@ -511,7 +522,7 @@
 	r_AW += Dmk*s_W[m][j][i];
       }
 
-      int id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+      dlong id = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
       Aq[id+0*offset] = r_AU;
       Aq[id+1*offset] = r_AV;
       Aq[id+2*offset] = r_AW;
@@ -608,6 +619,8 @@
       r_GWs = (G01*Wr + G11*Ws + G12*Wt);
       r_GWt = (G02*Wr + G12*Ws + G22*Wt);
     }
+
+    @barrier("local");
     
     cubeThreads{
       s_UVW[k][j][i][0] = r_GUr;
@@ -625,6 +638,8 @@
       }
     }
 
+    @barrier("local");
+    
     cubeThreads{
       s_UVW[k][j][i][0] = r_GUs;
       s_UVW[k][j][i][1] = r_GVs;
@@ -642,6 +657,8 @@
       }
     }
 
+    @barrier("local");
+    
     cubeThreads{
       s_UVW[k][j][i][0] = r_GUt;
       s_UVW[k][j][i][1] = r_GVt;

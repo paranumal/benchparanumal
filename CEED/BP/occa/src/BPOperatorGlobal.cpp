@@ -52,6 +52,9 @@ void runBPGlobalKernel(BP_t *BP,  dfloat lambda, dfloat mu,
     case 5:
       BPKernel(Nelements, o_elementList, mesh->o_localizedIds, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
       break;
+    case 6:
+      BPKernel(Nelements, o_elementList, mesh->Nlocalized, mesh->o_localizedIds, mesh->o_ggeo, mesh->o_D, lambda, o_q, o_Aq);
+      break;
     }
   }
 }
