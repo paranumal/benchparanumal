@@ -379,7 +379,7 @@ __global__ void BP3Global_v1(const int Nelements,
 	}
 	  
 	// prefetch geometric factors
-	const int gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
+	const int gbase = r_e*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
 	  
 	const double G00 = ggeo[gbase+p_G00ID*p_cubNp];
 	const double G01 = ggeo[gbase+p_G01ID*p_cubNp];
@@ -489,7 +489,7 @@ __global__ void BP3Global_v1(const int Nelements,
       if(i<p_Nq && j<p_Nq){
 #pragma unroll p_Nq
 	for(int k = 0; k < p_Nq; k++){
-	  const int id = element*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
+	  const int id = r_e*p_Np +k*p_Nq*p_Nq+ j*p_Nq + i;
 	  int localId = localizedIds[id]-1;
 	  double res  = s_Iq[es][k][j][i];
 	  atomicAdd(Aq+localId, res);
