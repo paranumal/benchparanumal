@@ -128,7 +128,7 @@ int main(int argc, char **argv){
     
     opElapsed = 0;
     
-    int Ntests = 2;
+    int Ntests = 1;
     occa::streamTag *startTags = new occa::streamTag[Ntests];
     occa::streamTag *stopTags  = new occa::streamTag[Ntests];
 

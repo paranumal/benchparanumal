@@ -47,8 +47,8 @@
 	int n = i+j*p_cubNq;					\
 	while(n<p_NpTet){					\
 	  dfloat res = 0;					\
-	  for(int m=0;m<p_Np;++m){				\
-	    res = I[m*p_NpTet+n]*s_Iq[n];			\
+	  for(int m=0;m<p_cubNp;++m){				\
+	    res = I[m*p_NpTet+n]*s_Iq[0][0][m];			\
 	  }							\
 	  s_qTet[n] = res;					\
 	  n += (p_cubNq*p_cubNq);				\
@@ -83,8 +83,8 @@
 	int n=i+j*p_cubNq;
 
 	while(n<p_NpTet){
-	  s_qTet[n] = q[n+k*p_Np]; // note cube spacing of tet data
-	  n+=p_NpTet;
+	  s_qTet[n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+	  n+=p_cubNq*p_cubNq;
 	}
       }
     }
@@ -113,7 +113,7 @@
 
 	while(n<p_NpTet){
 	  const dlong id = element*p_Np + n;
-	  Aq[id] = s_IqTet[n];
+	  Aq[id] = s_qTet[n];
 	  n+=p_cubNq*p_cubNq;
 	}
       }
