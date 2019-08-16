@@ -201,17 +201,17 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
   printf("Elapsed: overall: %g, PCG Update %g, Pupdate: %g, Copy: %g, dot: %g, op: %g\n",
 	 elapsedOverall, elapsedUpdate, elapsedPupdate, elapsedCopy, elapsedDot, elapsedOp);
 
-  double gbytesPCG = 7.*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  double gbytesPCG = 6.*Ndof*(sizeof(dfloat)/1.e9);
   double gbytesCopy = Nbytes/1.e9;
-  double gbytesOp = (7+2*BP->Nfields)*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
-  double gbytesDot = (2*BP->Nfields+1)*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
-  double gbytesPupdate =  3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  double gbytesOp = (7*mesh->Np*mesh->Nelements+2*Ndof)*(sizeof(dfloat)/1.e9);
+  double gbytesDot = (2*Ndof)*(sizeof(dfloat)/1.e9);
+  double gbytesPupdate =  3.*Ndof*(sizeof(dfloat)/1.e9);
 
   int combineDot = 0;
   combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
   if(!combineDot)
-    gbytesOp += 3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+    gbytesOp += 2*Ndof*(sizeof(dfloat)/1.e9);
 
   printf("Bandwidth (GB/s): PCG update: %g, Copy: %g, Op: %g, Dot: %g, Pupdate: %g\n",
 	 gbytesPCG*iter/elapsedUpdate,

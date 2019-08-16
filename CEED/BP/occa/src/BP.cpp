@@ -172,14 +172,16 @@ int main(int argc, char **argv){
       
       int knlId = 0;
       options.getArgs("KERNEL ID", knlId);
+
+      int useInvDeg = !useGlobal;
       
       // PCG base
       if(options.compareArgs("KRYLOV SOLVER", "PCG"))
-	NGbytes = mesh->Nlocalized*((BP->Nfields*(2+2+3+2+3+3+1)+2)/1.e9);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
+	NGbytes = mesh->Nlocalized*((BP->Nfields*(2+2+3+2+3+3+1)+2*useInvDeg)/1.e9);    // z=r, z.r/deg, p=z+beta*p, A*p (p in/Ap out), [x=x+alpha*p, r=r-alpha*Ap, r.r./deg]
       else
-	NGbytes = mesh->Nlocalized*((BP->Nfields*(2+2+11+2+2+2+3)+2)/1.e9); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
+	NGbytes = mesh->Nlocalized*((BP->Nfields*(2+2+11+2+2+2+3)+2*useInvDeg)/1.e9); // z = z/gam, p = Az (z in, Az out), z.p/deg, [ z=z-a2*w-a3*wold, wold=w, w=z, z=r, r=p-(del/gam)*r-(gam/gamp)*rold, rold = z], z=r, gam=sqrt(r.z/invDegree), w=w/a1, u=u+c*eta*w 
       
-      if(!combineDot) NGbytes += (BP->Nfields*2+1)*(mesh->Nlocalized/1.e9);  // z.Az/deg
+      if(!combineDot) NGbytes += (BP->Nfields*2+useInvDeg)*(mesh->Nlocalized/1.e9);  // z.Az/deg
       
       if(BP->BPid==1 || BP->BPid==2) NGbytes += mesh->Nelements*(mesh->cubNp/1.e9);
       if(BP->BPid==3 || BP->BPid==4) NGbytes += mesh->Nelements*(mesh->Nggeo*mesh->cubNp/1.e9);
