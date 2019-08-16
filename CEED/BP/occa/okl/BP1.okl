@@ -505,6 +505,8 @@
 
 #if p_cubNq==3
 #define p_Kblk 14
+#else
+#define p_Kblk 1
 #endif
   
 #define blockInterpolateHex3D(s_I, r_q, r_Aq){	\
