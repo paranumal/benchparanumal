@@ -46,15 +46,22 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
 
   if(BP9)
     options.setArgs("KRYLOV SOLVER", "MINRES");
+
+  printf("BP0:10=%d,%d,%d,%d,%d,%d,%d,%d\n",
+	 BP1, BP2, BP3, BP4, BP5, BP6, BP9, BP10);
   
-  BP->BPid = 1*BP1 + 2*BP2 + 3*BP3 + 4*BP4 + 5*BP5 + 6*BP6 + 9*BP9 + 10*BP10;
+  BP->BPid =
+    1*(BP1==1) + 2*(BP2==1) + 3*(BP3==1) + 4*(BP4==1) +
+    5*(BP5==1) + 6*(BP6==1) + 9*(BP9==1) + 10*(BP10==1);
 
   if(BP1 || BP3 || BP5)
     BP->Nfields = 1;
   else if(BP2 || BP4 || BP6)
     BP->Nfields = 3;
   else if(BP9)
-    BP->Nfields = 4; // BP9
+    BP->Nfields = 4; // BP9 STOKES WITH EQUAL ORDER 
+  else if(BP10)
+    BP->Nfields = 1;
   else{
     printf("BP%d is not supported\n", BP->BPid);
     exit(-1);
@@ -130,29 +137,50 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
     }
   }
 #else
-  int cubNp = mesh->cubNq*mesh->cubNq*mesh->cubNq;
+  int cubNp = mesh->cubNp;
 
   dfloat cubrhs[BP->Nfields][cubNp];
   dfloat *cubx = (dfloat*) calloc(cubNp, sizeof(dfloat));
   dfloat *cuby = (dfloat*) calloc(cubNp, sizeof(dfloat));
   dfloat *cubz = (dfloat*) calloc(cubNp, sizeof(dfloat));
-  dfloat *cubInterpT = (dfloat*) calloc(mesh->cubNq*mesh->Nq, sizeof(dfloat));
+  dfloat *cubInterpT;
+  dfloat *cubInterp3DT;
 
+  cubInterpT = (dfloat*) calloc(mesh->cubNq*mesh->Nq, sizeof(dfloat));
+
+  // BUILD 3D version here too
   for(int i=0;i<mesh->cubNq;++i){
     for(int a=0;a<mesh->Nq;++a){
       cubInterpT[a*mesh->cubNq + i] = mesh->cubInterp[i*mesh->Nq+a];
     }
   }
 
+  cubInterp3DT = (dfloat*) calloc(mesh->cubNp*mesh->Np, sizeof(dfloat));
+
+  // BUILD 3D version here too
+  for(int i=0;i<mesh->cubNp;++i){
+    for(int a=0;a<mesh->Np;++a){
+      cubInterp3DT[a*mesh->cubNp + i] = mesh->cubInterp3D[i*mesh->Np+a];
+    }
+  }
+
   for(dlong e=0;e<mesh->Nelements;++e){
 
-    interpolateHex3D(mesh->cubInterp, mesh->x+e*mesh->Np, mesh->Nq, cubx, mesh->cubNq);
-    interpolateHex3D(mesh->cubInterp, mesh->y+e*mesh->Np, mesh->Nq, cuby, mesh->cubNq);
-    interpolateHex3D(mesh->cubInterp, mesh->z+e*mesh->Np, mesh->Nq, cubz, mesh->cubNq);
-    
+    if(mesh->elementType==HEXAHEDRA){
+      meshInterpolateHex3D(mesh->cubInterp, mesh->x+e*mesh->Np, mesh->Nq, cubx, mesh->cubNq);
+      meshInterpolateHex3D(mesh->cubInterp, mesh->y+e*mesh->Np, mesh->Nq, cuby, mesh->cubNq);
+      meshInterpolateHex3D(mesh->cubInterp, mesh->z+e*mesh->Np, mesh->Nq, cubz, mesh->cubNq);
+    }
+    else{
+      meshInterpolateTet3D(mesh->cubInterp3D, mesh->x+e*mesh->Np, mesh->Np, cubx, mesh->cubNp);
+      meshInterpolateTet3D(mesh->cubInterp3D, mesh->y+e*mesh->Np, mesh->Np, cuby, mesh->cubNp);
+      meshInterpolateTet3D(mesh->cubInterp3D, mesh->z+e*mesh->Np, mesh->Np, cubz, mesh->cubNp);
+    }
+
     for(int n=0;n<cubNp;++n){
       
       dfloat JW = mesh->cubggeo[cubNp*(e*mesh->Nggeo + GWJID) + n];
+      
       dfloat xn = cubx[n];
       dfloat yn = cuby[n];
       dfloat zn = cubz[n];
@@ -166,18 +194,33 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
       }
       if(BP->BPid==9) // hack
 	cubrhs[BP->Nfields-1][n] = 0;
-    }
 
+
+      //      printf("%e %e %e: %e\n", xn, yn, zn, cubrhs[0][n]);
+    }
+    
     for(int fld=0;fld<BP->Nfields;++fld){
       for(int n=0;n<mesh->Np;++n){
 	dlong fldid = n + fld*Ndof + e*mesh->Np;
 	BP->x[fldid] = 0;
       }
-      
-      interpolateHex3D(cubInterpT, cubrhs[fld], mesh->cubNq, BP->r + e*mesh->Np + fld*Ndof, mesh->Nq);
+
+      if(mesh->elementType==HEXAHEDRA){
+	meshInterpolateHex3D(cubInterpT, cubrhs[fld], mesh->cubNq, BP->r + e*mesh->Np + fld*Ndof, mesh->Nq);
+      }
+      else{
+	meshInterpolateTet3D(cubInterp3DT, cubrhs[fld], mesh->cubNp, BP->r + e*mesh->Np + fld*Ndof, mesh->Np);
+#if 0
+	for(int n=0;n<mesh->Np;++n){
+	  printf("% e ", BP->r[e*mesh->Np+n]);
+	}
+	printf("\n r:");
+#endif
+      }
     }
   }
 #endif
+
   //copy to occa buffers
 
   int useGlobal  = options.compareArgs("USE GLOBAL STORAGE", "TRUE");
@@ -318,8 +361,6 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
   BP->o_invDegree = BP->ogs->o_invDegree;
 
   // set kernel name suffix
-  char *suffix = strdup("Hex3D");
-
   char fileName[BUFSIZ], kernelName[BUFSIZ];
 
   kernelInfo["defines/" "p_blockSize"]= blockSize;
@@ -424,7 +465,7 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
 
       
       // add custom defines
-      kernelInfo["defines/" "p_NpTet"]= mesh->Nq*(mesh->Nq+1)*(mesh->Nq+2)/6;
+      kernelInfo["defines/" "p_NpTet"]= mesh->Np;
       
       kernelInfo["defines/" "p_NpP"]= (mesh->Np+mesh->Nfp*mesh->Nfaces);
       kernelInfo["defines/" "p_Nverts"]= mesh->Nverts;
@@ -468,32 +509,26 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
 
       printf("useGlobal=%d\n", useGlobal);
 
-      char suffix[BUFSIZ];
-      if(mesh->elementType==HEXAHEDRA)
-	sprintf(suffix, "");
-      else
-      	sprintf(suffix, "Tet");
-
       if(!useGlobal){
 	printf("BUILDING LOCAL STORAGE KERNELS\n");
-	sprintf(fileName, "%s/okl/BP%d%s.okl", DBP, bpid, suffix);
+	sprintf(fileName, "%s/okl/BP%d.okl", DBP, bpid);
 
 	if(!combineDot)
-	  sprintf(kernelName, "BP%d%s_v%d", bpid, suffix, knlId);
+	  sprintf(kernelName, "BP%d_v%d", bpid, knlId);
 	else
-	  sprintf(kernelName, "BP%d%sDot_v%d", bpid, suffix, knlId);
+	  sprintf(kernelName, "BP%dDot_v%d", bpid, knlId);
       
 	BP->BPKernel[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
       }
       else{
 	printf("BUILDING GLOBAL KERNELS\n");
 	
-	sprintf(fileName, "%s/okl/BP%d%sGlobal.okl", DBP, bpid, suffix);
+	sprintf(fileName, "%s/okl/BP%dGlobal.okl", DBP, bpid);
 	
 	if(!combineDot)
-	  sprintf(kernelName, "BP%d%sGlobal_v%d", bpid, suffix, knlId);
+	  sprintf(kernelName, "BP%dGlobal_v%d", bpid, knlId);
 	else
-	  sprintf(kernelName, "BP%d%sDotGlobal_v%d", bpid, suffix, knlId);
+	  sprintf(kernelName, "BP%dDotGlobal_v%d", bpid, knlId);
 	
 	BP->BPKernelGlobal[bpid] = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
       }

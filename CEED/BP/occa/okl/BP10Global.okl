@@ -24,8 +24,9 @@
 
 */
 
-@kernel void BP10_v0(const dlong Nelements,
+@kernel void BP10Global_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
+		     @restrict const dlong *localizedIds,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *I,
 		    @restrict const dfloat *q,
@@ -47,7 +48,9 @@
 	int n=i+j*p_cubNq;
 
 	while(n<p_NpTet){
-	  s_qTet[n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+	  const dlong id = element*p_Np + n;
+	    dlong localId = localizedIds[id]-1;
+	    s_qTet[n] = q[localId]; // note cube spacing of tet data
 	  n+=p_cubNq*p_cubNq;
 	}
       }
@@ -63,7 +66,7 @@
 
 #pragma unroll p_NpTet
 	  for(int n=0;n<p_NpTet;++n){			
-	    res += I[m*p_NpTet+n]*s_qTet[n];
+	    res += I[m+p_cubNp*n+p_cubNp*p_Np]*s_qTet[n];
 	  }
 
 	  // prefetch geometric factors
@@ -96,7 +99,11 @@
 
 	while(n<p_NpTet){
 	  const dlong id = element*p_NpTet + n;
-	  Aq[id] = s_qTet[n];
+	  //	  Aq[id] = s_qTet[n];
+	  dlong localId = localizedIds[id]-1;
+	  dfloat res = s_qTet[n];
+	  atomicAdd(Aq+localId, res); // atomic assumes Aq zerod
+	  
 	  n+=p_cubNq*p_cubNq;
 	}
       }
@@ -105,8 +112,9 @@
 }
 
 
-@kernel void BP10_v1(const dlong Nelements,
+@kernel void BP10Global_v1(const dlong Nelements,
 		    @restrict const dlong *elementList,
+		     @restrict const dlong *localizedIds,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *I,
 		    @restrict const dfloat *q,
@@ -122,8 +130,13 @@
     // array of threads
     for(int n=0;n<p_cubNp;++n;@inner(0)){
       element = elementList[e];
-      if(n<p_NpTet)
-	s_qTet[n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+      if(n<p_NpTet){
+	//	s_qTet[n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+	const dlong id = element*p_Np + n;
+	dlong localId = localizedIds[id]-1;
+	s_qTet[n] = q[localId];
+      
+      }
     }
 
     for(int n=0;n<p_cubNp;++n;@inner(0)){
@@ -132,7 +145,7 @@
 #pragma unroll p_NpTet
       for(int m=0;m<p_NpTet;++m){			
 	//	res += I[n+m*p_cubNp]*s_qTet[m]; // switch to column major
-	res += I[n*p_NpTet+m]*s_qTet[m]; // switch to column major		
+	res += I[n+m*p_cubNp+p_cubNp*p_Np]*s_qTet[m]; // switch to column major		
       }
 
       const dlong gbase = element*p_Nggeo*p_cubNp + n;
@@ -150,7 +163,11 @@
 	}
 	
 	const dlong id = element*p_NpTet + n;
-	Aq[id] = res;
+	//	Aq[id] = res;
+
+	dlong localId = localizedIds[id]-1;
+	atomicAdd(Aq+localId, res); // atomic assumes Aq zerod
+	
       }
     }
   }
@@ -162,8 +179,9 @@
 #define p_Kblk 8
 #endif
 
-@kernel void BP10_v2(const dlong Nelements,
+@kernel void BP10Global_v2(const dlong Nelements,
 		    @restrict const dlong *elementList,
+		     @restrict const dlong *localizedIds,
 		    @restrict const dfloat *ggeo,
 		    @restrict const dfloat *I,
 		    @restrict const dfloat *q,
@@ -180,7 +198,10 @@
 	for(int es=0;es<p_Kblk;++es){
 	  if(eo+es<Nelements){
 	    dlong element = elementList[eo+es];
-	    s_qTet[es][n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+	    //	    s_qTet[es][n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+	    const dlong id = element*p_Np + n;
+	    dlong localId = localizedIds[id]-1;
+	    s_qTet[es][n] = q[localId];
 	  }
 	}
       }
@@ -229,7 +250,9 @@
 	  if(es+eo<Nelements){
 	    dlong element = elementList[eo+es];
 	    const dlong id = element*p_NpTet + n;
-	    Aq[id] = res[es];
+	    //	    Aq[id] = res[es];
+	    dlong localId = localizedIds[id]-1;
+	    atomicAdd(Aq+localId, res[es]); // atomic assumes Aq zerod
 	  }
 	}
       }

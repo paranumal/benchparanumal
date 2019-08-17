@@ -83,11 +83,9 @@ void runBPKernel(BP_t *BP,  dfloat lambda, dfloat mu,
       case 9:
 	BPKernel(Nelements, o_elementList, offset, mesh->o_vgeo, mesh->o_D, mesh->o_filterMatrix, lambda, mu, o_q, o_Aq);
 	break;
-#if 0
       case 10:
-	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubInterpTet, o_q, o_Aq);
+	BPKernel(Nelements, o_elementList, mesh->o_cubggeo, mesh->o_cubInterp3D, o_q, o_Aq);
 	break;
-#endif
       }
 
     }

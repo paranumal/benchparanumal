@@ -24,42 +24,6 @@
 
 */
 
-#define interpolateTet3D(I, s_qTet, s_Iq)		\
-  {							\
-    for(int j=0;j<p_cubNq;++j;@inner(1)){		\
-      for(int i=0;i<p_cubNq;++i;@inner(0)){		\
-	for(int k=0;k<p_cubNq;++k){			\
-	  dfloat res = 0;				\
-	  int m = i + j*p_cubNq + k*p_cubNq*p_cubNq;	\
-	  for(int n=0;n<p_NpTet;++n){			\
-	    res += I[m*p_NpTet+n]*s_qTet[n];		\
-	  }						\
-	  s_Iq[k][j][i] = res;				\
-	}						\
-      }							\
-    }							\
-  }							\
-  
-#define testTet3D(I, s_Iq, s_qTet)			\
-  {							\
-    for(int j=0;j<p_cubNq;++j;@inner(1)){			\
-      for(int i=0;i<p_cubNq;++i;@inner(0)){			\
-	int n = i+j*p_cubNq;					\
-	while(n<p_NpTet){					\
-	  dfloat res = 0;					\
-	  for(int m=0;m<p_cubNp;++m){				\
-	    res = I[m*p_NpTet+n]*s_Iq[0][0][m];			\
-	  }							\
-	  s_qTet[n] = res;					\
-	  n += (p_cubNq*p_cubNq);				\
-	}							\
-      }								\
-    }								\
-  }								\
-
-
-
-
 @kernel void BP1Tet_v0(const dlong Nelements,
 		    @restrict const dlong *elementList,
 		    @restrict const dfloat *ggeo,
@@ -89,26 +53,46 @@
       }
     }
 
-    interpolateTet3D(I, s_qTet, s_Iq);
-    
-    /* copy back to registers */		
-    for(int j=0;j<p_cubNq;++j;@inner(1)){	
-      for(int i=0;i<p_cubNq;++i;@inner(0)){	
-	for(int k=0;k<p_cubNq;++k){		
+    for(int j=0;j<p_cubNq;++j;@inner(1)){		
+      for(int i=0;i<p_cubNq;++i;@inner(0)){
+
+#pragma unroll p_cubNq
+	for(int k=0;k<p_cubNq;++k){			
+	  dfloat res = 0;				
+	  int m = i + j*p_cubNq + k*p_cubNq*p_cubNq;
+
+#pragma unroll p_NpTet
+	  for(int n=0;n<p_NpTet;++n){			
+	    //	    res += I[m*p_NpTet+n]*s_qTet[n];
+	    res += I[m+n*p_NpTet]*s_qTet[n]; // switch to column major		
+	  }
+
 	  // prefetch geometric factors
 	  const dlong gbase = element*p_Nggeo*p_cubNp + k*p_cubNq*p_cubNq + j*p_cubNq + i;
 	  const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
-	  s_Iq[k][j][i] *= GWJ;
-	}
-      }
-    }
+	  s_Iq[k][j][i] = GWJ*res;
+	}						
+      }							
+    }							
 
-    testTet3D(I, s_Iq, s_qTet);
+    for(int j=0;j<p_cubNq;++j;@inner(1)){			
+      for(int i=0;i<p_cubNq;++i;@inner(0)){			
+	int n = i+j*p_cubNq;					
+	while(n<p_NpTet){					
+	  dfloat res = 0;					
+	  for(int m=0;m<p_cubNp;++m){				
+	    res = I[m*p_NpTet+n]*s_Iq[0][0][m]; // need IT			
+	  }							
+	  s_qTet[n] = res;					
+	  n += (p_cubNq*p_cubNq);				
+	}							
+      }								
+    }								
     
     // write out
     for(int j=0;j<p_cubNq;++j;@inner(1)){
       for(int i=0;i<p_cubNq;++i;@inner(0)){
-
+	
 	int n=i+j*p_cubNq;
 
 	while(n<p_NpTet){
@@ -121,6 +105,56 @@
   }
 }
 
+
+@kernel void BP1Tet_v1(const dlong Nelements,
+		    @restrict const dlong *elementList,
+		    @restrict const dfloat *ggeo,
+		    @restrict const dfloat *I,
+		    @restrict const dfloat *q,
+		    @restrict dfloat *Aq){
+  		    
+  for(dlong e=0; e<Nelements; ++e; @outer(0)){
+    
+    @shared dfloat s_Iq[p_cubNp];
+    @shared dfloat s_qTet[p_NpTet];
+    
+    @exclusive dlong element;
+    
+    // array of threads
+    for(int n=0;n<p_cubNp;++n;@inner(0)){
+      element = elementList[e];
+      if(n<p_NpTet)
+	s_qTet[n] = q[n+element*p_NpTet]; // note cube spacing of tet data
+    }
+
+    for(int n=0;n<p_cubNp;++n;@inner(0)){
+      dfloat res = 0;				
+
+#pragma unroll p_NpTet
+      for(int m=0;m<p_NpTet;++m){			
+	res += I[n+m*p_cubNp]*s_qTet[m]; // switch to column major		
+      }
+
+      const dlong gbase = element*p_Nggeo*p_cubNp + n;
+      const dfloat GWJ = ggeo[gbase+p_GWJID*p_cubNp];
+      s_Iq[n] = GWJ*res;
+    }							
+
+    for(int n=0;n<p_cubNp;++n;@inner(0)){
+      if(n<p_NpTet){					
+	dfloat res = 0;					
+
+#pragma unroll p_cubNp
+	for(int m=0;m<p_cubNp;++m){				
+	  res = I[m*p_NpTet+n]*s_Iq[m]; // need IT			
+	}
+	
+	const dlong id = element*p_Np + n;
+	Aq[id] = res;
+      }
+    }
+  }
+}
 
 #if 0
 

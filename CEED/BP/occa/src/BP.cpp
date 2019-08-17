@@ -187,6 +187,7 @@ int main(int argc, char **argv){
       if(BP->BPid==3 || BP->BPid==4) NGbytes += mesh->Nelements*(mesh->Nggeo*mesh->cubNp/1.e9);
       if(BP->BPid==5 || BP->BPid==6) NGbytes += mesh->Nelements*(mesh->Nggeo*mesh->Np/1.e9);
       if(BP->BPid==9)                NGbytes += mesh->Nelements*((mesh->dim*mesh->dim+1)*mesh->Np/1.e9);
+      if(BP->BPid==10)               NGbytes += mesh->Nelements*(mesh->cubNp/1.e9);
       
       NGbytes *= sizeof(dfloat);
       
@@ -249,7 +250,7 @@ int main(int argc, char **argv){
 	// hard coded to match the RHS used in BPSetup
 	exact = (3.*M_PI*M_PI*mode*mode+lambda)*cos(mode*M_PI*xn)*cos(mode*M_PI*yn)*cos(mode*M_PI*zn);
 	
-	if(BP->BPid>2)
+	if(BP->BPid>2 && BP->BPid!=10)
 	  exact /= (3.*mode*mode*M_PI*M_PI+lambda);
       
 	dfloat error = fabs(exact-BP->q[id]);
