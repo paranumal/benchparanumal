@@ -132,6 +132,7 @@
   }						
 
 
+#if 1
 @kernel void BP3Global_v0(const dlong Nelements,
 			  @restrict const dlong  *elementList,
 			  @restrict const dlong *localizedIds,
@@ -236,7 +237,7 @@
 
           r_qt = G02*qr + G12*qs + G22*r_qt;
 
-          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
+	  //          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
         }
       }
 
@@ -284,6 +285,7 @@
     }
   }
 }
+#endif
 
 #if p_cubNq==3
 #define p_Nblk 3
@@ -377,7 +379,8 @@
       for(int k=0;k<p_cubNq;++k;@inner(1)){		
 	for(int a=0;a<p_cubNq;++a;@inner(0)){		
 							
-	  if(a<p_Nq){					
+	  if(a<p_Nq){
+#pragma unroll p_Nq
 	    for(int b=0;b<p_Nq;++b){			
 	      r_Aq[b] = s_Iq[es][k][b][a];		
 	    }						
@@ -398,7 +401,9 @@
     
     for(int es=0;es<p_Nblk;++es;@inner(2)){		
       for(int k=0;k<p_cubNq;++k;@inner(1)){		
-	for(int j=0;j<p_cubNq;++j;@inner(0)){		
+	for(int j=0;j<p_cubNq;++j;@inner(0)){
+
+#pragma unroll p_Nq	  
 	  for(int a=0;a<p_Nq;++a){			
 	    r_Aq[a] = s_Iq[es][k][j][a];			
 	  }						
@@ -463,7 +468,7 @@
 	      
 	      r_qt = G02*qr + G12*qs + G22*r_qt;
 	      
-	      r_Aq[k] += GWJ*lambda*s_Iq[es][k][j][i];
+	      //	      r_Aq[k] += GWJ*lambda*s_Iq[es][k][j][i];
 	    }
 	  }
 	}
@@ -577,7 +582,7 @@
   }
 }
 
-
+#if 1
 @kernel void BP3Global_v2(const dlong Nelements,
 			  @restrict const dlong  *elementList,
 			  @restrict const dlong *localizedIds,
@@ -722,7 +727,7 @@
 
           r_qt = G02*qr + G12*qs + G22*r_qt;
 
-          r_q[k] += GWJ*lambda*s_Iq[k][j][i];
+	  //          r_q[k] += GWJ*lambda*s_Iq[k][j][i];
         }
       }
       
@@ -771,7 +776,7 @@
 
 
 
-
+#endif
 
 
 
@@ -921,6 +926,7 @@
 
 #endif
 
+#if 1
 @kernel void BP3Global_v5(const dlong Nelements,
 			  @restrict const dlong  *elementList,
 			  @restrict const dlong *localizedIds,
@@ -1075,7 +1081,7 @@
 
           r_qt = G02*qr + G12*qs + G22*r_qt;
 
-          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
+	  //          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
         }
       }
 
@@ -1194,7 +1200,7 @@
   for(dlong e=0; e<Nelements; ++e; @outer(0)){
     
     @shared dfloat s_Iq[p_cubNq][p_cubNq][p_cubNq];	
-    
+
     @shared dfloat s_D[p_cubNq][p_cubNq];
     @shared dfloat s_I[p_cubNq][p_Nq];
     @shared dfloat s_Gqr[p_cubNq][p_cubNq];
@@ -1346,7 +1352,7 @@
 
           r_qt = G02*qr + G12*qs + G22*r_qt;
 
-          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
+	  //          r_Aq[k] += GWJ*lambda*s_Iq[k][j][i];
         }
       }
 
@@ -1450,3 +1456,5 @@
     }
   }
 }
+
+#endif

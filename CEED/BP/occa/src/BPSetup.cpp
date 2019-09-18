@@ -155,12 +155,14 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
     }
   }
 
-  cubInterp3DT = (dfloat*) calloc(mesh->cubNp*mesh->Np, sizeof(dfloat));
-
-  // BUILD 3D version here too
-  for(int i=0;i<mesh->cubNp;++i){
-    for(int a=0;a<mesh->Np;++a){
-      cubInterp3DT[a*mesh->cubNp + i] = mesh->cubInterp3D[i*mesh->Np+a];
+  if(mesh->elementType==TETRAHEDRA){
+    cubInterp3DT = (dfloat*) calloc(mesh->cubNp*mesh->Np, sizeof(dfloat));
+    
+    // BUILD 3D version here too
+    for(int i=0;i<mesh->cubNp;++i){
+      for(int a=0;a<mesh->Np;++a){
+	cubInterp3DT[a*mesh->cubNp + i] = mesh->cubInterp3D[i*mesh->Np+a];
+      }
     }
   }
 
@@ -551,10 +553,10 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->updateMultiplePCGGlobalKernel =
 	mesh->device.buildKernel(DBP "/okl/BPUpdatePCG.okl", "BPMultipleUpdatePCGGlobal", kernelInfo);
 
-      
+#if 0
       BP->filterKernel =
 	mesh->device.buildKernel(DBP "/okl/BP9.okl", "BPfilter", kernelInfo);
-
+#endif
       
      occa::kernel nothingKernel = mesh->device.buildKernel(DBP "/okl/utils.okl", "nothingKernel", kernelInfo);
       nothingKernel();
