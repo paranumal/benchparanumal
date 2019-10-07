@@ -1,0 +1,165 @@
+/*
+
+  The MIT License (MIT)
+
+  Copyright (c) 2017 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*/
+
+
+@kernel void BP3GlobalTet(const dlong Nelements,
+			  @restrict const dlong *elementList,
+			  @restrict const dlong *localizedIds,
+			  @restrict const  dfloat *  ggeo,
+			  @restrict const  dfloat *  D,
+			  @restrict const  dfloat *  I,
+			  const dfloat lambda,
+			  @restrict const  dfloat *  q,
+			  @restrict dfloat *  Aq){
+  
+  for(dlong e=0; e<Nelements; ++e; @outer(0)){
+
+    @exclusive dlong element;
+    
+    // fetch to shared    
+    for(int k=0;k<p_cubNq;++k;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+	for(int i=0;i<p_cubNq;++i;@inner(0)){
+	  int id = i + j*p_cubNq + k*p_cubNq*p_cubNq;
+	  if(id<p_Np){
+	    // find element
+	    element = elementList[e];
+	    // find id in global storage
+	    dlong id = localizedIds[e*p_Np+id];
+	    // store to shared
+	    s_q[k][j][i] = q[id];
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+    
+    // uhat_{ijp} = I_{ijk}(c_p) u_{ijk}
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+	for(int i=0;i<p_cubNq;++i;@inner(0)){
+	  if(i+j<p_Nq){
+	    r_qhat = 0;
+	    for(int k=0;k<p_Nq-i-j;++k){
+	      int id = i + j*p_Nq + k*p_Nq*p_Nq + p*p_Nq*p_Nq*p_Nq;
+	      r_qhat += I[id]*s_q[k][j][i];
+	    }
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+	for(int i=0;i<p_cubNq;++i;@inner(0)){
+	  if(i+j<p_Nq){
+	    s_q[p][j][i] = r_qhat;
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    // uhathat_{inp} = I_{0ij}(c_p) u_{ijp}
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int n=0;n<p_cubNq;++n;@inner(1)){
+	for(int i=0;i<p_cubNq;++i;@inner(0)){
+	  if(i<p_Nq){
+	    r_qhat = 0;
+	    for(int j=0;j<p_Nq-i;++j){
+	      int id = 0 + i*p_Nq + j*p_Nq*p_Nq + n*p_Nq*p_Nq*p_Nq;
+	      r_qhat += I[id]*s_q[p][j][i];
+	    }
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int n=0;n<p_cubNq;++n;@inner(1)){
+	for(int i=0;i<p_cubNq;++i;@inner(0)){
+	  if(i<p_Nq){
+	    s_q[p][n][i] = r_qhat;
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    // uhathat_{mnp} = I_{00i}(c_m) u_{inp}
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int n=0;n<p_cubNq;++n;@inner(1)){
+	for(int m=0;m<p_cubNq;++m;@inner(0)){
+	  r_qhat = 0;
+	  for(int i=0;i<p_Nq;++i){
+	    int id = 0 + 0*p_Nq + i*p_Nq*p_Nq + m*p_Nq*p_Nq*p_Nq;
+	    r_qhat += I[id]*s_q[p][n][i];
+	  }
+	}
+      }
+    }    
+
+    @barrier("local");
+
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int n=0;n<p_cubNq;++n;@inner(1)){
+	for(int m=0;m<p_cubNq;++m;@inner(0)){
+	  s_q[p][n][m] = r_qhat;
+	}
+      }
+    }
+    
+    @barrier("local");
+
+
+
+
+    @barrier("local");
+
+    // uhat_{ijp} = I_{ijk}(c_p) u_{ijk}
+    for(int p=0;p<p_cubNq;++p;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+	for(int i=0;i<p_cubNq;++i;@inner(0)){
+	  if(i+j<p_Nq){
+	    dfloat qhat = 0;
+	    for(int k=0;k<cubNq-i-j;++k){
+	      int id = i + j*p_Nq + p*p_Nq*p_Nq;
+	      qhat += I[id]*s_q[k][j][i];
+	    }
+	  }
+	}
+      }
+    }
+
+  }
+}
