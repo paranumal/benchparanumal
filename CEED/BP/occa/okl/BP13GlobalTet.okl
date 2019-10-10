@@ -1,0 +1,316 @@
+/*
+
+  The MIT License (MIT)
+
+  Copyright (c) 2017 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*/
+
+// hierarchical map of K&S C0 basis functions
+#define idMap(i,j,k) ( ((i+j+k)*(i+j+k+1)*(i+j+k+2))/6 + ((j+k)*(j+k+1))/2 + k )
+
+
+@kernel void BP3GlobalTet(const dlong Nelements,
+			  @restrict const dlong *elementList,
+			  @restrict const dlong *localizedIds,
+			  @restrict const dlong *signChanges,
+			  @restrict const  dfloat *  ggeo,
+			  @restrict const  dfloat *  tpgeo,
+			  @restrict const  dfloat *  cubD,
+			  @restrict const  dfloat *  tpI,
+			  const dfloat lambda,
+			  @restrict const  dfloat *  q,
+			  @restrict dfloat *  Aq){
+  
+  for(dlong e=0; e<Nelements; ++e; @outer(0)){
+
+    @shared dfloat s_tpD[p_tpNq][p_tpNq];
+    @shared dfloat s_q  [p_tpNq][p_tpNq][p_tpNq];
+    @shared dfloat s_Gqa[p_tpNq][p_tpNq][p_tpNq];
+    @shared dfloat s_Gqb[p_tpNq][p_tpNq][p_tpNq];
+    @shared dfloat s_Gqc[p_tpNq][p_tpNq][p_tpNq];
+    @exclusive dlong element, globalId, signChange;
+
+    // fetch to shared
+    for(int k=0;k<p_tpNq;++k;@inner(2)){
+      for(int j=0;j<p_tpNq;++j;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  int id = i + j*p_tpNq + k*p_tpNq*p_tpNq;
+	  // try to do some coalescing 
+	  if(id<p_Np){
+	    // find element
+	    element = elementList[e];
+	    
+	    // find id in global storage
+	    globalId = localizedIds[element*p_Np+id]-1; // ok
+	    signChange = signChanges[element*p_Np+id];  // ok
+	    
+	    s_Gqa[0][0][id] = signChange*q[globalId]; // not perfect (random access)
+	  }
+
+	  
+	  if(k==0){
+	    id = i + j*p_tpNq;
+	    s_tpD[j][i] = tpD[id];
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+    
+    for(int k=0;k<p_tpNq;++k;@inner(2)){
+      for(int j=0;j<p_tpNq;++j;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  if(i+j+k<p_Np){ 
+	    int id = idMap(i,j,k);
+	    
+	    // store to shared
+	    s_q[k][j][i] = s_Gqa[0][0][id];
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    // interpolate in c
+    // uhat_{ijc} = I_{ijk}(c_c) u_{ijk}
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int j=0;j<p_tpNq;++j;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  if(i+j<p_Nq){
+	    dfloat res = 0;
+	    for(int k=0;k<p_Nq-i-j;++k){
+	      int id = idMap(i,j,k) + c*p_Np;
+	      res += I[id]*s_q[k][j][i];
+	    }
+	    s_Gqa[c][j][i] = res;
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    // interpolate in b
+    // uhathat_{ibc} = I_{0ij}(b_b) u_{ijc}
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int b=0;b<p_tpNq;++b;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  if(i<p_Nq){
+	    dfloat res = 0;
+	    for(int j=0;j<p_Nq-i;++j){
+	      int id = idMap(0,i,j) + b*p_Np;
+	      res += I[id]*s_Gqa[c][j][i];
+	    }
+	    s_Gqb[c][j][i] = res;
+	  }
+	}
+      }
+    }
+
+    @barrier("local");
+
+    // interpolate in a
+    // uhathat_{abc} = I_{00i}(a_a) u_{ibc}
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int b=0;b<p_tpNq;++b;@inner(1)){
+	for(int a=0;a<p_tpNq;++a;@inner(0)){
+	  dfloat res = 0;
+	  for(int i=0;i<p_Nq;++i){
+	    int id = idMap(0,0,i) + a*p_Np;
+	    res += I[id]*s_Gqb[c][b][i];
+	  }
+	  s_q[c][j][i] = res;
+	}
+      }
+    }    
+    
+    @barrier("local");
+    
+    // now do derivatives
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int b=0;b<p_tpNq;++b;@inner(1)){
+	for(int a=0;a<p_tpNq;++a;@inner(0)){
+	  
+	  dfloat qa = 0, qb = 0, qc = 0;
+	  
+#pragma unroll p_tpNq
+	  for(int m = 0; m < p_tpNq; m++) {
+	    dfloat Dam = s_tpD[a][m];
+	    dfloat Dbm = s_tpD[b][m];
+	    dfloat Dcm = s_tpD[c][m];
+	    
+	    qa += Dam*s_q[c][b][m];
+	    qb += Dbm*s_q[c][m][a];
+	    qc += Dcm*s_q[m][b][a];	    
+	  }
+	  
+	  // for the moment assume elements are affine
+	  const dlong gid = element*p_Nggeo;
+	  
+	  const dfloat Grr = ggeo[gid + p_G00ID];
+	  const dfloat Grs = ggeo[gid + p_G01ID];
+	  const dfloat Grt = ggeo[gid + p_G02ID];
+	  const dfloat Gss = ggeo[gid + p_G11ID];
+	  const dfloat Gst = ggeo[gid + p_G12ID];
+	  const dfloat Gtt = ggeo[gid + p_G22ID];
+	  const dfloat J   = ggeo[gid + p_GWJID]; // check these indices (including W ?)
+	  
+	  // prefetch Jacobian matrix for reference to TP geometric factors 
+	  const dlong tpbase = c*p_tpNq*p_tpNq + b*p_tpNq + a;
+	  
+	  const dfloat ar = tpgeo[tpbase+p_ARID*p_tpNp];
+	  const dfloat as = tpgeo[tpbase+p_ASID*p_tpNp];
+	  const dfloat at = tpgeo[tpbase+p_ATID*p_tpNp];
+	  const dfloat br = tpgeo[tpbase+p_BRID*p_tpNp];
+	  const dfloat bs = tpgeo[tpbase+p_BSID*p_tpNp];
+	  const dfloat ct = tpgeo[tpbase+p_CTID*p_tpNp];
+	  const dfloat w  = tpgeo[tpbase+p_WAID*p_tpNp]; // could build sqrt(w) into tpgeo
+
+	  dfloat qr = ar*qa + br*qb + cr*qc;
+	  dfloat qs =         bs*qb + cs*qc;
+	  dfloat qt =                 ct*qc;
+	  
+	  dfloat Gqr = w*(G00*qr + G01*qs + G02*qt);
+	  dfloat Gqs = w*(G01*qr + G11*qs + G12*qt);
+	  dfloat Gqt = w*(G02*qr + G12*qs + G22*qt);
+
+	  s_Gqa[c][b][a] = ar*Gqr;
+	  s_Gqb[c][b][a] = br*Gqr + bs*Gqs;
+	  s_Gqc[c][b][a] = cr*Gqr + cs*Gqs + ct*Gqt;
+	  //	      r_Aq[k] += GWJ*lambda*s_Iq[es][k][j][i];
+	}
+      }
+    }
+
+    @barrier("local");
+    
+    // weak divergence
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int b=0;b<p_tpNq;++b;@inner(1)){
+	for(int a=0;a<p_tpNq;++a;@inner(0)){
+	  
+	  dfloat res = 0;
+	  
+#pragma unroll p_tpNq
+	  for(int m = 0; m < p_tpNq; m++) {
+	    dfloat Dam = s_tpD[a][m];
+	    dfloat Dbm = s_tpD[b][m];
+	    dfloat Dcm = s_tpD[c][m];
+	    
+	    res += Dam*s_Gqa[c][b][m];
+	    res += Dbm*s_Gqb[c][m][a];
+	    res += Dcm*s_Gqc[m][b][a];	    
+	  }
+
+	  s_q[c][b][a] = res;
+	}
+      }
+    }
+
+    @barrier("local");    
+    
+    // integrate in a
+    // uhathat_{ibc} = I_{00i}(a_a) u_{abc}
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int b=0;b<p_tpNq;++b;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  
+	  dfloat res = 0;
+	  if(i<p_Nq){
+#pragma unroll p_tpNq
+	    for(int a=0;a<p_tpNq;++a){
+	      int id = idMap(0,0,i) + a*p_Np;
+	      res += I[id]*s_q[c][b][i];
+	    }
+	  }
+	  s_Gqa[c][b][i] = res;
+	}
+      }
+    }    
+
+    @barrier("local");
+
+    // integrate in b
+    // uhathat_{ijc} = I_{0ij}(b_b) u_{ibc}
+    for(int c=0;c<p_tpNq;++c;@inner(2)){
+      for(int j=0;j<p_tpNq;++j;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  if(i+j<p_Nq){
+	    dfloat res = 0;
+#pragma unroll p_tpNq
+	    for(int b=0;b<p_tpNq;++j){
+	      int id = idMap(0,i,j) + b*p_Np;
+	      res += I[id]*s_Gqa[c][b][i];
+	    }
+	    s_q[c][j][i] = res;
+	  }
+	}
+      }
+    }
+    
+    @barrier("local");
+
+    // integrate in c
+    // uhat_{ijc} = I_{ijk}(c_c) u_{ijk}
+    for(int k=0;k<p_tpNq;++k;@inner(2)){
+      for(int j=0;j<p_tpNq;++j;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  
+	  if(i+j+k<p_Np){ // bad thread distribution, fix later
+	    
+	    dfloat res = 0;
+#pragma unroll p_tpNq
+	    for(int c=0;c<p_tpNq;++c){
+	      int id = idMap(i,j,k) + c*p_Np;
+	      res += I[id]*s_q[c][j][i];
+	    }
+
+	    int id = idMap(i,j,k);
+	    s_Gqa[0][0][id] = res;
+	  }
+	}
+      }
+    }
+    
+    @barrier("local");
+    
+    for(int k=0;k<p_tpNq;++k;@inner(2)){
+      for(int j=0;j<p_tpNq;++j;@inner(1)){
+	for(int i=0;i<p_tpNq;++i;@inner(0)){
+	  
+	  int id = i + j*p_tpNq + k*p_tpNq*p_tpNq;
+	  if(id<p_Np){
+	    
+	    // add to assembling result (nasty)
+	    dfloat res = signChange*s_qGa[0][0][id];
+	    
+	    // atomic assumes Aq zerod, not perfect (uses random access, but matches read process)
+	    atomicAdd(Aq+globalId, res); 
+	  }
+	}
+      }
+    }
+  }
+}
+
