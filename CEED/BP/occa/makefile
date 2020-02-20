@@ -37,13 +37,13 @@ CFLAGS = -I. -DOCCA_VERSION_1_0 $(compilerFlags) $(flags) -I$(HDRDIR) -I$(OGSDIR
 #-I../../3rdParty/parmetis-4.0.3/metis/GKlib -I../../3rdParty/parmetis-4.0.3/include -I../../3rdParty/parmetis-4.0.3/metis/include -I../../3rdParty/parmetis-4.0.3/libparmetis 
 
 # link flags to be used
-LDFLAGS	= -DOCCA_VERSION_1_0 $(compilerFlags) $(LIBP_OPT_FLAGS) -llapack -lblas 
+LDFLAGS	= -DOCCA_VERSION_1_0 $(compilerFlags) $(LIBP_OPT_FLAGS) -L../../3rdParty/BlasLapack -lBlasLapack
 
 PARMETISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libparmetis/
 METISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libmetis
 
 # libraries to be linked in
-LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -llapack -lblas  $(LIBP_EXT_LIBS) -lgfortran -fopenmp
+LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -L../../3rdParty/BlasLapack -lBlasLapack  $(LIBP_EXT_LIBS) -lgfortran -fopenmp
 #-lcuda -lcudart -fopenmp
 #-lcudart -lcuda
 #-lcudart -lcuda
@@ -97,7 +97,7 @@ LOBJS = \
 ../../core/setupAide.o
 
 # libogs
-BP:$(AOBJS) $(LOBJS) libogs
+BP:$(AOBJS) $(LOBJS) libogs libblas
 	$(LD)  $(LDFLAGS)  -o BP $(COBJS) $(AOBJS) $(LOBJS) $(paths) $(LIBS)
 
 lib:$(AOBJS)
@@ -105,6 +105,9 @@ lib:$(AOBJS)
 
 libogs:
 	cd ../../libs/gatherScatter; make -j lib; cd ../../BP/occa
+
+libblas:
+	cd ../../3rdParty/BlasLapack; make -j lib; cd ../../BP/occa
 
 all: lib BP
 
