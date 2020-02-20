@@ -223,6 +223,14 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
   double gbytesPCG = 7.*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
   double gbytesCopy = Nbytes/1.e9;
   double gbytesOp = (7+2*BP->Nfields)*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+
+  if(BP->BPid==1)
+    gbytesOp = (mesh->cubNp  + 2*BP->Nfields*mesh->Np)*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  if(BP->BPid==3)
+    gbytesOp = (mesh->Nggeo*mesh->cubNp  + 2*BP->Nfields*mesh->Np)*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  if(BP->BPid==5)
+    gbytesOp = (mesh->Nggeo*mesh->Np  + 2*BP->Nfields*mesh->Np)*mesh->Nelements*(sizeof(dfloat)/1.e9);
+  
   double gbytesDot = (2*BP->Nfields+1)*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
   double gbytesPupdate =  3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
 
