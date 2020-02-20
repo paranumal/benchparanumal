@@ -747,6 +747,8 @@ void meshContinuousFilterMatrix1D(int N, int Nlow, dfloat *r, dfloat **F){
   dfloat *LinvF = (dfloat*) calloc((N+1)*(N+1), sizeof(dfloat));
   
   int Np = meshContinuousVandermonde1D(N, N+1, r, &VC0, &VrC0);
+
+#if 0
   //  int Np = meshVandermonde1D(N, N+1, r, &VC0, &VrC0); use 
   printf("CONTINUOUS VANDERMONDE MATRIX: [\n");
   for(int n=0;n<Np;++n){
@@ -756,6 +758,7 @@ void meshContinuousFilterMatrix1D(int N, int Nlow, dfloat *r, dfloat **F){
     printf("\n");
   }
   printf("\n");
+#endif
   
   *F = (dfloat *) calloc(Np*Np, sizeof(dfloat));
 
@@ -765,6 +768,7 @@ void meshContinuousFilterMatrix1D(int N, int Nlow, dfloat *r, dfloat **F){
   
   matrixRightSolve(Np, Np, L, Np, Np, VC0, LinvF);
 
+#if 0
   for(int n=0;n<Np;++n){
     for(int m=0;m<Np;++m){
       dfloat res = 0;
@@ -773,8 +777,9 @@ void meshContinuousFilterMatrix1D(int N, int Nlow, dfloat *r, dfloat **F){
     printf("\n");
   }
   printf("\n");
+#endif
   
-  printf("FILTER MATRIX: [\n");
+  //  printf("FILTER MATRIX: [\n");
   for(int n=0;n<Np;++n){
     for(int m=0;m<Np;++m){
       dfloat res = 0;
@@ -782,11 +787,11 @@ void meshContinuousFilterMatrix1D(int N, int Nlow, dfloat *r, dfloat **F){
 	res += VC0[n*Np+i]*LinvF[i*Np+m];
       }
       F[0][n*Np+m] = res;
-      printf("% e ", res);
+      //      printf("% e ", res);
     }
-    printf("\n");
+    //    printf("\n");
   }
-  printf("\n");
+  //  printf("\n");
   
   free(VC0);
   free(VrC0);
