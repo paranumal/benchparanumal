@@ -97,20 +97,14 @@ LOBJS = \
 ../../core/setupAide.o
 
 # libogs
-BP:$(AOBJS) $(LOBJS)
+BP:$(AOBJS) $(LOBJS) libogs
 	$(LD)  $(LDFLAGS)  -o BP $(COBJS) $(AOBJS) $(LOBJS) $(paths) $(LIBS)
 
 lib:$(AOBJS)
 	ar -cr libBP.a $(AOBJS)
 
-#libogs:
-#	cd ../../libs/gatherScatter; make -j lib; cd ../../solvers/BP
-
-#libblas:
-#	cd ../../3rdParty/BlasLapack; make -j lib; cd ../../solvers/BP
-
-#libparAlmond:
-#	cd ../../libs/parAlmond; make -j lib; cd ../../solvers/BP
+libogs:
+	cd ../../libs/gatherScatter; make -j lib; cd ../../BP/occa
 
 all: lib BP
 
