@@ -109,7 +109,7 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
   // compute A*x
   dfloat pAp = BPOperator(BP, lambda, mu, o_x, o_Ax, dfloatString, starts, ends); 
   
-  // subtract r = b - A*x
+  // subtract r = b - A*xs
   BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
 
   rdotr0 = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
@@ -198,7 +198,8 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
     elapsedCopy    += BP->mesh->device.timeBetween(startCopy,    endCopy);
     elapsedPupdate += BP->mesh->device.timeBetween(startPupdate, endPupdate);    
     elapsedDot     += BP->mesh->device.timeBetween(startDot,     endDot);
-    elapsedOp      += BP->mesh->device.timeBetween(startOp,      endOp);
+    //    elapsedOp      += BP->mesh->device.timeBetween(startOp,      endOp);
+    elapsedOp      += BP->mesh->device.timeBetween(starts[iter],  ends[iter]);
 
     if (verbose&&(mesh->rank==0)) {
 
@@ -237,8 +238,8 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
   int combineDot = 0;
   combineDot = options.compareArgs("COMBINE DOT PRODUCT", "TRUE");
 
-  if(!combineDot)
-    gbytesOp += 3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
+//  if(!combineDot)
+//    gbytesOp += 3*mesh->Np*mesh->Nelements*(sizeof(dfloat)/1.e9);
 
   printf("Bandwidth (GB/s): PCG update: %g, Copy: %g, Op: %g, Dot: %g, Pupdate: %g\n",
 	 gbytesPCG*iter/elapsedUpdate,
