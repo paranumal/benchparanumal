@@ -107,10 +107,10 @@ int BPPCG(BP_t* BP, dfloat lambda, dfloat mu,
   dfloat rdotr0;
 
   // compute A*x
-  dfloat pAp = BPOperator(BP, lambda, mu, o_x, o_Ax, dfloatString, starts, ends); 
+  dfloat pAp = BPOperator(BP, lambda, mu, o_x, o_Ap, dfloatString, starts, ends); 
   
   // subtract r = b - A*xs
-  BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
+  BPScaledAdd(BP, -1.f, o_Ap, 1.f, o_r);
 
   rdotr0 = BPWeightedNorm2(BP, BP->o_invDegree, o_r);
 
