@@ -384,6 +384,16 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
   kernelInfo["defines/" "p_blockSize"]= blockSize;
   kernelInfo["defines/" "p_Nfields"]= BP->Nfields;
 
+  std::string occaMode = mesh->device.mode();
+
+  printf("OCCA DEVICE MODE: ");
+  if(occaMode=="CUDA")   printf(" CUDA\n");
+  if(occaMode=="OpenCL"){
+    printf(" OpenCL\n");
+    kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 ";
+  }
+
+  
   printf("ENTERING KERNEL BUILDS\n");
   
   for (int r=0;r<2;r++){

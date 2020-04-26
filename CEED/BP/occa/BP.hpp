@@ -36,7 +36,8 @@ SOFTWARE.
 #include "mesh.h"
 
 // block size for reduction (hard coded)
-#define blockSize 1024
+#define blockSize 256
+// 1024
 
 
 typedef struct{

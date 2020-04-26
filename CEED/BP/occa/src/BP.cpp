@@ -81,6 +81,8 @@ int main(int argc, char **argv){
   dfloat lambda = 1, mu = 1;
   options.getArgs("LAMBDA", lambda);
   options.getArgs("VISCOSITY",  mu);
+
+  options.getArgs("KERNEL ID", kernelId);
   
   // set up
   occa::properties kernelInfo;
@@ -89,8 +91,20 @@ int main(int argc, char **argv){
   kernelInfo["header"].asArray();
   kernelInfo["flags"].asObject();
 
-  meshOccaSetup3D(mesh, options, kernelInfo);
+  kernelInfo["compiler_flags"].asObject();
   
+  meshOccaSetup3D(mesh, options, kernelInfo);
+
+  std::string occaMode = mesh->device.mode();
+
+  printf("OCCA DEVICE MODE: ");
+  if(occaMode=="CUDA")   printf(" CUDA\n");
+  if(occaMode=="OpenCL"){
+    printf(" OpenCL\n");
+    kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 ";
+  }
+
+
   BP_t *BP = BPSetup(mesh, lambda, mu, kernelInfo, options);
 
   occa::memory o_r, o_x;
