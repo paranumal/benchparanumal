@@ -197,7 +197,7 @@ int main(int argc, char **argv){
 	     elapsed, globalElapsed, globalNelements);
       
       printf("%d, %d, %d, %d, %g, %d, %g, %g, %g, %d, %d, %g, %d; "
-	     "\%\% global: N, Nelements, dofs, globalDofs, elapsed, iterations, time per global node, fields*global nodes*iterations/time, BW GFLOPS/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid\n",
+	     "\%\% global: N, Nelements, dofs, globalDofs, elapsed, iterations, time per global node, fields*global nodes*iterations/time, BW GB/s, kernel Id, combineDot, fields*nodes*iterations/opElapsed, BPid\n",
 	     mesh->N,
 	     mesh->Nelements,
 	     globalNelements*mesh->Np,
