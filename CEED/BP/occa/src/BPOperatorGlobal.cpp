@@ -91,8 +91,11 @@ dfloat BPOperatorGlobal(BP_t *BP, dfloat lambda, dfloat mu, occa::memory &o_q, o
   if(end)
     *end = BP->mesh->device.tagStream();
   
-  
+#if 0
   dfloat pAp = BPAtomicInnerProduct(BP, Ndof, o_q, o_Aq);
+#else
+  dfloat pAp = BPInnerProduct(BP, Ndof, 0, o_q, o_Aq);
+#endif
   
   return pAp;
 }

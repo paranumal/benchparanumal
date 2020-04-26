@@ -231,6 +231,7 @@ void BPScaledAdd(BP_t *BP, dfloat alpha, occa::memory &o_a, dfloat beta, occa::m
   BP->scaledAddKernel(Ntotal, alpha, o_a, beta, o_b);
 }
 
+#if 0
 dfloat BPAtomicInnerProduct(BP_t *BP, dlong N, occa::memory &o_a, occa::memory &o_b){
 
   BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
@@ -245,3 +246,4 @@ dfloat BPAtomicInnerProduct(BP_t *BP, dlong N, occa::memory &o_a, occa::memory &
 
   return globaladotb;
 }
+#endif

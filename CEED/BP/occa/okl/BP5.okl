@@ -1025,7 +1025,7 @@
 
 
 
-
+#if 0
 @kernel void BP5Dot_v0(const int Nelements,
 		       @restrict const dlong *elementList,
 		       @restrict const dfloat *ggeo,
@@ -1503,6 +1503,7 @@
     
   }
 }
+#endif
 
 #if 0
 // experimental bank respecting

@@ -94,8 +94,11 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
   //  BPScaledAdd(BP, -1.f, o_Ax, 1.f, o_r);
   BP->scaledAddKernel(Ndof, (dfloat)-1.f, o_Ap, (dfloat)1.0f, o_r);
 
+#if 0
   rdotr0 = BPAtomicInnerProduct(BP, Ndof, o_r, o_r);
-
+#else
+  rdotr0 = BPInnerProduct(BP, Ndof, 0, o_r, o_r);
+#endif
   dfloat TOL =  mymax(tol*tol*rdotr0,tol*tol);
 
   double elapsedCopy = 0;
@@ -140,10 +143,18 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
 
     // r.z
     startDot = BP->mesh->device.tagStream();
+#if 0
     rdotz1 = BPAtomicInnerProduct(BP, Ndof, o_r, o_z);
+#else
+    rdotz1 = BPInnerProduct(BP, Ndof, 0, o_r, o_z);
+#endif
 
     if(flexible){
+#if 0
       dfloat zdotAp = BPAtomicInnerProduct(BP, Ndof, o_z, o_Ap);
+#else
+      dfloat zdotAp = BPInnerProduct(BP, Ndof, 0, o_z, o_Ap);
+#endif
       
       beta = -alpha*zdotAp/rdotz2;
     }
@@ -255,6 +266,10 @@ dfloat BPUpdatePCGGlobal(BP_t *BP,
   // r <= r - alpha*A*p
   // dot(r,r)
 
+#pragma warn "TW FIX THIS LATER"
+  dfloat rdotr1 = 0;
+  
+#if 0
   // zero accumulator
   BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
 
@@ -263,13 +278,13 @@ dfloat BPUpdatePCGGlobal(BP_t *BP,
   
   BP->o_tmpAtomic.copyTo(BP->tmpAtomic);
   
-  dfloat rdotr1 = BP->tmpAtomic[0];
+  rdotr1 = BP->tmpAtomic[0];
   
   dfloat globalrdotr1 = 0;
   MPI_Allreduce(&rdotr1, &globalrdotr1, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
   
   rdotr1 = globalrdotr1;
-
+#endif
   return rdotr1;
 }
 

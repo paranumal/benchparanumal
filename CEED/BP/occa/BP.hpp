@@ -159,6 +159,11 @@ typedef struct {
   int             NthreadsUpdatePCG;
   dlong           NblocksUpdatePCG;
 
+  dfloat *tmpUpdatePCG;
+  occa::memory o_tmpUpdatePCG;
+  occa::memory h_tmpUpdatePCG;
+
+  
   dfloat         *tmpNormr;
   occa::memory  o_tmpNormr;
 

@@ -718,6 +718,7 @@ SOFTWARE.
 #endif
 }
 
+#if 0	
 // assumes gv is zerod
 @kernel void vecAtomicGather(const dlong N,        /* Length of vector */
 			     @restrict const dlong *localizedIds,
@@ -756,6 +757,7 @@ SOFTWARE.
   }
 }
 
+#endif
 
 @kernel void vecScatter(const dlong N,        /* Length of vector */
 			@restrict const dlong *localizedIds,
@@ -791,7 +793,7 @@ SOFTWARE.
 
 
 
-
+#if 0
 @kernel void vecAtomicInnerProduct(const dlong N,
 				@restrict const  dfloat *  w,
 				@restrict const  dfloat *  x,
@@ -841,3 +843,4 @@ SOFTWARE.
   }
 }
 
+#endif

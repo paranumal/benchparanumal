@@ -241,12 +241,15 @@ BP_t *BPSetup(mesh_t *mesh, dfloat lambda, dfloat mu, occa::properties &kernelIn
     }
   }
   else{
+    // TW: breaks global
+#if 0
     BP->o_r  = mesh->device.malloc(Nall*sizeof(dfloat), BP->r);
     BP->o_gr = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x); //ZERO !
     BP->o_x  = mesh->device.malloc(BP->Nfields*mesh->Nlocalized*sizeof(dfloat), BP->x);
 
-    BP->vecAtomicMultipleGatherKernel(mesh->Np*mesh->Nelements, mesh->Nlocalized,
-				      mesh->o_localizedIds, BP->o_r, BP->o_gr);
+    //    BP->vecAtomicMultipleGatherKernel(mesh->Np*mesh->Nelements, mesh->Nlocalized,
+    //				      mesh->o_localizedIds, BP->o_r, BP->o_gr);
+#endif
   }
 
   if (mesh->rank==0)
@@ -273,18 +276,25 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
   dlong Nblock  = mymax(1,(Ntotal+blockSize-1)/blockSize);
   dlong Nblock2 = mymax(1,(Nblock+blockSize-1)/blockSize);
 
-  dlong NthreadsUpdatePCG = 1024; // was 256
-  dlong NblocksUpdatePCG = mymin((Ntotal+NthreadsUpdatePCG-1)/NthreadsUpdatePCG, 640);
-  //  dlong NblocksUpdatePCG = (Ntotal+NthreadsUpdatePCG-1)/NthreadsUpdatePCG;x
+  dlong NthreadsUpdatePCG = 256; // was 256
+  dlong NblocksUpdatePCG = (Ntotal+NthreadsUpdatePCG-1)/NthreadsUpdatePCG;
  
   BP->NthreadsUpdatePCG = NthreadsUpdatePCG;
   BP->NblocksUpdatePCG = NblocksUpdatePCG;
 
+  printf("NblocksUpdatePCG=%d\n", NblocksUpdatePCG);
+
+  //  BP->tmpUpdatePCG =
+  //    (dfloat*) occaHostMallocPinned(mesh->device, NblocksUpdatePCG*sizeof(dfloat), NULL, BP->o_tmpUpdatePCG, BP->h_tmpUpdatePCG);
+
+  BP->tmpUpdatePCG =
+    (dfloat*) malloc(NblocksUpdatePCG*sizeof(dfloat));
+  
+  BP->o_tmpUpdatePCG = mesh->device.malloc(NblocksUpdatePCG*sizeof(dfloat), BP->tmpUpdatePCG);
+
   BP->NsolveWorkspace = 10;
   BP->solveWorkspace = (dfloat*) calloc(Nall*BP->NsolveWorkspace, sizeof(dfloat));
   
-  //  BP->o_solveWorkspace  = mesh->device.malloc(Nall*BP->NsolveWorkspace*sizeof(dfloat), BP->solveWorkspace);
-
   BP->o_solveWorkspace = new occa::memory[BP->NsolveWorkspace];
   for(int wk=0;wk<BP->NsolveWorkspace;++wk)
     BP->o_solveWorkspace[wk]  =
@@ -454,15 +464,16 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
       BP->vecCopyKernel =
           mesh->device.buildKernel(DBP "/okl/utils.okl", "vecCopy", kernelInfo);
 
-      BP->vecAtomicGatherKernel =
-          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicGather", kernelInfo);
+#if 0
+      //      BP->vecAtomicGatherKernel =
+      //          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicGather", kernelInfo);
 
-      BP->vecAtomicMultipleGatherKernel =
-          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicMultipleGather", kernelInfo);
+      //      BP->vecAtomicMultipleGatherKernel =
+      //          mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicMultipleGather", kernelInfo);
 
-      BP->vecAtomicInnerProductKernel =
-	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicInnerProduct", kernelInfo);
-
+      //      BP->vecAtomicInnerProductKernel =
+      //	mesh->device.buildKernel(DBP "/okl/utils.okl", "vecAtomicInnerProduct", kernelInfo);
+#endif
       
 
       BP->vecScatterKernel =

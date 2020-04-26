@@ -36,9 +36,10 @@
 			 @restrict dfloat *r,
 			 @restrict dfloat *redr){
 
-#define p_NblocksReset ((N+p_NthreadsUpdatePCG-1)/p_NthreadsUpdatePCG)/4
+//#define p_NblocksReset ((N+p_NthreadsUpdatePCG-1)/p_NthreadsUpdatePCG)/4
   
-  for(dlong b=0;b<p_NblocksReset;++b;@outer(0)){
+  //for(dlong b=0;b<p_NblocksReset;++b;@outer(0)){
+  for(dlong b=0;b<Nblocks;++b;@outer(0)){
 
 #if 0
     @shared volatile dfloat s_sum[p_NthreadsUpdatePCG];
@@ -56,7 +57,8 @@
       
       dfloat sum = 0;
 
-      for(int n=t+b*p_NthreadsUpdatePCG;n<N;n+=p_NblocksReset*p_NthreadsUpdatePCG){
+      //      for(int n=t+b*p_NthreadsUpdatePCG;n<N;n+=p_NblocksReset*p_NthreadsUpdatePCG){
+      for(int n=t+b*p_NthreadsUpdatePCG;n<N;n+=Nblocks*p_NthreadsUpdatePCG){
 
 	dfloat rn = r[n];
 	dfloat xn = x[n];
@@ -117,7 +119,8 @@
 	res = s_warpSum[0];
 #endif
 	
-	atomicAdd(redr, res);
+//	atomicAdd(redr, res);
+	redr[b] = res;
       }
     }
   }
@@ -215,7 +218,8 @@
 	res = s_warpSum[0];
 #endif
 	
-	atomicAdd(redr, res);
+//	atomicAdd(redr, res);
+	redr[b] = res;
       }
     }
   }
@@ -312,7 +316,8 @@
 	res = s_warpSum[0];
 #endif
 	
-	atomicAdd(redr, res);
+//	atomicAdd(redr, res);
+	redr[b] = res;
       }
     }
   }
@@ -420,7 +425,8 @@
 	res = s_warpSum[0];
 #endif
 	
-	atomicAdd(redr, res);
+//	atomicAdd(redr, res);
+	redr[b] = res;
       }
     }
   }
@@ -512,7 +518,8 @@
 	res = s_warpSum[0];
 #endif
 	
-	atomicAdd(redr, res);
+//	atomicAdd(redr, res);
+	redr[b] = res;
       }
     }
   }

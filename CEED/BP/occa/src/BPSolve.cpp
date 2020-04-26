@@ -319,20 +319,27 @@ dfloat BPUpdatePCG(BP_t *BP,
   // dot(r,r)
 
   // zero accumulator
-  BP->o_zeroAtomic.copyTo(BP->o_tmpAtomic);
+  dfloat rdotr1 = 0;
+  dlong offset = 0;
+  //  if(BP->Nfields==1)
+  BP->updatePCGKernel(mesh->Nelements*mesh->Np, BP->NblocksUpdatePCG,
+		      BP->o_invDegree, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpUpdatePCG);
+  
+#if 0
+  BP->updateMultiplePCGKernel(mesh->Nelements*mesh->Np, offset, BP->NblocksUpdatePCG,
+			      BP->o_invDegree, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpUpdatePCG);
+#endif
+  
+  
+  //  BP->o_tmpUpdatePCG.copyTo(BP->tmpUpdatePCG, "async: true");
+  BP->o_tmpUpdatePCG.copyTo(BP->tmpUpdatePCG);
+  //  mesh->device.finish();
+  
+  
+  for(int n=0;n<BP->NblocksUpdatePCG;++n){
+    rdotr1 += BP->tmpUpdatePCG[n];
+  }
 
-  dlong offset = mesh->Np*(mesh->Nelements+mesh->totalHaloPairs);
-  if(BP->Nfields==1)
-    BP->updatePCGKernel(mesh->Nelements*mesh->Np, BP->NblocksUpdatePCG,
-			BP->o_invDegree, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpAtomic);
-  else
-    BP->updateMultiplePCGKernel(mesh->Nelements*mesh->Np, offset, BP->NblocksUpdatePCG,
-				BP->o_invDegree, o_p, o_Ap, alpha, o_x, o_r, BP->o_tmpAtomic);
-  
-  
-  BP->o_tmpAtomic.copyTo(BP->tmpAtomic);
-  
-  dfloat rdotr1 = BP->tmpAtomic[0];
   
   dfloat globalrdotr1 = 0;
   MPI_Allreduce(&rdotr1, &globalrdotr1, 1, MPI_DFLOAT, MPI_SUM, mesh->comm);
@@ -362,13 +369,13 @@ int BPMINRES(BP_t *BP, dfloat lambda, dfloat mu,
   dlong Ndof = (mesh->Np*BP->Nfields)*mesh->Nelements;
   dlong Nbytes = Ndof*sizeof(dfloat);
   
-  occa::memory p    = BP->o_solveWorkspace + 0*Ndof*sizeof(dfloat);
-  occa::memory z    = BP->o_solveWorkspace + 1*Ndof*sizeof(dfloat);
-  occa::memory r    = BP->o_solveWorkspace + 2*Ndof*sizeof(dfloat);
-  occa::memory w    = BP->o_solveWorkspace + 3*Ndof*sizeof(dfloat);
-  occa::memory rold = BP->o_solveWorkspace + 4*Ndof*sizeof(dfloat);
-  occa::memory wold = BP->o_solveWorkspace + 5*Ndof*sizeof(dfloat);
-  occa::memory res  = BP->o_solveWorkspace + 6*Ndof*sizeof(dfloat);
+  occa::memory p    = BP->o_solveWorkspace[0];
+  occa::memory z    = BP->o_solveWorkspace[1];
+  occa::memory r    = BP->o_solveWorkspace[2];
+  occa::memory w    = BP->o_solveWorkspace[3];
+  occa::memory rold = BP->o_solveWorkspace[4];
+  occa::memory wold = BP->o_solveWorkspace[5];
+  occa::memory res  = BP->o_solveWorkspace[6];
 
   occa::streamTag starts[MAXIT+1];
   occa::streamTag ends[MAXIT+1];
