@@ -105,7 +105,7 @@ typedef struct {
   // PCG storage
   int NsolveWorkspace;
   
-  occa::memory o_solveWorkspace;
+  occa::memory *o_solveWorkspace;
   occa::memory o_res;
   occa::memory o_Sres;
   occa::memory o_tmp; // temporary

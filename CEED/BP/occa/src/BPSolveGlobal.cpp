@@ -75,10 +75,10 @@ int BPPCGGlobal(BP_t* BP, dfloat lambda, dfloat mu,
   dlong Nbytes = Ndof*sizeof(dfloat);
   
   /*aux variables */
-  occa::memory o_p   = BP->o_solveWorkspace + 0*Ndof*sizeof(dfloat);
-  occa::memory o_z   = BP->o_solveWorkspace + 1*Ndof*sizeof(dfloat);
-  occa::memory o_res = BP->o_solveWorkspace + 2*Ndof*sizeof(dfloat);
-  occa::memory o_Ap  = BP->o_solveWorkspace + 3*Ndof*sizeof(dfloat);
+  occa::memory o_p   = BP->o_solveWorkspace[0];
+  occa::memory o_z   = BP->o_solveWorkspace[1];
+  occa::memory o_res = BP->o_solveWorkspace[2];
+  occa::memory o_Ap  = BP->o_solveWorkspace[3];
 
   occa::streamTag starts[MAXIT+1];
   occa::streamTag ends[MAXIT+1];

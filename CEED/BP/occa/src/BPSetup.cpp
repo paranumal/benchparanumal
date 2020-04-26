@@ -283,7 +283,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
   BP->NsolveWorkspace = 10;
   BP->solveWorkspace = (dfloat*) calloc(Nall*BP->NsolveWorkspace, sizeof(dfloat));
   
-  BP->o_solveWorkspace  = mesh->device.malloc(Nall*BP->NsolveWorkspace*sizeof(dfloat), BP->solveWorkspace);
+  //  BP->o_solveWorkspace  = mesh->device.malloc(Nall*BP->NsolveWorkspace*sizeof(dfloat), BP->solveWorkspace);
+
+  BP->o_solveWorkspace = new occa::memory[BP->NsolveWorkspace];
+  for(int wk=0;wk<BP->NsolveWorkspace;++wk)
+    BP->o_solveWorkspace[wk]  =
+      mesh->device.malloc(Nall*sizeof(dfloat), BP->solveWorkspace);
+
 
   BP->tmp  = (dfloat*) calloc(Nblock, sizeof(dfloat));
   //  BP->tmp2 = (dfloat*) calloc(Nblock2, sizeof(dfloat));
