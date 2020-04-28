@@ -390,7 +390,8 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
   if(occaMode=="CUDA")   printf(" CUDA\n");
   if(occaMode=="OpenCL"){
     printf(" OpenCL\n");
-    kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 ";
+    kernelInfo["compiler_flags"].asObject();
+    kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 -cl-fast-relaxed-math ";
   }
 
   

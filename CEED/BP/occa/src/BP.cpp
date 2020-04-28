@@ -91,8 +91,6 @@ int main(int argc, char **argv){
   kernelInfo["header"].asArray();
   kernelInfo["flags"].asObject();
 
-  kernelInfo["compiler_flags"].asObject();
-  
   meshOccaSetup3D(mesh, options, kernelInfo);
 
   std::string occaMode = mesh->device.mode();
@@ -101,7 +99,7 @@ int main(int argc, char **argv){
   if(occaMode=="CUDA")   printf(" CUDA\n");
   if(occaMode=="OpenCL"){
     printf(" OpenCL\n");
-    kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 ";
+    kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 -cl-fast-relaxed-math ";
   }
 
 
