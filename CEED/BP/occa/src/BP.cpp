@@ -90,6 +90,7 @@ int main(int argc, char **argv){
   kernelInfo["includes"].asArray();
   kernelInfo["header"].asArray();
   kernelInfo["flags"].asObject();
+  kernelInfo["compiler_flags"].asObject();
 
   meshOccaSetup3D(mesh, options, kernelInfo);
 
@@ -100,6 +101,10 @@ int main(int argc, char **argv){
   if(occaMode=="OpenCL"){
     printf(" OpenCL\n");
     kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 -cl-fast-relaxed-math ";
+  }
+  if(occaMode=="HIP"){
+    printf(" HIP\n");
+    kernelInfo["compiler_flags"] = " -O3 -ffp-contract=fast -funsafe-math-optimizations -ffast-math ";
   }
 
 

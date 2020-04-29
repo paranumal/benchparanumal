@@ -393,6 +393,13 @@ void BPSolveSetup(BP_t *BP, dfloat lambda, dfloat mu, occa::properties &kernelIn
     kernelInfo["compiler_flags"].asObject();
     kernelInfo["compiler_flags"] = "  -cl-std=CL2.0 -cl-fast-relaxed-math ";
   }
+#if 0
+  if(occaMode=="HIP"){
+    printf(" HIP\n");
+    kernelInfo["compiler_flags"].asObject();
+    kernelInfo["compiler_flags"] = "-O3 -ffp-contract=fast -funsafe-math-optimizations -ffast-math ";
+  }
+#endif
 
   
   printf("ENTERING KERNEL BUILDS\n");
