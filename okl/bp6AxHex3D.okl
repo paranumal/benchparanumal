@@ -24,7 +24,7 @@ SOFTWARE.
 
 */
 
-#if p_N<=8
+#if p_N<8
 #define USE_3D_SHMEM 1
 #else
 #define USE_3D_SHMEM 0
@@ -38,7 +38,7 @@ SOFTWARE.
 // high degree efficiently
 
 /* The NV compiler doesn't like the blocked kernel. Skip using it. */
-#if OCCA_USE_CUDA==1 && p_N>8
+#if OCCA_USE_CUDA==1 && p_N>=8
 
 //padding for bank conflicts
 #if p_Nq==16
@@ -420,11 +420,6 @@ SOFTWARE.
             r_GDut[1]        = r_G02*du1;
             r_GDut[2]        = r_G02*du2;
 
-            if(r_e<Nelements){
-              r_G11 = ggeo[gbase+p_G11ID*p_Np];
-              r_G12 = ggeo[gbase+p_G12ID*p_Np];
-            }
-
             //next du/ds
             du0 = 0.f, du1 = 0.f, du2 = 0.f;
 
@@ -445,11 +440,6 @@ SOFTWARE.
             r_GDut[0]        += r_G12*du0;
             r_GDut[1]        += r_G12*du1;
             r_GDut[2]        += r_G12*du2;
-
-            if(r_e<Nelements){
-              r_G22 = ggeo[gbase+p_G22ID*p_Np];
-              r_GwJ = ggeo[gbase+p_GWJID*p_Np];
-            }
 
             //next du/dt
             du0 = 0.f, du1 = 0.f, du2 = 0.f;
