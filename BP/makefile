@@ -1,120 +1,190 @@
-ifndef OCCA_DIR
-ERROR:
-	@echo "Error, environment variable [OCCA_DIR] is not set"
+#####################################################################################
+#
+#The MIT License (MIT)
+#
+#Copyright (c) 2020 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+#
+#####################################################################################
+
+define LIBP_HELP_MSG
+
+LIBP Bakeoff Problems makefile targets:
+
+	 make BP (default)
+	 make BP{#}
+	 make clean
+	 make clean-libs
+	 make realclean
+	 make info
+	 make help
+
+Usage:
+
+make BP
+	 Builds each Bakeoff Problem executable.
+make BP{#}
+	 Builds a Bakeoff Problem executable,
+	 # can be 1-6.
+make clean
+	 Cleans all BP executables and object files.
+make clean-BP{#}
+	 Cleans a BP executable and object files.
+make clean-libs
+	 In addition to "make clean", also clean the core, mesh, and ogs libraries.
+make clean-kernels
+   In addition to "make clean-libs", also cleans the cached OCCA kernels.
+make realclean
+	 In addition to "make clean-libs", also clean 3rd party libraries.
+make info
+	 List directories and compiler flags in use.
+make help
+	 Display this help message.
+
+Can use "make verbose=true" for verbose output.
+
+endef
+
+ifeq (,$(filter BP \
+								BP0 BP1 BP2 BP3 BP4 BP5 BP6 \
+								clean-BP0 clean-BP1 clean-BP2 clean-BP3 clean-BP4 clean-BP5 clean-BP6 \
+								clean clean-libs clean-kernels \
+								realclean info help,$(MAKECMDGOALS)))
+ifneq (,$(MAKECMDGOALS))
+$(error ${LIBP_HELP_MSG})
+endif
 endif
 
-include ../../make.inp
+ifndef LIBP_MAKETOP_LOADED
+ifeq (,$(wildcard ../make.top))
+$(error cannot locate ${PWD}/../make.top)
+else
+include ../make.top
+endif
+endif
 
-include ${OCCA_DIR}/scripts/Makefile
+#libraries
+CORE_LIBS=mesh ogs core
 
-# define variables
-HDRDIR = ../../core
-GSDIR  = ../../3rdParty/gslib/
-OGSDIR = ../../libs/gatherScatter/
+.PHONY: all BP \
+				BP1 BP2 BP3 BP4 BP5 BP6 \
+				clean-BP1 clean-BP2 clean-BP3 clean-BP4 clean-BP5 clean-BP6 \
+				clean clean-libs clean-kernels \
+				realclean info help
 
-# set options for this machine
-# specify which compilers to use for c, fortran and linking
-cc	= mpicc
-FC	= mpif77  
-#-std=legacy -fdefault-real-8 -fdefault-double-8 
-CC	= mpic++
-LD	= mpic++
+all: BP
 
-NVCC	= nvcc
+BP: BP1 BP2 BP3 BP4 BP5 BP6
 
-compilerFlags += -DUSE_CUDA_NATIVE=0
-compilerFlags += -Ddfloat=double
-compilerFlags += -Ddlong=int
-compilerFlags += -DdfloatString='"double"'
-compilerFlags += -DdlongString='"int"'
+libp_libs:
+ifneq (,${verbose})
+	${MAKE} -C ${LIBP_LIBS_DIR} $(CORE_LIBS) verbose=${verbose}
+else
+	@${MAKE} -C ${LIBP_LIBS_DIR} $(CORE_LIBS) --no-print-directory
+endif
 
-nvccFlags = -Ddfloat=double -Ddlong=int -DdfloatString='"double"' -DdlongString='"int"'  -I../../core -I../../../../devParanumal/libs/gatherScatter/  -D DBP='"/home/tcew/Work/git/benchparanumal/CEED/BP/occa"'  -I./ -g 
+BP1: libp_libs
+ifneq (,${verbose})
+	${MAKE} -C $(@F) verbose=${verbose}
+else
+	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
+	@${MAKE} -C $(@F) --no-print-directory
+endif
 
+BP2: libp_libs
+ifneq (,${verbose})
+	${MAKE} -C $(@F) verbose=${verbose}
+else
+	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
+	@${MAKE} -C $(@F) --no-print-directory
+endif
 
-# s-I$(ALMONDDIR)
-# compiler flags to be used (set to compile with debugging on)
-CFLAGS = -I. -DOCCA_VERSION_1_0 $(compilerFlags) $(flags) -I$(HDRDIR) -I$(OGSDIR)  -D DBP='"${CURDIR}"' $(LIBP_OPT_FLAGS) -I$(OGSDIR)/include 
-#-I../../3rdParty/parmetis-4.0.3/metis/GKlib -I../../3rdParty/parmetis-4.0.3/include -I../../3rdParty/parmetis-4.0.3/metis/include -I../../3rdParty/parmetis-4.0.3/libparmetis 
+BP3: libp_libs
+ifneq (,${verbose})
+	${MAKE} -C $(@F) verbose=${verbose}
+else
+	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
+	@${MAKE} -C $(@F) --no-print-directory
+endif
 
-# link flags to be used
-LDFLAGS	= -DOCCA_VERSION_1_0 $(compilerFlags) $(LIBP_OPT_FLAGS) -L../../3rdParty/BlasLapack -lBlasLapack
+BP4: libp_libs
+ifneq (,${verbose})
+	${MAKE} -C $(@F) verbose=${verbose}
+else
+	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
+	@${MAKE} -C $(@F) --no-print-directory
+endif
 
-PARMETISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libparmetis/
-METISDIR = ../../3rdParty/parmetis-4.0.3/build/Linux-x86_64/libmetis
+BP5: libp_libs
+ifneq (,${verbose})
+	${MAKE} -C $(@F) verbose=${verbose}
+else
+	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
+	@${MAKE} -C $(@F) --no-print-directory
+endif
 
-# libraries to be linked in
-LIBS	=  -L$(OGSDIR) -logs -L$(GSDIR)/lib -lgs -L$(OCCA_DIR)/lib -locca $(linkerFlags) -L../../3rdParty/BlasLapack -lBlasLapack  $(LIBP_EXT_LIBS) -lgfortran -fopenmp
-#-lcuda -lcudart -fopenmp
-#-lcudart -lcuda
-#-lcudart -lcuda
+BP6: libp_libs
+ifneq (,${verbose})
+	${MAKE} -C $(@F) verbose=${verbose}
+else
+	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
+	@${MAKE} -C $(@F) --no-print-directory
+endif
 
-#-L$(PARMETISDIR) -lparmetis -L$(METISDIR) -lmetis  -L$(ALMONDDIR) -lparAlmond
+#cleanup
+clean: clean-BP1 clean-BP2 clean-BP3 clean-BP4 clean-BP5 clean-BP6
 
-INCLUDES = BP.h BPPrecon.h
-DEPS = $(INCLUDES) \
-$(HDRDIR)/mesh.h \
-$(HDRDIR)/mesh2D.h \
-$(HDRDIR)/mesh3D.h \
-$(OGSDIR)/ogs.hpp \
+clean-BP1:
+	${MAKE} -C BP1 clean
 
-#$(ALMONDDIR)/parAlmond.hpp \
+clean-BP2:
+	${MAKE} -C BP2 clean
 
-# types of files we are going to construct rules for
-.SUFFIXES: .c .f .cu .cpp
+clean-BP3:
+	${MAKE} -C BP3 clean
 
-# rule for .c files
-.c.o: $(DEPS)
-	$(CC) $(CFLAGS) -o $*.o -c $*.c $(paths)
+clean-BP4:
+	${MAKE} -C BP4 clean
 
-.cpp.o: $(DEPS)
-	$(CC) $(CFLAGS) -o $*.o -c $*.cpp $(paths)
+clean-BP5:
+	${MAKE} -C BP5 clean
 
-.cu.o: $(DEPS)
-	$(NVCC) $(nvccFlags) -o $*.o -c $*.cu $(paths)
+clean-BP6:
+	${MAKE} -C BP6 clean
 
-.f.o: $(DEPS)
-	$(FC) $(CFLAGS) -o $*.o -c $*.f $(paths)
+clean-libs: clean
+	${MAKE} -C ${LIBP_LIBS_DIR} clean
 
-# add this object for USE_STEFAN_MXM ./src/BPSerialLocalAxHex3D.o\
+clean-kernels: clean-libs
+	rm -rf ${LIBP_DIR}/.occa/
 
-# ./src/BK5.o\
+realclean: clean-libs
+	${MAKE} -C ${OCCA_DIR} clean
+	rm -rf ${LIBP_DIR}/.occa/
 
-# list of objects to be compiled
-AOBJS    = \
-./src/BP.o \
-./src/BPSetup.o \
-./src/BPSolve.o\
-./src/BPSolveGlobal.o\
-./src/BPOperator.o\
-./src/BPOperatorGlobal.o\
-./src/BPVectors.o \
-./src/BPPlotVTU.o
+help:
+	$(info $(value LIBP_HELP_MSG))
+	@true
 
-# library objects
-LOBJS = \
-../../core/meshSetup.o \
-../../core/meshBasis.o \
-../../core/setupAide.o
-
-# libogs
-BP:$(AOBJS) $(LOBJS) libogs libblas
-	$(LD)  $(LDFLAGS)  -o BP $(COBJS) $(AOBJS) $(LOBJS) $(paths) $(LIBS)
-
-lib:$(AOBJS)
-	ar -cr libBP.a $(AOBJS)
-
-libogs:
-	cd ../../libs/gatherScatter; make -j lib; cd ../../BP/occa
-
-libblas:
-	cd ../../3rdParty/BlasLapack; make -j lib; cd ../../BP/occa
-
-all: lib BP
-
-# what to do if user types "make clean"
-clean:
-	rm src/*.o BP ../../core/*.o 
-
-realclean:
-	rm src/*.o BP ../../core/*.o 
-
+info:
+	$(info LIBP_DIR  = $(LIBP_DIR))
+	$(info LIBP_ARCH = $(LIBP_ARCH))
+	$(info CXXFLAGS  = $(CXXFLAGS))
+	@true

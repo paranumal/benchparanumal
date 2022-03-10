@@ -1,0 +1,84 @@
+/*
+
+The MIT License (MIT)
+
+Copyright (c) 2020 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#define PI 3.14159265358979323846
+
+/* forcing function   */
+#if p_Nfields==1
+#define Forcing3D(x, y, z, lambda, f)                    \
+{                                                        \
+  f  = (3*PI*PI+lambda)*sin(PI*x)*sin(PI*y)*sin(PI*z);   \
+}
+#else
+#define Forcing3D(x, y, z, lambda, f, g, h)                \
+{                                                          \
+  f  = (4*PI*PI+lambda)*sin(2.0*PI*x)*sin(PI*y)*sin(PI*z); \
+  g  = (4*PI*PI+lambda)*sin(PI*x)*sin(2.0*PI*y)*sin(PI*z); \
+  h  = (4*PI*PI+lambda)*sin(PI*x)*sin(PI*y)*sin(2.0*PI*z); \
+}
+#endif
+
+@kernel void rhsHex3D(const dlong Nelements,
+                     @restrict const dfloat* wJ,
+                     @restrict const dfloat* MM,
+                     @restrict const dfloat* x,
+                     @restrict const dfloat* y,
+                     @restrict const dfloat* z,
+                               const dfloat  lambda,
+                     @restrict       dfloat* rhs){
+
+  for(dlong e=0;e<Nelements;e++;@outer(0)){
+
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+        for(int k = 0;k < p_Nq; k++){
+
+          const dlong n = i + j*p_Nq + k*p_Nq*p_Nq;
+
+          // assumes w*J built into G entries
+          const dlong id = e*p_Np + n;
+          const dfloat r_GwJ = wJ[id];
+
+        #if p_Nfields==1
+          dfloat f = 0;
+          Forcing3D(x[id], y[id], z[id], lambda, f);
+
+          rhs[id] = r_GwJ*f;
+        #else
+          dfloat f = 0, g = 0, h = 0;
+          Forcing3D(x[id], y[id], z[id], lambda, f, g, h);
+
+          const dlong base = e*p_Np*p_Nfields + n;
+          rhs[base+0*p_Np] = r_GwJ*f;
+          rhs[base+1*p_Np] = r_GwJ*g;
+          rhs[base+2*p_Np] = r_GwJ*h;
+        #endif
+        }
+      }
+    }
+  }
+}
