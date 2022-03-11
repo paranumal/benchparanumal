@@ -24,7 +24,34 @@ SOFTWARE.
 
 */
 
-#if p_N>6
+#if p_N>6 || (OCCA_USE_CUDA=1 && p_N>5)
+
+#if OCCA_USE_CUDA=1
+
+#if p_N==1
+#define p_NelementsPerBlk 28
+#elif p_N==2
+#define p_NelementsPerBlk 16
+#elif p_N==3
+#define p_NelementsPerBlk 10
+#elif p_N==4
+#define p_NelementsPerBlk 7
+#elif p_N==5
+#define p_NelementsPerBlk 5
+#elif p_N==6
+#define p_NelementsPerBlk 2
+#elif p_N==7
+#define p_NelementsPerBlk 2
+#elif p_N==8
+#define p_NelementsPerBlk 1
+#elif p_N==9
+#define p_NelementsPerBlk 1
+#else
+// unoptimized
+#define p_NelementsPerBlk 1
+#endif
+
+#else
 
 #if p_N==1
 #define p_NelementsPerBlk 28
@@ -47,6 +74,8 @@ SOFTWARE.
 #else
 // unoptimized
 #define p_NelementsPerBlk 1
+#endif
+
 #endif
 
 @kernel void bp4AxHex3D(const dlong Nelements,

@@ -24,7 +24,7 @@ SOFTWARE.
 
 */
 
-#if p_N<8
+#if p_N<7
 #define USE_3D_SHMEM 1
 #else
 #define USE_3D_SHMEM 0

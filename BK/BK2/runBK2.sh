@@ -45,7 +45,7 @@ mpirun -np 1 BK2 -m $mode -nx  16 -ny  16 -nz  16 -p 7
 mpirun -np 1 BK2 -m $mode -nx  14 -ny  14 -nz  14 -p 8
 mpirun -np 1 BK2 -m $mode -nx  12 -ny  12 -nz  12 -p 9
 mpirun -np 1 BK2 -m $mode -nx  11 -ny  11 -nz  11 -p 10
-mpirun -np 1 BK2 -m $mode -nx  10 -ny  10 -nz  10 -p 11
+# mpirun -np 1 BK2 -m $mode -nx  10 -ny  10 -nz  10 -p 11
 # mpirun -np 1 BK2 -m $mode -nx  10 -ny  10 -nz  10 -p 12
 # mpirun -np 1 BK2 -m $mode -nx  9 -ny  9 -nz  9 -p 13
 # mpirun -np 1 BK2 -m $mode -nx  8 -ny  8 -nz  8 -p 14
