@@ -44,6 +44,8 @@ void bp5_t::Run(){
   deviceMemory<dfloat> o_r = platform.malloc<dfloat>(Nall);
   deviceMemory<dfloat> o_x = platform.malloc<dfloat>(Nall);
 
+  int verbose = settings.compareSetting("VERBOSE", "TRUE") ? 1 : 0;
+
   //set x =0
   platform.linAlg().set(Nall, 0.0, o_x);
 
@@ -59,15 +61,34 @@ void bp5_t::Run(){
 
   // gather rhs
   ogs.Gather(o_r, o_rL, 1, ogs::Add, ogs::Trans);
-  o_rL.free();
+
+  // Do warmup solve
+  dfloat tol = 0.0;
+  int warmupIter = 1000;
+  int Niter = linearSolver.Solve(*this, o_x, o_r, tol, warmupIter, /* verbose = */ 0);
+
+  // Re-set o_x and o_r for the timed solve
+  //set x =0
+  platform.linAlg().set(Nall, 0.0, o_x);
+
+  //populate rhs forcing
+  forcingKernel(mesh.Nelements,
+                mesh.o_wJ,
+                mesh.o_MM,
+                mesh.o_x,
+                mesh.o_y,
+                mesh.o_z,
+                lambda,
+                o_rL);
+
+  // gather rhs
+  ogs.Gather(o_r, o_rL, 1, ogs::Add, ogs::Trans);
 
   int maxIter = 100;
-  int verbose = settings.compareSetting("VERBOSE", "TRUE") ? 1 : 0;
 
   //call the solver
-  dfloat tol = 0.0;
   timePoint_t start = GlobalPlatformTime(platform);
-  int Niter = linearSolver.Solve(*this, o_x, o_r, tol, maxIter, verbose);
+  Niter = linearSolver.Solve(*this, o_x, o_r, tol, maxIter, verbose);
   timePoint_t end = GlobalPlatformTime(platform);
   double elapsedTime = ElapsedTime(start,end);
 
