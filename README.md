@@ -21,12 +21,16 @@ git submodule init
 git submoduel update
 ```
 
-To build `CEED`:
+To build `benchParanumal`:
 
     $ git clone --recursive <CEED repo>
     $ cd /path/to/CEED
     $ export LIBP_BLAS_DIR=/path/to/openblas
     $ make -j `nproc`
+
+If your MPI supports GPU-aware RDMA functionality, you can optionally build `benchParanumal` with this support via:
+
+    $ make -j `nproc` --gpu-aware-mpi=true
 
 How to run `benchParanumal`
 --------------------
@@ -87,11 +91,11 @@ The usage of each benchmark, outside of the provide run scripts, can be found wi
 
 Here is an example large problem size that you can run on one GPU:
 
-    $ mpirun -np 1 ./BP/BP5/BP5 -m HIP -nx 24 -ny 24 -nz 24 -p 14 -v
+    $ mpirun -np 1 ./BP/BP5/BP5 -m HIP -nx 24 -ny 24 -nz 24 -p 15 -v
 
 Running on multiple GPUs can by done by passing a larger argument to `np`:
 
-    $ mpirun -np 4 ./BP/BP5/BP5 -m HIP -nx 24 -ny 24 -nz 24 -p 14 -v
+    $ mpirun -np 4 ./BP/BP5/BP5 -m HIP -nx 24 -ny 24 -nz 24 -p 15 -v
 
 
 Verifying correctness
