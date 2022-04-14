@@ -1,8 +1,8 @@
-MIT License
+/*
 
-Copyright (c) 2017-2022 Parallel Numerical Algorithms Group @VT
+The MIT License (MIT)
 
-Contributors: Noel Chalmers, Tim Warburton, Kasia Swirydowicz, Ali Karakus
+Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,3 +21,53 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+*/
+
+#ifndef TYPES_HPP
+#define TYPES_HPP
+
+namespace libp {
+
+//float data type
+#if 0
+#define dfloat float
+#define MPI_DFLOAT MPI_FLOAT
+#define dfloatFormat "%f"
+#define dfloatString "float"
+#else
+#define dfloat double
+#define MPI_DFLOAT MPI_DOUBLE
+#define dfloatFormat "%lf"
+#define dfloatString "double"
+#endif
+
+//host index data type
+#if 0
+#define hlong int
+#define MPI_HLONG MPI_INT
+#define hlongFormat "%d"
+#define hlongString "int"
+#else
+#define hlong long long int
+#define MPI_HLONG MPI_LONG_LONG_INT
+#define hlongFormat "%lld"
+#define hlongString "long long int"
+#endif
+
+//device index data type
+#if 1
+#define dlong int
+#define MPI_DLONG MPI_INT
+#define dlongFormat "%d"
+#define dlongString "int"
+#else
+#define dlong long long int
+#define MPI_DLONG MPI_LONG_LONG_INT
+#define dlongFormat "%lld"
+#define dlongString "long long int"
+#endif
+
+} //namespace libp
+
+#endif

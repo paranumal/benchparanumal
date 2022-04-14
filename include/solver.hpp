@@ -1,8 +1,8 @@
-MIT License
+/*
 
-Copyright (c) 2017-2022 Parallel Numerical Algorithms Group @VT
+The MIT License (MIT)
 
-Contributors: Noel Chalmers, Tim Warburton, Kasia Swirydowicz, Ali Karakus
+Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,3 +21,34 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+*/
+
+#ifndef SOLVER_HPP
+#define SOLVER_HPP
+
+#include "platform.hpp"
+
+namespace libp {
+
+class solver_t {
+public:
+  platform_t platform;
+  settings_t settings;
+
+  solver_t() = default;
+
+  solver_t(platform_t _platform, settings_t _settings):
+    platform(_platform),
+    settings(_settings) {};
+
+  virtual void Run()=0;
+
+  virtual void Operator(deviceMemory<dfloat>& o_q, deviceMemory<dfloat>& o_Aq) {
+    LIBP_FORCE_ABORT("Operator not implemented in this solver");
+  }
+};
+
+} //namespace libp
+
+#endif

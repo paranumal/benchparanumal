@@ -1,0 +1,87 @@
+/*
+
+The MIT License (MIT)
+
+Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#include "mesh.hpp"
+
+namespace libp {
+
+void mesh_t::Setup(platform_t& _platform, settings_t& _settings,
+                   comm_t _comm){
+
+  platform = _platform;
+  settings = _settings;
+  props = platform.props();
+
+  comm = _comm.Dup();
+  rank = comm.rank();
+  size = comm.size();
+
+  std::string eType;
+  settings.getSetting("ELEMENT TYPE", eType);
+  if (eType.compare("Tri")==0) {
+    SetElementType(TRIANGLES);
+  } else if (eType.compare("Quad")==0) {
+    SetElementType(QUADRILATERALS);
+  } else if (eType.compare("Tet")==0) {
+    SetElementType(TETRAHEDRA);
+  } else if (eType.compare("Hex")==0) {
+    SetElementType(HEXAHEDRA);
+  }
+
+  settings.getSetting("POLYNOMIAL DEGREE", N);
+
+  // reference nodes and operators
+  ReferenceNodes();
+
+  //build a box mesh
+  SetupBox();
+
+  // connect elements
+  Connect();
+
+  // set up halo exchange info for MPI (do before connect face nodes)
+  HaloSetup();
+
+  // connect face vertices
+  ConnectFaceVertices();
+
+  // connect face nodes
+  ConnectFaceNodes();
+
+  // make global indexing
+  ConnectNodes();
+
+  // compute physical (x,y) locations of the element nodes
+  PhysicalNodes();
+
+  // compute geometric factors
+  GeometricFactors();
+
+  // label local/global gather elements
+  GatherScatterSetup();
+}
+
+} //namespace libp

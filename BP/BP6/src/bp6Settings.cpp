@@ -1,8 +1,8 @@
-MIT License
+/*
 
-Copyright (c) 2017-2022 Parallel Numerical Algorithms Group @VT
+The MIT License (MIT)
 
-Contributors: Noel Chalmers, Tim Warburton, Kasia Swirydowicz, Ali Karakus
+Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,3 +21,39 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+*/
+
+#include "bp6.hpp"
+
+//settings for bp6 solver
+bp6Settings_t::bp6Settings_t(const int argc, char** argv, comm_t _comm):
+  settings_t(_comm) {
+
+  platformAddSettings(*this);
+  meshAddSettings(*this);
+
+  newSetting("-o", "--output",
+             "OUTPUT FILE NAME",
+             "");
+
+  newSetting("-v", "--verbose",
+             "VERBOSE",
+             "FALSE",
+             "Enable verbose output",
+             {"TRUE", "FALSE"});
+
+  parseSettings(argc, argv);
+}
+
+void bp6Settings_t::report() {
+
+  if (comm.rank()==0) {
+    std::cout << "Settings:\n\n";
+    platformReportSettings(*this);
+    meshReportSettings(*this);
+
+    if (getSetting("OUTPUT FILE NAME").size()>0)
+      reportSetting("OUTPUT FILE NAME");
+  }
+}

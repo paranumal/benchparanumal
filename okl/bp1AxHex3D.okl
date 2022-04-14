@@ -1,0 +1,549 @@
+/*
+
+The MIT License (MIT)
+
+Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+/* Use slice-by-slice kernel for all orders*/
+#if p_N>0
+
+#if p_N==1
+#define p_NelementsPerBlk 28
+#elif p_N==2
+#define p_NelementsPerBlk 16
+#elif p_N==3
+#define p_NelementsPerBlk 10
+#elif p_N==4
+#define p_NelementsPerBlk 7
+#elif p_N==5
+#define p_NelementsPerBlk 5
+#elif p_N==6
+#define p_NelementsPerBlk 4
+#elif p_N==7
+#define p_NelementsPerBlk 3
+#elif p_N==8
+#define p_NelementsPerBlk 2
+#elif p_N==9
+#define p_NelementsPerBlk 2
+#else
+// no packing
+#define p_NelementsPerBlk 1
+#endif
+
+//padding for bank conflicts
+#if p_cubNq==8 || p_cubNq==4
+#define p_pad 1
+#else
+#define p_pad 0
+#endif
+
+
+@kernel void bp1AxHex3D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+
+  for(dlong eo=0; eo<Nelements; eo+=p_NelementsPerBlk; @outer(0)){
+
+    @shared dfloat s_I[p_cubNq][p_Nq+p_pad];
+    @shared dfloat s_q[p_cubNq][p_NelementsPerBlk][p_cubNq][p_cubNq+p_pad];
+
+    @exclusive dlong r_e, element;
+
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int b=0;b<p_cubNq;++b;@inner(1)){
+        for(int a=0;a<p_cubNq;++a;@inner(0)){
+
+          if(es==0 && a<p_Nq)
+            s_I[b][a] = I[a+p_Nq*b];
+
+          r_e = eo + es;
+
+          if(r_e<Nelements) {
+            element = elementList[r_e];
+
+            if (a<p_Nq && b<p_Nq){
+              // load pencil of u into register
+              const dlong base = a + b*p_Nq + element*p_Np;
+
+              // #pragma unroll p_Nq
+              for(int c=0;c<p_Nq;++c) {
+                const dlong id = GlobalToLocal[base + c*p_Nq*p_Nq];
+                s_q[c][es][b][a] = (id!=-1) ? q[id] : 0.0;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // transform in b
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int c=0;c<p_cubNq;++c;@inner(1)){
+        for(int a=0;a<p_cubNq;++a;@inner(0)){
+
+          dfloat r_q[p_cubNq];
+
+          if(a<p_Nq && c<p_Nq){
+
+            // #pragma unroll p_Nq
+            for(int b=0;b<p_Nq;++b)
+              r_q[b] = s_q[c][es][b][a];
+
+            // #pragma unroll p_Nq
+            for(int j=0;j<(p_cubNq+1)/2;++j){
+
+              dfloat tmp = 0;
+              dfloat tmp2 = 0;
+
+              // #pragma unroll p_Nq
+              for(int b=0;b<p_Nq;++b){
+
+                const dfloat tmpI = s_I[j][b];
+
+                tmp  += tmpI*r_q[b];
+                tmp2 += tmpI*r_q[p_Nq-1-b];
+              }
+
+              s_q[c][es][j][a] = tmp; // ok since only this thread
+              s_q[c][es][p_cubNq-1-j][a] = tmp2;
+            }
+          }
+        }
+      }
+    }
+
+    // transform in a
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int c=0;c<p_cubNq;++c;@inner(1)){
+        for(int j=0;j<p_cubNq;++j;@inner(0)){
+
+          dfloat r_q[p_cubNq];
+
+          if(c<p_Nq){
+
+            // #pragma unroll p_Nq
+            for(int a=0;a<p_Nq;++a)
+              r_q[a] = s_q[c][es][j][a];
+
+            // #pragma unroll p_Nq
+            for(int i=0;i<(p_cubNq+1)/2;++i){
+
+              dfloat tmp = 0;
+              dfloat tmp2 = 0;
+
+              // #pragma unroll p_Nq
+              for(int a=0;a<p_Nq;++a){
+
+                const dfloat tmpI = s_I[i][a];
+
+                tmp += tmpI*r_q[a];
+                tmp2+= tmpI*r_q[p_Nq-1-a];
+              }
+
+              s_q[c][es][j][i] = tmp;
+              s_q[c][es][j][p_cubNq-1-i] = tmp2;
+            }
+          }
+        }
+      }
+    }
+
+    // transform in c
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+
+          dfloat r_q[p_cubNq];
+
+          // #pragma unroll p_Nq
+          for(int c=0;c<p_Nq;++c)
+            r_q[c] = s_q[c][es][j][i];
+
+          // #pragma unroll p_Nq
+          for(int k=0;k<(p_cubNq+1)/2;++k){
+
+            dfloat r_GwJ;
+            dfloat r_GwJ2;
+            if (r_e<Nelements) {
+              const dlong id  = element*p_cubNp+k*p_cubNq*p_cubNq+j*p_cubNq+i;
+              const dlong id2 = element*p_cubNp+(p_cubNq-1-k)*p_cubNq*p_cubNq+j*p_cubNq+i;
+              r_GwJ  = cubwJ[id ];
+              r_GwJ2 = cubwJ[id2];
+            }
+
+            dfloat tmp = 0;
+            dfloat tmp2 = 0;
+
+            // #pragma unroll p_Nq
+            for(int c=0;c<p_Nq;++c){
+
+              const dfloat tmpI = s_I[k][c];
+
+              tmp  += tmpI*r_q[c];
+              tmp2 += tmpI*r_q[p_Nq-1-c];
+            }
+
+            s_q[k][es][j][i] = r_GwJ*tmp; // ok since only this thread
+            s_q[p_cubNq-k-1][es][j][i] = r_GwJ2*tmp2;
+          }
+        }
+      }
+    }
+
+    // transform back in b
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int k=0;k<p_cubNq;++k;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+
+          dfloat r_q[p_cubNq];
+
+          // #pragma unroll p_cubNq
+          for(int j=0;j<p_cubNq;++j)
+            r_q[j] = s_q[k][es][j][i];
+
+          // #pragma unroll p_Nq
+          for(int b=0;b<(p_Nq+1)/2;++b){
+            dfloat tmp = 0;
+            dfloat tmp2 = 0;
+
+            // #pragma unroll p_cubNq
+            for(int j=0;j<p_cubNq;++j){
+
+              const dfloat tmpI = s_I[j][b];
+
+              tmp += tmpI*r_q[j] ;
+              tmp2 += tmpI*r_q[p_cubNq-1-j];
+            }
+
+            s_q[k][es][b][i] = tmp; // ok since only this thread
+            s_q[k][es][p_Nq-1-b][i] = tmp2;
+          }
+        }
+      }
+    }
+
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int k=0;k<p_cubNq;++k;@inner(1)){
+        for(int b=0;b<p_cubNq;++b;@inner(0)){
+
+          dfloat r_q[p_cubNq];
+
+          if(b<p_Nq){
+
+            // #pragma unroll p_cubNq
+            for(int i=0;i<p_cubNq;++i)
+              r_q[i] = s_q[k][es][b][i];
+
+            // #pragma unroll p_cubNq
+            for(int a=0;a<(p_Nq+1)/2;++a){
+
+              dfloat tmp = 0;
+              dfloat tmp2 = 0;
+
+              // #pragma unroll p_cubNq
+              for(int i=0;i<p_cubNq;++i){
+
+                dfloat tmpI = s_I[i][a];
+
+                tmp += tmpI*r_q[i] ;
+                tmp2 += tmpI*r_q[p_cubNq-1-i];
+              }
+
+              s_q[k][es][b][a] = tmp; // ok since only this thread
+              s_q[k][es][b][p_Nq-1-a] = tmp2;
+            }
+          }
+        }
+      }
+    }
+
+    // transform back in c
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int b=0;b<p_cubNq;++b;@inner(1)){
+        for(int a=0;a<p_cubNq;++a;@inner(0)){
+
+          dfloat r_q[p_cubNq];
+
+          if(r_e<Nelements && a<p_Nq && b<p_Nq){
+
+            // #pragma unroll p_cubNq
+            for(int k=0;k<p_cubNq;++k)
+              r_q[k] = s_q[k][es][b][a];
+
+            // #pragma unroll p_cubNq
+            for(int c=0;c<(p_Nq+1)/2;++c){
+
+              dfloat tmp = 0;
+              dfloat tmp2 = 0;
+
+              // #pragma unroll p_cubNq
+              for(int k=0;k<p_cubNq;++k){
+
+                const dfloat tmpI = s_I[k][c];
+
+                tmp += tmpI*r_q[k] ;
+                tmp2 += tmpI*r_q[p_cubNq-1-k];
+              }
+
+              Aq[element*p_Np+c*p_Nq*p_Nq+b*p_Nq+a] = tmp;
+              Aq[element*p_Np+(p_Nq-1-c)*p_Nq*p_Nq+b*p_Nq+a] = tmp2;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+#else
+
+#if p_N==1
+#define p_NelementsPerBlk 7
+#elif p_N==2
+#define p_NelementsPerBlk 3
+#elif p_N==3
+#define p_NelementsPerBlk 1
+#elif p_N==4
+#define p_NelementsPerBlk 1
+#elif p_N==5
+#define p_NelementsPerBlk 1
+#elif p_N==6
+#define p_NelementsPerBlk 1
+#elif p_N==7
+#define p_NelementsPerBlk 1
+#else
+// unoptimized
+#define p_NelementsPerBlk 1
+#endif
+
+@kernel void bp1AxHex3D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
+
+//padding for bank conflicts
+#if p_cubNq==8 || p_cubNq==4
+#define p_pad 1
+#else
+#define p_pad 0
+#endif
+
+    @shared dfloat s_D [p_cubNq][p_cubNq+p_pad];
+    @shared dfloat s_I [p_cubNq][p_cubNq+p_pad];
+    @shared dfloat s_q[p_NelementsPerBlk][p_cubNq][p_cubNq][p_cubNq+p_pad];
+
+    @exclusive dlong element;
+    @exclusive int k, es;
+    @exclusive dfloat r_q, r_GwJ;
+
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+
+          //load operators
+          if(ke==0){
+            if(i<p_Nq){
+              const int id = j*p_Nq+i;
+              const dfloat Iji = I[id];
+              s_I[j][i] = Iji;
+            }
+          }
+
+          k  = ke%p_cubNq;
+          es = ke/p_cubNq;
+
+          if(es+eo<Nelements) {
+            element = elementList[es+eo];
+            if(i<p_Nq && j<p_Nq && k<p_Nq){
+              const dlong id = GlobalToLocal[i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np];
+              s_q[es][k][j][i] = (id!=-1) ? q[id] : 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    // interpolate in 't'
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(i<p_Nq && j<p_Nq){
+            r_q=0.0;
+            // #pragma unroll p_Nq
+            for(int m=0;m<p_Nq;++m){
+              r_q += s_I[k][m]*s_q[es][m][j][i];
+            }
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(i<p_Nq && j<p_Nq){
+            s_q[es][k][j][i] = r_q;
+          }
+        }
+      }
+    }
+
+    // interpolate in 'r'
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(j<p_Nq){
+            r_q=0.0;
+            // #pragma unroll p_Nq
+            for(int m=0;m<p_Nq;++m){
+              r_q += s_I[i][m]*s_q[es][k][j][m];
+            }
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(j<p_Nq){
+            s_q[es][k][j][i] = r_q;
+          }
+        }
+      }
+    }
+
+    // interpolate in 's'
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(eo+es<Nelements){
+            const dlong gbase = element*p_cubNp + i + j*p_cubNq + k*p_cubNq*p_cubNq;
+            r_GwJ = cubwJ[gbase];
+          }
+
+          r_q=0.0;
+          // #pragma unroll p_Nq
+          for(int m=0;m<p_Nq;++m){
+            r_q += s_I[j][m]*s_q[es][k][m][i];
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          s_q[es][k][j][i] = r_GwJ*r_q;
+        }
+      }
+    }
+
+    // test in 's'
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(j<p_Nq){
+            r_q=0.0;
+            // #pragma unroll p_cubUnr
+            for(int m=0;m<p_cubNq;++m){
+              r_q += s_I[m][j]*s_q[es][k][m][i];
+            }
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(j<p_Nq){
+            s_q[es][k][j][i] = r_q;
+          }
+        }
+      }
+    }
+
+    // test in 'r'
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(i<p_Nq && j<p_Nq){
+            r_q=0.0;
+            // #pragma unroll p_cubUnr
+            for(int m=0;m<p_cubNq;++m){
+              r_q += s_I[m][i]*s_q[es][k][j][m];
+            }
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+          if(i<p_Nq && j<p_Nq){
+            s_q[es][k][j][i] = r_q;
+          }
+        }
+      }
+    }
+
+    // test in 't'
+    for(int ke=0;ke<p_cubNq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_cubNq;++j;@inner(1)){
+        for(int i=0;i<p_cubNq;++i;@inner(0)){
+
+          if(eo+es<Nelements){
+            if(i<p_Nq && j<p_Nq && k<p_Nq){
+
+              r_q=0.0;
+
+              // #pragma unroll p_cubUnr
+              for(int m=0;m<p_cubNq;++m){
+                r_q += s_I[m][k]*s_q[es][m][j][i];
+              }
+
+              const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+              Aq[base] = r_q;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+#endif
