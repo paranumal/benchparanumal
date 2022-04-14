@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/191792781.svg)](https://zenodo.org/badge/latestdoi/191792781)
+
 benchParanumal
 =======
 
