@@ -25,9 +25,9 @@ git submoduel update
 
 To build `benchParanumal`:
 
-    $ git clone --recursive <CEED repo>
-    $ cd /path/to/CEED
-    $ export LIBP_BLAS_DIR=/path/to/openblas
+    $ git clone --recursive https://github.com/paranumal/benchparanumal
+    $ cd benchparanumal
+    $ export LIBP_BLAS_DIR=</path/to/openblas>
     $ make -j `nproc`
 
 If your MPI supports GPU-aware RDMA functionality, you can optionally build `benchParanumal` with this support via:
@@ -121,7 +121,6 @@ How to clean build objects
 
 To clean the `benchParanumal` build objects:
 
-    $ cd /path/to/CEED/repo
     $ make realclean
 
 Please invoke `make help` for more supported options.
