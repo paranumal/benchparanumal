@@ -37,7 +37,7 @@ void platform_t::DeviceConfig(){
   memory<char> hostname = hostnames + rank()*MAX_PROCESSOR_NAME;
 
   int namelen;
-  comm_t::GetProcessorName(hostname.ptr(), namelen);
+  Comm::GetProcessorName(hostname.ptr(), namelen);
   comm.Allgather(hostnames, MAX_PROCESSOR_NAME);
 
   int localRank = 0;
@@ -100,22 +100,23 @@ void platform_t::DeviceConfig(){
     mode += ", device_id: " + std::to_string(device_id) + "}";
   }
 
+#if !defined(LIBP_DEBUG)
   /*set number of omp threads to use*/
   /*Use lscpu to determine core and socket counts */
   FILE *pipeCores   = popen("lscpu | grep \"Core(s) per socket\" | awk '{print $4}'", "r");
   FILE *pipeSockets = popen("lscpu | grep \"Socket(s)\" | awk '{print $2}'", "r");
   LIBP_ABORT("popen() failed!",
-                !pipeCores || !pipeSockets);
+             !pipeCores || !pipeSockets);
 
   std::array<char, 128> buffer;
   //read to end of line
   LIBP_ABORT("Error reading core count",
-                !fgets(buffer.data(), buffer.size(), pipeCores));
+             !fgets(buffer.data(), buffer.size(), pipeCores));
   int Ncores = std::stoi(buffer.data());
 
   //read to end of line
   LIBP_ABORT("Error reading core count",
-                !fgets(buffer.data(), buffer.size(), pipeSockets));
+             !fgets(buffer.data(), buffer.size(), pipeSockets));
   int Nsockets = std::stoi(buffer.data());
 
   pclose(pipeCores);
@@ -125,30 +126,34 @@ void platform_t::DeviceConfig(){
   int NcoresPerNode = Ncores*Nsockets;
   int Nthreads=0;
 
-#if !defined(LIBP_DEBUG)
   /*Check OMP_NUM_THREADS env variable*/
   std::string ompNumThreads;
   char * ompEnvVar = std::getenv("OMP_NUM_THREADS");
   if (ompEnvVar == nullptr) { // Environment variable is not set
     Nthreads = std::max(NcoresPerNode/localSize, 1); //Evenly divide number of cores
+
+    // If omp max threads is lower than this (due to binding), go with omp
+    Nthreads = std::min(Nthreads, omp_get_max_threads());
   } else {
     ompNumThreads = ompEnvVar;
     // Environmet variable is set, but could be empty string
     if (ompNumThreads.size() == 0) {
       // Environment variable is set but equal to empty string
       Nthreads = std::max(NcoresPerNode/localSize, 1); //Evenly divide number of cores;
+
+      // If omp max threads is lower than this (due to binding), go with omp
+      Nthreads = std::min(Nthreads, omp_get_max_threads());
     } else {
       Nthreads = std::stoi(ompNumThreads);
     }
   }
-  LIBP_WARNING("Rank " << rank() << " oversubscribing CPU on node \"" << hostname.ptr()<< "\"",
-                  Nthreads*localSize>NcoresPerNode);
+  LIBP_WARNING("Rank " << rank() << " oversubscribing CPU on node \"" << hostname.ptr() << "\"",
+               Nthreads*localSize>NcoresPerNode);
   omp_set_num_threads(Nthreads);
   // omp_set_num_threads(1);
 
-  // if (settings.compareSetting("VERBOSE","TRUE"))
-  //   printf("Rank %d: Nsockets = %d, NcoresPerSocket = %d, Nthreads = %d, device_id = %d \n",
-  //          rank, Nsockets, Ncores, Nthreads, device_id);
+  // printf("Rank %d: Nsockets = %d, NcoresPerSocket = %d, Nthreads = %d, device_id = %d \n",
+  //        rank(), Nsockets, Ncores, Nthreads, device_id);
 #endif
 
   device.setup(mode);

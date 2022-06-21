@@ -146,7 +146,7 @@ void settings_t::parseSettings(const int argc, char** argv) {
     if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       if (comm.rank()==0) PrintUsage();
       comm.Barrier();
-      comm_t::Finalize();
+      Comm::Finalize();
       std::exit(LIBP_SUCCESS);
       return;
     }
