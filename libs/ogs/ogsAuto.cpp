@@ -56,7 +56,7 @@ static void DeviceExchangeTest(ogsExchange_t* exchange, double time[3]) {
     } else {
       //if not using gpu-aware mpi move the halo buffer to the host
       o_buf.copyTo(buf, exchange->Nhalo,
-                   0, "async: true");
+                   0, properties_t("async", true));
       device.finish();
 
       /*MPI exchange of host buffer*/
@@ -65,7 +65,7 @@ static void DeviceExchangeTest(ogsExchange_t* exchange, double time[3]) {
 
       // copy recv back to device
       o_buf.copyFrom(buf, exchange->Nhalo,
-                     0, "async: true");
+                     0, properties_t("async", true));
       device.finish(); //wait for transfer to finish
     }
   }
@@ -80,7 +80,7 @@ static void DeviceExchangeTest(ogsExchange_t* exchange, double time[3]) {
     } else {
       //if not using gpu-aware mpi move the halo buffer to the host
       o_buf.copyTo(buf, exchange->Nhalo,
-                   0, "async: true");
+                   0, properties_t("async", true));
       device.finish();
 
       /*MPI exchange of host buffer*/
@@ -89,16 +89,16 @@ static void DeviceExchangeTest(ogsExchange_t* exchange, double time[3]) {
 
       // copy recv back to device
       o_buf.copyFrom(buf, exchange->Nhalo,
-                     0, "async: true");
+                     0, properties_t("async", true));
       device.finish(); //wait for transfer to finish
     }
   }
   timePoint_t end = Time();
 
   localTime = ElapsedTime(start,end)/Nhot;
-  comm.Allreduce(localTime, sumTime, comm_t::Sum);
-  comm.Allreduce(localTime, maxTime, comm_t::Max);
-  comm.Allreduce(localTime, minTime, comm_t::Min);
+  comm.Allreduce(localTime, sumTime, Comm::Sum);
+  comm.Allreduce(localTime, maxTime, Comm::Max);
+  comm.Allreduce(localTime, minTime, Comm::Min);
 
   time[0] = sumTime/size; //avg
   time[1] = minTime;      //min
@@ -130,9 +130,9 @@ static void HostExchangeTest(ogsExchange_t* exchange, double time[3]) {
   timePoint_t end = Time();
 
   localTime = ElapsedTime(start,end)/Nhot;
-  comm.Allreduce(localTime, sumTime, comm_t::Sum);
-  comm.Allreduce(localTime, maxTime, comm_t::Max);
-  comm.Allreduce(localTime, minTime, comm_t::Min);
+  comm.Allreduce(localTime, sumTime, Comm::Sum);
+  comm.Allreduce(localTime, maxTime, Comm::Max);
+  comm.Allreduce(localTime, minTime, Comm::Min);
 
   time[0] = sumTime/size; //avg
   time[1] = minTime;      //min

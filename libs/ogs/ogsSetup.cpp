@@ -181,7 +181,7 @@ void ogsBase_t::Setup(const dlong _N,
                             platform, verbose));
   }
 
-  timePoint_t end = GlobalPlatformTime(platform);
+  timePoint_t end = GlobalPlatformTime(platform, comm);
   double elapsedTime = ElapsedTime(start, end);
 
   if (!rank && verbose) {
@@ -309,7 +309,7 @@ void ogsBase_t::FindSharedNodes(const dlong Nids,
   }
 
   //shared the unique node check so we know if the gather operation is well-defined
-  comm.Allreduce(is_unique, comm_t::Min);
+  comm.Allreduce(is_unique, Comm::Min);
   gather_defined = (is_unique==1);
 
   hlong Nshared_global = Nshared;
