@@ -29,10 +29,10 @@ SOFTWARE.
 namespace libp {
 
 template<typename T>
-inline
+static inline
 void matrixTranspose_t(const int M, const int N,
-                       const T  *A, const int LDA,
-                             T *AT, const int LDAT){
+                       const memory<T>  A, const int LDA,
+                             memory<T> AT, const int LDAT){
 
   //A & A^T - Row major ordering
   //M = number of rows of A, columns of A^T
@@ -55,26 +55,26 @@ void matrixTranspose_t(const int M, const int N,
 }
 
 void linAlg_t::matrixTranspose(const int M, const int N,
-                     const float  *A, const int LDA,
-                           float *AT, const int LDAT) {
+                               const memory<float>  A, const int LDA,
+                               memory<float> AT, const int LDAT) {
   matrixTranspose_t(M, N, A, LDA, AT, LDAT);
 }
 
 void linAlg_t::matrixTranspose(const int M, const int N,
-                     const double  *A, const int LDA,
-                           double *AT, const int LDAT) {
+                               const memory<double>  A, const int LDA,
+                               memory<double> AT, const int LDAT) {
   matrixTranspose_t(M, N, A, LDA, AT, LDAT);
 }
 
 void linAlg_t::matrixTranspose(const int M, const int N,
-                     const int  *A, const int LDA,
-                           int *AT, const int LDAT) {
+                               const memory<int>  A, const int LDA,
+                               memory<int> AT, const int LDAT) {
   matrixTranspose_t(M, N, A, LDA, AT, LDAT);
 }
 
 void linAlg_t::matrixTranspose(const int M, const int N,
-                     const long long int  *A, const int LDA,
-                           long long int *AT, const int LDAT) {
+                               const memory<long long int>  A, const int LDA,
+                               memory<long long int> AT, const int LDAT) {
   matrixTranspose_t(M, N, A, LDA, AT, LDAT);
 }
 

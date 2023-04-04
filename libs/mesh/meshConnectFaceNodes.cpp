@@ -40,16 +40,14 @@ void mesh_t::ConnectFaceNodes(){
     //                         faceNodes.ptr(), R.ptr());
     //   break;
     case QUADRILATERALS:
-      FaceNodeMatchingQuad2D(N, r.ptr(), s.ptr(),
-                            faceNodes.ptr(), R.ptr());
+      FaceNodeMatchingQuad2D(r, s, faceNodes, faceVertices, R);
       break;
     // case TETRAHEDRA:
     //   FaceNodeMatchingTet3D(N, r.ptr(), s.ptr(), t.ptr(),
     //                         faceNodes.ptr(), R.ptr());
     //   break;
     case HEXAHEDRA:
-      FaceNodeMatchingHex3D(N, r.ptr(), s.ptr(), t.ptr(),
-                            faceNodes.ptr(), R.ptr());
+      FaceNodeMatchingHex3D(r, s, t, faceNodes, faceVertices, R);
       break;
   }
 

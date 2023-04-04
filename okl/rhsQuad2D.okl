@@ -29,15 +29,15 @@ SOFTWARE.
 /* forcing function   */
 /* forcing function   */
 #if p_Nfields==1
-#define Forcing2D(x, y, f)    \
-{                             \
-  f  = sin(PI*x)*sin(PI*y);   \
+#define Forcing2D(x, y, lambda, f)            \
+{                                             \
+  f  = (2*PI*PI+lambda)*sin(PI*x)*sin(PI*y);  \
 }
 #else
-#define Forcing2D(x, y, f, g)   \
-{                               \
-  f  = sin(2.0*PI*x)*sin(PI*y); \
-  g  = sin(PI*x)*sin(2.0*PI*y); \
+#define Forcing2D(x, y, lambda, f, g)              \
+{                                                  \
+  f  = (3*PI*PI+lambda)*sin(2.0*PI*x)*sin(PI*y);   \
+  g  = (3*PI*PI+lambda)*sin(PI*x)*sin(2.0*PI*y);   \
 }
 #endif
 
@@ -47,6 +47,7 @@ SOFTWARE.
                        @restrict const dfloat* x,
                        @restrict const dfloat* y,
                        @restrict const dfloat* z,
+                                 const dfloat  lambda,
                        @restrict       dfloat* rhs){
 
   for(dlong e=0;e<Nelements;e++;@outer(0)){
@@ -59,12 +60,12 @@ SOFTWARE.
 
     #if p_Nfields==1
       dfloat f = 0;
-      Forcing2D(x[id], y[id], f);
+      Forcing2D(x[id], y[id], lambda, f);
 
       rhs[id] = r_GwJ*f;
     #else
       dfloat f = 0, g = 0;
-      Forcing2D(x[id], y[id], f, g);
+      Forcing2D(x[id], y[id], lambda, f, g);
 
       const dlong base = e*p_Np*p_Nfields + n;
       rhs[base+0*p_Np] = r_GwJ*f;

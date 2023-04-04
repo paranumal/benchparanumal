@@ -36,48 +36,40 @@ extern "C" {
 
 namespace libp {
 
-void linAlg_t::matrixInverse(int N, double *A){
+void linAlg_t::matrixInverse(const int N, memory<double> A){
+  int n = N;
   int lwork = N*N;
   int info;
 
-  // compute inverse mass matrix
-  int *ipiv = (int*) calloc(N, sizeof(int));
-  double *work = (double*) calloc(lwork, sizeof(double));
+  // compute inverse matrix in-place
+  memory<int> ipiv(N);
+  memory<double> work(lwork);
 
-  dgetrf_ (&N, &N, A, &N, ipiv, &info);
+  dgetrf_ (&n, &n, A.ptr(), &n, ipiv.ptr(), &info);
 
-  LIBP_ABORT("dgetrf_ reports info = " << info,
-                info);
+  LIBP_ABORT("dgetrf_ reports info = " << info, info);
 
-  dgetri_ (&N, A, &N, ipiv, work, &lwork, &info);
+  dgetri_ (&n, A.ptr(), &n, ipiv.ptr(), work.ptr(), &lwork, &info);
 
-  LIBP_ABORT("dgetri_ reports info = " << info,
-                info);
-
-  free(work);
-  free(ipiv);
+  LIBP_ABORT("dgetri_ reports info = " << info, info);
 }
 
-void linAlg_t::matrixInverse(int N, float *A){
+void linAlg_t::matrixInverse(const int N, memory<float> A){
+  int n = N;
   int lwork = N*N;
   int info;
 
-  // compute inverse mass matrix
-  int *ipiv = (int*) calloc(N, sizeof(int));
-  float *work = (float*) calloc(lwork, sizeof(float));
+  // compute inverse matrix in-place
+  memory<int> ipiv(N);
+  memory<float> work(lwork);
 
-  sgetrf_ (&N, &N, A, &N, ipiv, &info);
+  sgetrf_ (&n, &n, A.ptr(), &n, ipiv.ptr(), &info);
 
-  LIBP_ABORT("sgetrf_ reports info = " << info,
-                info);
+  LIBP_ABORT("sgetrf_ reports info = " << info, info);
 
-  sgetri_ (&N, A, &N, ipiv, work, &lwork, &info);
+  sgetri_ (&n, A.ptr(), &n, ipiv.ptr(), work.ptr(), &lwork, &info);
 
-  LIBP_ABORT("sgetri_ reports info = " << info,
-                info);
-
-  free(work);
-  free(ipiv);
+  LIBP_ABORT("sgetri_ reports info = " << info, info);
 }
 
 } //namespace libp

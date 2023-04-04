@@ -37,24 +37,20 @@ void mesh_t::CubatureSetupQuad2D(){
   cubNfp = cubNq;
 
   // cubN+1 point Gauss-Legendre quadrature
-  cubr.malloc(cubNq);
-  cubw.malloc(cubNq);
-  JacobiGQ(0, 0, cubN, cubr.ptr(), cubw.ptr());
+  JacobiGQ(0, 0, cubN, cubr, cubw);
 
   // GLL to GL interpolation matrix
-  cubInterp.malloc(Nq*cubNq);
-  InterpolationMatrix1D(N, Nq, r.ptr(), cubNq, cubr.ptr(), cubInterp.ptr()); //uses the fact that r = gllz for 1:Nq
+  InterpolationMatrix1D(N, gllz, cubr, cubInterp);
 
   //cubature project cubProject = cubInterp^T
   cubProject.malloc(cubNq*Nq);
-  linAlg_t::matrixTranspose(cubNq, Nq, cubInterp.ptr(), Nq, cubProject.ptr(), cubNq);
+  linAlg_t::matrixTranspose(cubNq, Nq, cubInterp, Nq, cubProject, cubNq);
 
   o_cubInterp  = platform.malloc<dfloat>(cubInterp);
   o_cubProject = platform.malloc<dfloat>(cubProject);
 
   //cubature derivates matrix, cubD: differentiate on cubature nodes
-  cubD.malloc(cubNq*cubNq);
-  Dmatrix1D(cubN, cubNq, cubr.ptr(), cubNq, cubr.ptr(), cubD.ptr());
+  Dmatrix1D(cubN, cubr, cubr, cubD);
   o_cubD = platform.malloc<dfloat>(cubD);
 
   // add compile time constants to kernels

@@ -35,33 +35,22 @@ void mesh_t::ReferenceNodesQuad2D(){
   Np = (N+1)*(N+1);
 
   /* Nodal Data */
-  r.malloc(Np);
-  s.malloc(Np);
-  NodesQuad2D(N, r.ptr(), s.ptr());
-
-  faceNodes.malloc(Nfaces*Nfp);
-  FaceNodesQuad2D(N, r.ptr(), s.ptr(), faceNodes.ptr());
-
-  vertexNodes.malloc(Nverts);
-  VertexNodesQuad2D(N, r.ptr(), s.ptr(), vertexNodes.ptr());
+  NodesQuad2D(N, r, s);
+  FaceNodesQuad2D(N, r, s, faceNodes);
+  VertexNodesQuad2D(N, r, s, vertexNodes);
 
   //GLL quadrature
-  gllz.malloc(Nq);
-  gllw.malloc(Nq);
-  JacobiGLL(N, gllz.ptr(), gllw.ptr());
+  JacobiGLL(N, gllz, gllw);
 
   // D matrix
-  D.malloc(Nq*Nq);
-  Dmatrix1D(N, Nq, gllz.ptr(), Nq, gllz.ptr(), D.ptr());
-
-  o_D = platform.malloc<dfloat>(Nq*Nq, D);
+  Dmatrix1D(N, gllz, gllz, D);
+  o_D = platform.malloc<dfloat>(D);
 
   /* Plotting data */
   plotN = N;
   plotNelements = 2*plotN*plotN;
   plotNverts = 3;
-  plotEToV.malloc(plotNelements*plotNverts);
-  EquispacedEToVQuad2D(plotN, plotEToV.ptr());
+  EquispacedEToVQuad2D(plotN, plotEToV);
 
   props["defines/" "p_dim"]= dim;
   props["defines/" "p_N"]= N;

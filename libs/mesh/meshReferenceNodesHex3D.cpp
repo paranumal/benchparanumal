@@ -35,34 +35,22 @@ void mesh_t::ReferenceNodesHex3D(){
   Np = Nq*Nq*Nq;
 
   /* Nodal Data */
-  r.malloc(Np);
-  s.malloc(Np);
-  t.malloc(Np);
-  NodesHex3D(N, r.ptr(), s.ptr(), t.ptr());
-
-  faceNodes.malloc(Nfaces*Nfp);
-  FaceNodesHex3D(N, r.ptr(), s.ptr(), t.ptr(), faceNodes.ptr());
-
-  vertexNodes.malloc(Nverts);
-  VertexNodesHex3D(N, r.ptr(), s.ptr(), t.ptr(), vertexNodes.ptr());
+  NodesHex3D(N, r, s, t);
+  FaceNodesHex3D(N, r, s, t, faceNodes);
+  VertexNodesHex3D(N, r, s, t, vertexNodes);
 
   //GLL quadrature
-  gllz.malloc(Nq);
-  gllw.malloc(Nq);
-  JacobiGLL(N, gllz.ptr(), gllw.ptr());
+  JacobiGLL(N, gllz, gllw);
 
   // D matrix
-  D.malloc(Nq*Nq);
-  Dmatrix1D(N, Nq, gllz.ptr(), Nq, gllz.ptr(), D.ptr());
-
-  o_D = platform.malloc<dfloat>(Nq*Nq, D);
+  Dmatrix1D(N, gllz, gllz, D);
+  o_D = platform.malloc<dfloat>(D);
 
   /* Plotting data */
   plotN = N;
   plotNelements = 6*plotN*plotN*plotN;
   plotNverts = 4;
-  plotEToV.malloc(plotNelements*plotNverts);
-  EquispacedEToVHex3D(plotN, plotEToV.ptr());
+  EquispacedEToVHex3D(plotN, plotEToV);
 
   props["defines/" "p_dim"]= dim;
   props["defines/" "p_N"]= N;

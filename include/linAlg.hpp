@@ -79,30 +79,39 @@ public:
   kernel_t innerProdKernel1;
   kernel_t innerProdKernel2;
 
-  static void matrixRightSolve(int NrowsA, int NcolsA, double *A, int NrowsB, int NcolsB, double *B, double *C);
-  static void matrixRightSolve(int NrowsA, int NcolsA, float *A, int NrowsB, int NcolsB, float *B, float *C);
+  static void matrixRightSolve(const int NrowsA, const int NcolsA, const memory<double> A,
+                               const int NrowsB, const int NcolsB, const memory<double> B,
+                               memory<double> C);
+  static void matrixRightSolve(const int NrowsA, const int NcolsA, const memory<float> A,
+                               const int NrowsB, const int NcolsB, const memory<float> B,
+                               memory<float> C);
 
-  static void matrixEigenVectors(int N, double *A, double *VR, double *WR, double *WI);
-  static void matrixEigenVectors(int N, float *A, float *VR, float *WR, float *WI);
+  static void matrixEigenVectors(const int N, const memory<double> A,
+                                 memory<double> VR, memory<double> WR, memory<double> WI);
+  static void matrixEigenVectors(const int N, const memory<float> A,
+                                 memory<float> VR, memory<float> WR, memory<float> WI);
 
-  static void matrixEigenValues(int N, double *A, double *WR, double *WI);
-  static void matrixEigenValues(int N, float *A, float *WR, float *WI);
+  static void matrixEigenValues(const int N, const memory<double> A,
+                                memory<double> WR, memory<double> WI);
+  static void matrixEigenValues(const int N, const memory<float> A,
+                                memory<float> WR, memory<float> WI);
 
-  static void matrixInverse(int N, double *A);
-  static void matrixInverse(int N, float *A);
+  static void matrixInverse(const int N, memory<double> A);
+  static void matrixInverse(const int N, memory<float> A);
 
   static void matrixTranspose(const int M, const int N,
-                              const float  *A, const int LDA,
-                                    float *AT, const int LDAT);
+                             const memory<double> A, const int LDA,
+                             memory<double> AT, const int LDAT);
   static void matrixTranspose(const int M, const int N,
-                              const double  *A, const int LDA,
-                                    double *AT, const int LDAT);
+                             const memory<float> A, const int LDA,
+                             memory<float> AT, const int LDAT);
+
   static void matrixTranspose(const int M, const int N,
-                              const int  *A, const int LDA,
-                                    int *AT, const int LDAT);
+                              const memory<int> A, const int LDA,
+                              memory<int> AT, const int LDAT);
   static void matrixTranspose(const int M, const int N,
-                              const long long int  *A, const int LDA,
-                                    long long int *AT, const int LDAT);
+                              const memory<long long int>  A, const int LDA,
+                              memory<long long int> AT, const int LDAT);
 };
 
 } //namespace libp

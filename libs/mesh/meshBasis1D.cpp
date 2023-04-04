@@ -31,48 +31,61 @@ namespace libp {
 // ------------------------------------------------------------------------
 // 1D NODES
 // ------------------------------------------------------------------------
-void mesh_t::Nodes1D(int _N, dfloat _r[]){
+void mesh_t::Nodes1D(const int _N, memory<dfloat>& _r){
   JacobiGLL(_N, _r); //Gauss-Legendre-Lobatto nodes
+}
+
+void mesh_t::EquispacedNodes1D(const int _N, memory<dfloat>& _r){
+  int _Nq = _N+1;
+
+  dfloat dr = 2.0/_N;
+
+  _r.malloc(_Nq);
+  for (int i=0;i<_Nq;i++) _r[i] = -1.0 + i*dr;
 }
 
 // ------------------------------------------------------------------------
 // ORTHONORMAL BASIS POLYNOMIALS
 // ------------------------------------------------------------------------
-void mesh_t::OrthonormalBasis1D(dfloat a, int i, dfloat &P){
+void mesh_t::OrthonormalBasis1D(const dfloat a, const int i, dfloat& P){
   P = JacobiP(a,0,0,i); //Legendre Polynomials
 }
 
-void mesh_t::GradOrthonormalBasis1D(dfloat a, int i, dfloat &Pr){
+void mesh_t::GradOrthonormalBasis1D(const dfloat a, const int i, dfloat& Pr){
   Pr = GradJacobiP(a,0,0,i);
 }
 
 // ------------------------------------------------------------------------
 // 1D VANDERMONDE MATRICES
 // ------------------------------------------------------------------------
-void mesh_t::Vandermonde1D(int _N, int Npoints, dfloat _r[], dfloat V[]){
+void mesh_t::Vandermonde1D(const int _N,
+                           const memory<dfloat> _r,
+                           memory<dfloat>& V){
 
-  int _Np = (_N+1);
+  const int _Np = (_N+1);
+  const int Npoints = _r.length();
 
+  V.malloc(Npoints*_Np);
   for(int n=0; n<Npoints; n++){
-    int sk = 0;
-    for(int i=0; i<=_N; i++){
-      int id = n*_Np+sk;
+    for(int i=0; i<_Np; i++){
+      int id = n*_Np+i;
       OrthonormalBasis1D(_r[n], i, V[id]);
-      sk++;
     }
   }
 }
 
-void mesh_t::GradVandermonde1D(int _N, int Npoints, dfloat _r[], dfloat Vr[]){
+void mesh_t::GradVandermonde1D(const int _N,
+                               const memory<dfloat> _r,
+                               memory<dfloat>& Vr){
 
-  int _Np = (_N+1);
+  const int _Np = (_N+1);
+  const int Npoints = _r.length();
 
+  Vr.malloc(Npoints*_Np);
   for(int n=0; n<Npoints; n++){
-    int sk = 0;
-    for(int i=0; i<=_N; i++){
-      int id = n*_Np+sk;
+    for(int i=0; i<_Np; i++){
+      int id = n*_Np+i;
       GradOrthonormalBasis1D(_r[n], i, Vr[id]);
-      sk++;
     }
   }
 }
@@ -80,9 +93,12 @@ void mesh_t::GradVandermonde1D(int _N, int Npoints, dfloat _r[], dfloat Vr[]){
 // ------------------------------------------------------------------------
 // 1D OPERATOR MATRICES
 // ------------------------------------------------------------------------
-void mesh_t::MassMatrix1D(int _Np, dfloat V[], dfloat _MM[]){
+void mesh_t::MassMatrix1D(const int _Np,
+                          const memory<dfloat> V,
+                          memory<dfloat>& _MM){
 
-  // masMatrix = inv(V')*inv(V) = inv(V*V')
+  // massMatrix = inv(V')*inv(V) = inv(V*V')
+  _MM.malloc(_Np*_Np);
   for(int n=0;n<_Np;++n){
     for(int m=0;m<_Np;++m){
       dfloat res = 0;
@@ -95,68 +111,79 @@ void mesh_t::MassMatrix1D(int _Np, dfloat V[], dfloat _MM[]){
   linAlg_t::matrixInverse(_Np, _MM);
 }
 
-void mesh_t::Dmatrix1D(int _N, int NpointsIn, dfloat _rIn[],
-                               int NpointsOut, dfloat _rOut[], dfloat _Dr[]){
+void mesh_t::Dmatrix1D(const int _N,
+                       const memory<dfloat> _rIn,
+                       const memory<dfloat> _rOut,
+                       memory<dfloat>& _Dr){
+
+
+  const int _Np = _N+1;
+  const int NpointsIn  = _rIn.length();
+  const int NpointsOut = _rOut.length();
 
   // need NpointsIn = (_N+1)
   LIBP_ABORT("Invalid Differentiation operator requested.",
              NpointsIn != _N+1);
 
-  int _Np = _N+1;
-
-  memory<dfloat> V(NpointsIn*_Np);
-  memory<dfloat> Vr(NpointsOut*_Np);
-
-  Vandermonde1D(_N, NpointsIn, _rIn, V.ptr());
-  GradVandermonde1D(_N, NpointsOut, _rOut, Vr.ptr());
+  memory<dfloat> V;
+  memory<dfloat> Vr;
+  Vandermonde1D(_N, _rIn, V);
+  GradVandermonde1D(_N, _rOut, Vr);
 
   //D = Vr/V
-  linAlg_t::matrixRightSolve(NpointsOut, _Np, Vr.ptr(), _Np, _Np, V.ptr(), _Dr);
+  _Dr.malloc(NpointsOut*_Np);
+  linAlg_t::matrixRightSolve(NpointsOut, _Np, Vr, _Np, _Np, V, _Dr);
 }
 
-void mesh_t::InterpolationMatrix1D(int _N,
-                               int NpointsIn, dfloat rIn[],
-                               int NpointsOut, dfloat rOut[],
-                               dfloat I[]){
+void mesh_t::InterpolationMatrix1D(const int _N,
+                                   const memory<dfloat> _rIn,
+                                   const memory<dfloat> _rOut,
+                                   memory<dfloat>& I){
+
+  const int _Np = _N+1;
+  const int NpointsIn  = _rIn.length();
+  const int NpointsOut = _rOut.length();
 
   // need NpointsIn = (_N+1)
   LIBP_ABORT("Invalid Interplation operator requested.",
              NpointsIn != _N+1);
 
-  memory<dfloat> VIn(NpointsIn*(_N+1));
-  memory<dfloat> VOut(NpointsOut*(_N+1));
+  memory<dfloat> VIn;
+  memory<dfloat> VOut;
+  Vandermonde1D(_N, _rIn, VIn);
+  Vandermonde1D(_N, _rOut, VOut);
 
-  Vandermonde1D(_N, NpointsIn,   rIn, VIn.ptr());
-  Vandermonde1D(_N, NpointsOut, rOut, VOut.ptr());
-
-  linAlg_t::matrixRightSolve(NpointsOut, _N+1, VOut.ptr(), NpointsIn, _N+1, VIn.ptr(), I);
+  I.malloc(NpointsIn*NpointsOut);
+  linAlg_t::matrixRightSolve(NpointsOut, _Np, VOut,
+                             NpointsIn, _Np, VIn, I);
 }
 
 // ------------------------------------------------------------------------
 // 1D JACOBI POLYNOMIALS
 // ------------------------------------------------------------------------
-static dfloat mygamma(dfloat x){
+static dfloat mygamma(const dfloat x){
   dfloat lgam = lgamma(x);
   dfloat gam  = signgam*exp(lgam);
   return gam;
 }
 
-dfloat mesh_t::JacobiP(dfloat a, dfloat alpha, dfloat beta, int _N){
+dfloat mesh_t::JacobiP(const dfloat a, const dfloat alpha,
+                       const dfloat beta, const int _N){
 
-  dfloat ax = a;
+  const dfloat ax = a;
 
   memory<dfloat> P(_N+1);
 
   // Zero order
-  dfloat gamma0 = pow(2,(alpha+beta+1))/(alpha+beta+1)*mygamma(1+alpha)*mygamma(1+beta)/mygamma(1+alpha+beta);
-  dfloat p0     = 1.0/sqrt(gamma0);
+  const dfloat gamma0 = pow(2,(alpha+beta+1))/(alpha+beta+1)*mygamma(1+alpha)*mygamma(1+beta)/mygamma(1+alpha+beta);
+  const dfloat p0     = 1.0/sqrt(gamma0);
 
   if (_N==0){ return p0;}
   P[0] = p0;
 
   // first order
-  dfloat gamma1 = (alpha+1)*(beta+1)/(alpha+beta+3)*gamma0;
-  dfloat p1     = ((alpha+beta+2)*ax/2 + (alpha-beta)/2)/sqrt(gamma1);
+  const dfloat gamma1 = (alpha+1)*(beta+1)/(alpha+beta+3)*gamma0;
+  const dfloat p1     = ((alpha+beta+2)*ax/2 + (alpha-beta)/2)/sqrt(gamma1);
   if (_N==1){ return p1;}
 
   P[1] = p1;
@@ -171,12 +198,11 @@ dfloat mesh_t::JacobiP(dfloat a, dfloat alpha, dfloat beta, int _N){
     P[i+1] = 1./anew*( -aold*P[i-1] + (ax-bnew)*P[i]);
     aold =anew;
   }
-
-  dfloat pN = P[_N];
-  return pN;
+  return P[_N];
 }
 
-dfloat mesh_t::GradJacobiP(dfloat a, dfloat alpha, dfloat beta, int _N){
+dfloat mesh_t::GradJacobiP(const dfloat a, const dfloat alpha,
+                           const dfloat beta, const int _N){
 
   dfloat PNr = 0;
 
@@ -189,51 +215,73 @@ dfloat mesh_t::GradJacobiP(dfloat a, dfloat alpha, dfloat beta, int _N){
 // ------------------------------------------------------------------------
 // 1D GAUSS-LEGENDRE-LOBATTO QUADRATURE
 // ------------------------------------------------------------------------
-void mesh_t::JacobiGLL(int _N, dfloat _x[], dfloat w[]){
+void mesh_t::JacobiGLL(const int _N, memory<dfloat>& _x){
+
+  _x.malloc(_N+1);
 
   _x[0] = -1.;
   _x[_N] =  1.;
 
   if(_N>1){
-    memory<dfloat> wtmp(_N-1);
-    JacobiGQ(1,1, _N-2, _x+1, wtmp.ptr());
+    memory<dfloat> wtmp;
+    memory<dfloat> xp1 = _x + 1;
+    JacobiGQ(1,1, _N-2, xp1, wtmp);
+  }
+}
+
+void mesh_t::JacobiGLL(const int _N,
+                       memory<dfloat>& _x,
+                       memory<dfloat>& _w){
+
+  _x.malloc(_N+1);
+  _w.malloc(_N+1);
+
+  _x[0] = -1.;
+  _x[_N] =  1.;
+
+  if(_N>1){
+    memory<dfloat> wtmp;
+    memory<dfloat> xp1 = _x + 1;
+    JacobiGQ(1,1, _N-2, xp1, wtmp);
   }
 
-  if (w!=NULL) {
-    int _Np = _N+1;
-    memory<dfloat> _MM(_Np*_Np);
-    memory<dfloat> V(_Np*_Np);
+  memory<dfloat> V;
+  memory<dfloat> _MM;
+  Vandermonde1D(_N, _x, V);
+  MassMatrix1D(_N+1, V, _MM);
 
-    Vandermonde1D(_N, _N+1, _x, V.ptr());
-    MassMatrix1D(_N+1, V.ptr(), _MM.ptr());
-
-    // use weights from mass lumping
-    for(int n=0;n<=_N;++n){
-      dfloat res = 0;
-      for(int m=0;m<=_N;++m){
-        res += _MM[n*(_N+1)+m];
-      }
-      w[n] = res;
+  // use weights from mass lumping
+  for(int n=0;n<=_N;++n){
+    dfloat res = 0;
+    for(int m=0;m<=_N;++m){
+      res += _MM[n*(_N+1)+m];
     }
+    _w[n] = res;
   }
 }
 
 // ------------------------------------------------------------------------
 // 1D GAUSS QUADRATURE
 // ------------------------------------------------------------------------
-void mesh_t::JacobiGQ(dfloat alpha, dfloat beta, int _N, dfloat _x[], dfloat w[]){
+void mesh_t::JacobiGQ(const dfloat alpha, const dfloat beta,
+                      const int _N,
+                      memory<dfloat>& _x,
+                      memory<dfloat>& _w){
 
-  // function NGQ = JacobiGQ(alpha,beta,_N, _x, w)
+  // function NGQ = JacobiGQ(alpha,beta,_N, _x, _w)
   // Purpose: Compute the _N'th order Gauss quadrature points, _x,
-  //          and weights, w, associated with the Jacobi
+  //          and weights, _w, associated with the Jacobi
   //          polynomial, of type (alpha,beta) > -1 ( <> -0.5).
+  if (_x.length()==0) _x.malloc(_N+1);
+  if (_w.length()==0) _w.malloc(_N+1);
+
   if (_N==0){
     _x[0] = (alpha-beta)/(alpha+beta+2);
-    w[0] = 2;
+    _w[0] = 2;
   }
 
   // Form symmetric matrix from recurrence.
-  memory<dfloat> J((_N+1)*(_N+1), 0);
+  memory<dfloat> J((_N+1)*(_N+1), 0.0);
   memory<dfloat> h1(_N+1);
 
   for(int n=0;n<=_N;++n){
@@ -263,16 +311,15 @@ void mesh_t::JacobiGQ(dfloat alpha, dfloat beta, int _N, dfloat _x[], dfloat w[]
   // Compute quadrature by eigenvalue solve
 
   //  [V,D] = eig(J);
-  memory<dfloat> WR(_N+1);
   memory<dfloat> WI(_N+1);
   memory<dfloat> VR((_N+1)*(_N+1));
 
   // _x = diag(D);
-  linAlg_t::matrixEigenVectors(_N+1, J.ptr(), VR.ptr(), _x, WI.ptr());
+  linAlg_t::matrixEigenVectors(_N+1, J, VR, _x, WI);
 
-  //w = (V(1,:)').^2*2^(alpha+beta+1)/(alpha+beta+1)*gamma(alpha+1)*.gamma(beta+1)/gamma(alpha+beta+1);
+  //_w = (V(1,:)').^2*2^(alpha+beta+1)/(alpha+beta+1)*gamma(alpha+1)*.gamma(beta+1)/gamma(alpha+beta+1);
   for(int n=0;n<=_N;++n){
-    w[n] = pow(VR[0*(_N+1)+n],2)*(pow(2,alpha+beta+1)/(alpha+beta+1))*mygamma(alpha+1)*mygamma(beta+1)/mygamma(alpha+beta+1);
+    _w[n] = pow(VR[0*(_N+1)+n],2)*(pow(2,alpha+beta+1)/(alpha+beta+1))*mygamma(alpha+1)*mygamma(beta+1)/mygamma(alpha+beta+1);
   }
 
   // sloppy sort
@@ -280,11 +327,11 @@ void mesh_t::JacobiGQ(dfloat alpha, dfloat beta, int _N, dfloat _x[], dfloat w[]
     for(int m=n+1;m<=_N;++m){
       if(_x[n]>_x[m]){
         dfloat tmpx = _x[m];
-        dfloat tmpw = w[m];
+        dfloat tmpw = _w[m];
         _x[m] = _x[n];
-        w[m] = w[n];
+        _w[m] = _w[n];
         _x[n] = tmpx;
-        w[n] = tmpw;
+        _w[n] = tmpw;
       }
     }
   }

@@ -56,8 +56,8 @@ void mesh_t::CubatureSetupTri2D(){
   // build transposes (we hold matrices as column major on device)
   memory<dfloat> cubProjectT(cubNp*Np);
   memory<dfloat> cubInterpT(cubNp*Np);
-  linAlg_t::matrixTranspose(cubNp, Np, cubInterp.ptr(), Np, cubInterpT.ptr(), cubNp);
-  linAlg_t::matrixTranspose(Np, cubNp, cubProject.ptr(), cubNp, cubProjectT.ptr(), Np);
+  linAlg_t::matrixTranspose(cubNp, Np, cubInterp, Np, cubInterpT, cubNp);
+  linAlg_t::matrixTranspose(Np, cubNp, cubProject, cubNp, cubProjectT, Np);
 
   //pre-multiply cubProject by W on device
   for(int n=0;n<cubNp;++n){

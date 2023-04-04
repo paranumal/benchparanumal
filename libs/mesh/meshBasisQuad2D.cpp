@@ -31,11 +31,17 @@ namespace libp {
 // ------------------------------------------------------------------------
 // QUAD 2D NODES
 // ------------------------------------------------------------------------
-void mesh_t::NodesQuad2D(int _N, dfloat _r[], dfloat _s[]){
-  int _Nq = _N+1;
+void mesh_t::NodesQuad2D(const int _N,
+                         memory<dfloat>& _r,
+                         memory<dfloat>& _s){
+  const int _Nq = _N+1;
+  const int _Np = _Nq*_Nq;
 
-  memory<dfloat> r1D(_Nq);
-  JacobiGLL(_N, r1D.ptr()); //Gauss-Legendre-Lobatto nodes
+  memory<dfloat> r1D;
+  JacobiGLL(_N, r1D); //Gauss-Legendre-Lobatto nodes
+
+  _r.malloc(_Np);
+  _s.malloc(_Np);
 
   //Tensor product
   for (int j=0;j<_Nq;j++) {
@@ -46,10 +52,13 @@ void mesh_t::NodesQuad2D(int _N, dfloat _r[], dfloat _s[]){
   }
 }
 
-void mesh_t::FaceNodesQuad2D(int _N, dfloat _r[], dfloat _s[], int _faceNodes[]){
-  int _Nq = _N+1;
-  int _Nfp = _Nq;
-  int _Np = _Nq*_Nq;
+void mesh_t::FaceNodesQuad2D(const int _N,
+                             const memory<dfloat> _r,
+                             const memory<dfloat> _s,
+                             memory<int>& _faceNodes){
+  const int _Nq = _N+1;
+  const int _Nfp = _Nq;
+  const int _Np = _Nq*_Nq;
 
   int cnt[4];
   for (int i=0;i<4;i++) cnt[i]=0;
@@ -60,6 +69,7 @@ void mesh_t::FaceNodesQuad2D(int _N, dfloat _r[], dfloat _s[], int _faceNodes[])
 
   const dfloat NODETOL = 1000.*deps;
 
+  _faceNodes.malloc(4*_Nfp);
   for (int n=0;n<_Np;n++) {
     if(fabs(_s[n]+1)<NODETOL)
       _faceNodes[0*_Nfp+(cnt[0]++)] = n;
@@ -72,9 +82,12 @@ void mesh_t::FaceNodesQuad2D(int _N, dfloat _r[], dfloat _s[], int _faceNodes[])
   }
 }
 
-void mesh_t::VertexNodesQuad2D(int _N, dfloat _r[], dfloat _s[], int _vertexNodes[]){
-  int _Nq = _N+1;
-  int _Np = _Nq*_Nq;
+void mesh_t::VertexNodesQuad2D(const int _N,
+                               const memory<dfloat> _r,
+                               const memory<dfloat> _s,
+                               memory<int>& _vertexNodes){
+  const int _Nq = _N+1;
+  const int _Np = _Nq*_Nq;
 
   dfloat deps = 1.;
   while((1.+deps)>1.)
@@ -82,6 +95,7 @@ void mesh_t::VertexNodesQuad2D(int _N, dfloat _r[], dfloat _s[], int _vertexNode
 
   const dfloat NODETOL = 1000.*deps;
 
+  _vertexNodes.malloc(4);
   for(int n=0;n<_Np;++n){
     if( (_r[n]+1)*(_r[n]+1)+(_s[n]+1)*(_s[n]+1)<NODETOL)
       _vertexNodes[0] = n;
@@ -94,68 +108,39 @@ void mesh_t::VertexNodesQuad2D(int _N, dfloat _r[], dfloat _s[], int _vertexNode
   }
 }
 
-void mesh_t::EquispacedNodesQuad2D(int _N, dfloat _r[], dfloat _s[]){
-  int _Nq = _N+1;
-
-  //Equispaced 1D nodes
-  memory<dfloat> r1D(_Nq);
-  dfloat dr = 2.0/_N;
-  for (int i=0;i<_Nq;i++) r1D[i] = -1.0 + i*dr;
-
-  //Tensor product
-  for (int j=0;j<_Nq;j++) {
-    for (int i=0;i<_Nq;i++) {
-      _r[i+j*_Nq] = r1D[i];
-      _s[i+j*_Nq] = r1D[j];
-    }
-  }
-}
-
-void mesh_t::EquispacedEToVQuad2D(int _N, int _EToV[]){
-  int _Nq = _N+1;
-  int _Nverts = 3;
-
-  //Tensor product
-  int cnt=0;
-  for (int j=0;j<_N;j++) {
-    for (int i=0;i<_N;i++) {
-      _EToV[cnt*_Nverts+0] = i  +(j  )*_Nq;
-      _EToV[cnt*_Nverts+1] = i+1+(j  )*_Nq;
-      _EToV[cnt*_Nverts+2] = i+1+(j+1)*_Nq;
-      cnt++;
-
-      _EToV[cnt*_Nverts+0] = i  +(j  )*_Nq;
-      _EToV[cnt*_Nverts+1] = i+1+(j+1)*_Nq;
-      _EToV[cnt*_Nverts+2] = i  +(j+1)*_Nq;
-      cnt++;
-    }
-  }
-}
-
 /*Find a matching array between nodes on matching faces */
-void mesh_t::FaceNodeMatchingQuad2D(int _N, dfloat _r[], dfloat _s[],
-                                   int _faceNodes[], int R[]){
+void mesh_t::FaceNodeMatchingQuad2D(const memory<dfloat> _r,
+                                    const memory<dfloat> _s,
+                                    const memory<int> _faceNodes,
+                                    const memory<int> _faceVertices,
+                                    memory<int>& R){
 
-  int _Nfp = (_N+1);
+  const int _Nfaces = 4;
+  const int _Nverts = 4;
+  const int _NfaceVertices = 2;
+
+  const int _Nfp = _faceNodes.length()/_Nfaces;
 
   const dfloat NODETOL = 1.0e-5;
 
   dfloat V[2] = {-1.0, 1.0};
 
-  dfloat EX0[Nverts];
-  dfloat EX1[Nverts];
+  dfloat EX0[_Nverts];
+  dfloat EX1[_Nverts];
 
   memory<dfloat> x0(_Nfp);
   memory<dfloat> x1(_Nfp);
 
-  for (int fM=0;fM<Nfaces;fM++) {
+  R.malloc(_Nfaces*_Nfaces*_NfaceVertices*_Nfp);
 
-    for (int v=0;v<Nverts;v++) {
+  for (int fM=0;fM<_Nfaces;fM++) {
+
+    for (int v=0;v<_Nverts;v++) {
       EX0[v] = 0.0;
     }
     //setup top element with face fM on the bottom
-    for (int v=0;v<NfaceVertices;v++) {
-      int fv = faceVertices[fM*NfaceVertices + v];
+    for (int v=0;v<_NfaceVertices;v++) {
+      int fv = _faceVertices[fM*_NfaceVertices + v];
       EX0[fv] = V[v];
     }
 
@@ -173,15 +158,15 @@ void mesh_t::FaceNodeMatchingQuad2D(int _N, dfloat _r[], dfloat _s[],
              +0.25*(1-rn)*(1+sn)*EX0[3];
     }
 
-    for (int fP=0;fP<Nfaces;fP++) { /*For each neighbor face */
-      for (int rot=0;rot<NfaceVertices;rot++) { /* For each face rotation */
+    for (int fP=0;fP<_Nfaces;fP++) { /*For each neighbor face */
+      for (int rot=0;rot<_NfaceVertices;rot++) { /* For each face rotation */
         // Zero vertices
-        for (int v=0;v<Nverts;v++) {
+        for (int v=0;v<_Nverts;v++) {
           EX1[v] = 0.0;
         }
         //setup bottom element with face fP on the top
-        for (int v=0;v<NfaceVertices;v++) {
-          int fv = faceVertices[fP*NfaceVertices + ((v+rot)%NfaceVertices)];
+        for (int v=0;v<_NfaceVertices;v++) {
+          int fv = _faceVertices[fP*_NfaceVertices + ((v+rot)%_NfaceVertices)];
           EX1[fv] = V[v];
         }
 
@@ -212,8 +197,8 @@ void mesh_t::FaceNodeMatchingQuad2D(int _N, dfloat _r[], dfloat _s[],
 
             /* if neighbor node is close to target, match */
             if(dist<NODETOL){
-              R[fM*Nfaces*NfaceVertices*_Nfp
-                + fP*NfaceVertices*_Nfp
+              R[fM*_Nfaces*_NfaceVertices*_Nfp
+                + fP*_NfaceVertices*_Nfp
                 + rot*_Nfp + n] = m;
               break;
             }
@@ -233,6 +218,51 @@ void mesh_t::FaceNodeMatchingQuad2D(int _N, dfloat _r[], dfloat _s[],
                      dist>NODETOL);
         }
       }
+    }
+  }
+}
+
+void mesh_t::EquispacedNodesQuad2D(const int _N,
+                                   memory<dfloat>& _r,
+                                   memory<dfloat>& _s){
+  const int _Nq = _N+1;
+  const int _Np = _Nq*_Nq;
+
+  //Equispaced 1D nodes
+  memory<dfloat> r1D;
+  EquispacedNodes1D(_N, r1D);
+
+  //Tensor product
+  _r.malloc(_Np);
+  _s.malloc(_Np);
+  for (int j=0;j<_Nq;j++) {
+    for (int i=0;i<_Nq;i++) {
+      _r[i+j*_Nq] = r1D[i];
+      _s[i+j*_Nq] = r1D[j];
+    }
+  }
+}
+
+void mesh_t::EquispacedEToVQuad2D(const int _N, memory<int>& _EToV){
+  const int _Nq = _N+1;
+  const int _Nelements = 2*_N*_N;
+  const int _Nverts = 3;
+
+  _EToV.malloc(_Nelements*_Nverts);
+
+  //Tensor product
+  int cnt=0;
+  for (int j=0;j<_N;j++) {
+    for (int i=0;i<_N;i++) {
+      _EToV[cnt*_Nverts+0] = i  +(j  )*_Nq;
+      _EToV[cnt*_Nverts+1] = i+1+(j  )*_Nq;
+      _EToV[cnt*_Nverts+2] = i+1+(j+1)*_Nq;
+      cnt++;
+
+      _EToV[cnt*_Nverts+0] = i  +(j  )*_Nq;
+      _EToV[cnt*_Nverts+1] = i+1+(j+1)*_Nq;
+      _EToV[cnt*_Nverts+2] = i  +(j+1)*_Nq;
+      cnt++;
     }
   }
 }
