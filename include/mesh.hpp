@@ -277,6 +277,9 @@ public:
   static constexpr int HEXAHEDRA     =12;
 
  private:
+  int RXID, RYID, RZID;
+  int SXID, SYID, SZID;
+  int TXID, TYID, TZID;
   int G00ID, G01ID, G02ID, G11ID, G12ID, G22ID;
 
   /*Set the type of mesh*/
@@ -464,6 +467,12 @@ public:
                            const memory<dfloat> _Ds,
                            const memory<dfloat> _MM,
                            memory<dfloat>& _S);
+  static void InterpolationMatrixTri2D(const int _N,
+                                       const memory<dfloat> rIn,
+                                       const memory<dfloat> sIn,
+                                       const memory<dfloat> rOut,
+                                       const memory<dfloat> sOut,
+                                       memory<dfloat>& I);
   static void CubatureNodesTri2D(const int cubTriN,
                                  int& _cubNp,
                                  memory<dfloat>& cubTrir,
@@ -575,6 +584,14 @@ public:
                            const memory<dfloat> _Dt,
                            const memory<dfloat> _MM,
                            memory<dfloat>& _S);
+  static void InterpolationMatrixTet3D(const int _N,
+                                       const memory<dfloat> rIn,
+                                       const memory<dfloat> sIn,
+                                       const memory<dfloat> tIn,
+                                       const memory<dfloat> rOut,
+                                       const memory<dfloat> sOut,
+                                       const memory<dfloat> tOut,
+                                       memory<dfloat>& I);
 
   static void CubatureNodesTet3D(const int cubTetN,
                                  int& _cubNp,

@@ -53,6 +53,7 @@ SOFTWARE.
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
                         @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  vgeo,
                         @restrict const  dfloat *  ggeo,
                         @restrict const  dfloat *  D,
                         @restrict const  dfloat *  S,

@@ -90,6 +90,10 @@ class memory {
     *this = memory<T>(lngth_);
   }
 
+  void malloc(const size_t lngth_, const T val) {
+    *this = memory<T>(lngth_, val);
+  }
+
   void calloc(const size_t lngth_) {
     *this = memory<T>(lngth_, T{0});
   }

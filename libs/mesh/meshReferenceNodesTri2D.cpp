@@ -33,7 +33,56 @@ void mesh_t::ReferenceNodesTri2D(){
   Nfp = N+1;
   Np = (N+1)*(N+2)/2;
 
-  LIBP_FORCE_ABORT("Tri node setup not complete.");
+  /* Nodal Data */
+  NodesTri2D(N, r, s);
+  FaceNodesTri2D(N, r, s, faceNodes);
+  VertexNodesTri2D(N, r, s, vertexNodes);
+
+  memory<dfloat> V;
+  VandermondeTri2D(N, r, s, V);
+
+  //Mass matrix
+  MassMatrixTri2D(Np, V, MM);
+  o_MM = platform.malloc<dfloat>(MM); //MM is symmetric
+
+  DmatrixTri2D(N, r, s, D);
+  Dr = D + 0*Np*Np;
+  Ds = D + 1*Np*Np;
+
+  memory<dfloat> DT(2*Np*Np);
+  memory<dfloat> DrT = DT + 0*Np*Np;
+  memory<dfloat> DsT = DT + 1*Np*Np;
+  linAlg_t::matrixTranspose(Np, Np, Dr, Np, DrT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Ds, Np, DsT, Np);
+  o_D = platform.malloc<dfloat>(DT);
+
+  //packed stiffness matrices
+  SmatrixTri2D(N, Dr, Ds, MM, S);
+  Srr = S + 0*Np*Np;
+  Srs = S + 1*Np*Np;
+  Sss = S + 2*Np*Np;
+
+  memory<dfloat> ST(3*Np*Np);
+  memory<dfloat> SrrT = ST + 0*Np*Np;
+  memory<dfloat> SrsT = ST + 1*Np*Np;
+  memory<dfloat> SssT = ST + 2*Np*Np;
+  linAlg_t::matrixTranspose(Np, Np, Srr, Np, SrrT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Srs, Np, SrsT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Sss, Np, SssT, Np);
+
+  o_S = platform.malloc<dfloat>(ST);
+
+  /* Plotting data */
+  plotN = N;
+  plotNelements = plotN*plotN;
+  plotNverts = 3;
+  EquispacedEToVTri2D(plotN, plotEToV);
+
+  props["defines/" "p_dim"]= dim;
+  props["defines/" "p_N"]= N;
+  props["defines/" "p_Np"]= Np;
+  props["defines/" "p_Nfaces"]= Nfaces;
+  props["defines/" "p_NfacesNfp"]= Nfp*Nfaces;
 }
 
 } //namespace libp

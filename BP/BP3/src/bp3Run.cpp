@@ -114,17 +114,29 @@ void bp3_t::Run(){
                 + (11*Ndofs*sizeof(dfloat) + NbytesAx + NbytesGather)*Niter; //bytes per CG iteration
 
   size_t NflopsAx=0;
-  if (mesh.dim==3)
-    NflopsAx =(  4*cubNq*Nq*Nq*Nq
-               + 4*cubNq*cubNq*Nq*Nq
-               + 4*cubNq*cubNq*cubNq*Nq
-               +12*cubNq*cubNq*cubNq*cubNq
-               +17*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-  else
-    NflopsAx =(  4*cubNq*Nq*Nq
-               + 4*cubNq*cubNq*Nq
-               + 8*cubNq*cubNq*cubNq
-               + 9*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+  switch (mesh.elementType) {
+    case mesh_t::TRIANGLES:
+      NflopsAx =( 12*cubNp*Np
+                 + 8*cubNp)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::TETRAHEDRA:
+      NflopsAx =( 16*cubNp*Np
+                 +17*cubNp)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::QUADRILATERALS:
+      NflopsAx =(  4*cubNq*Nq*Nq
+                 + 4*cubNq*cubNq*Nq
+                 + 8*cubNq*cubNq*cubNq
+                 + 9*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::HEXAHEDRA:
+      NflopsAx =(  4*cubNq*Nq*Nq*Nq
+                 + 4*cubNq*cubNq*Nq*Nq
+                 + 4*cubNq*cubNq*cubNq*Nq
+                 +12*cubNq*cubNq*cubNq*cubNq
+                 +17*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+      break;
+  }
 
   size_t NflopsGather = NGlobal;
 

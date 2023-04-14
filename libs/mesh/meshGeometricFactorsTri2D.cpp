@@ -30,11 +30,20 @@ namespace libp {
 
 void mesh_t::GeometricFactorsTri2D(){
 
-  wJ.malloc(Nelements);
+  wJ.malloc(Nelements*Np);
+
+  /* number of first order geometric factors */
+  Nvgeo = 4;
+  vgeo.malloc(Nelements*Nvgeo*Np);
+
+  RXID  = 0;
+  RYID  = 1;
+  SXID  = 2;
+  SYID  = 3;
 
   /* number of second order geometric factors */
   Nggeo = 3;
-  ggeo.malloc(Nelements*Nggeo);
+  ggeo.malloc(Nelements*Nggeo*Np);
 
   G00ID=0;
   G01ID=1;
@@ -42,42 +51,57 @@ void mesh_t::GeometricFactorsTri2D(){
 
   #pragma omp parallel for
   for(dlong e=0;e<Nelements;++e){ /* for each element */
+    for(int n=0;n<Np;++n){
+      //differentiate physical coordinates
+      dfloat xr = 0.0, xs = 0.0;
+      dfloat yr = 0.0, ys = 0.0;
 
-    /* find vertex indices and physical coordinates */
-    dlong id = e*Nverts+0;
+      for(int m=0;m<Np;++m){
+        xr += Dr[n*Np+m]*x[m+e*Np];
+        xs += Ds[n*Np+m]*x[m+e*Np];
+        yr += Dr[n*Np+m]*y[m+e*Np];
+        ys += Ds[n*Np+m]*y[m+e*Np];
+      }
 
-    dfloat xe1 = EX[id+0];
-    dfloat xe2 = EX[id+1];
-    dfloat xe3 = EX[id+2];
+      /* compute geometric factors for affine coordinate transform*/
+      dfloat J = xr*ys - xs*yr;
 
-    dfloat ye1 = EY[id+0];
-    dfloat ye2 = EY[id+1];
-    dfloat ye3 = EY[id+2];
+      LIBP_ABORT("Negative J found at element " << e,
+                 J<1e-8);
 
-    /* compute geometric factors for affine coordinate transform*/
-    dfloat J = 0.25*((xe2-xe1)*(ye3-ye1) - (xe3-xe1)*(ye2-ye1));
+      dfloat rx =  ys/J;
+      dfloat ry = -xs/J;
+      dfloat sx = -yr/J;
+      dfloat sy =  xr/J;
 
-    LIBP_ABORT("Negative J found at element " << e,
-               J<0);
+      wJ[Np*e + n] = J;
 
-    dfloat rx =  (0.5/J)*(ye3-ye1);
-    dfloat ry = -(0.5/J)*(xe3-xe1);
-    dfloat sx = -(0.5/J)*(ye2-ye1);
-    dfloat sy =  (0.5/J)*(xe2-xe1);
+      /* store geometric factors */
+      dlong vbase = Nvgeo*(Np*e + n);
+      vgeo[vbase + RXID] = rx;
+      vgeo[vbase + RYID] = ry;
+      vgeo[vbase + SXID] = sx;
+      vgeo[vbase + SYID] = sy;
 
-    wJ[e] = J;
-
-    /* store second order geometric factors */
-    ggeo[Nggeo*e + G00ID] = J*(rx*rx + ry*ry);
-    ggeo[Nggeo*e + G01ID] = J*(rx*sx + ry*sy);
-    ggeo[Nggeo*e + G11ID] = J*(sx*sx + sy*sy);
+      /* store second order geometric factors */
+      dlong gbase = Nggeo*(Np*e + n);
+      ggeo[gbase + G00ID] = J*(rx*rx + ry*ry);
+      ggeo[gbase + G01ID] = J*(rx*sx + ry*sy);
+      ggeo[gbase + G11ID] = J*(sx*sx + sy*sy);
+    }
   }
 
   o_wJ = platform.malloc<dfloat>(wJ);
+  o_vgeo = platform.malloc<dfloat>(vgeo);
   o_ggeo = platform.malloc<dfloat>(ggeo);
 
-  props["defines/" "p_Nggeo"]= Nggeo;
+  props["defines/" "p_Nvgeo"]= Nvgeo;
+  props["defines/" "p_RXID"]= RXID;
+  props["defines/" "p_SXID"]= SXID;
+  props["defines/" "p_RYID"]= RYID;
+  props["defines/" "p_SYID"]= SYID;
 
+  props["defines/" "p_Nggeo"]= Nggeo;
   props["defines/" "p_G00ID"]= G00ID;
   props["defines/" "p_G01ID"]= G01ID;
   props["defines/" "p_G11ID"]= G11ID;

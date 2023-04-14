@@ -87,15 +87,24 @@ void bk2_t::Run(){
                   + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
 
   size_t Nflops=0;
-  if (mesh.dim==3)
-    Nflops =(  4*cubNq*Nq*Nq*Nq
-             + 4*cubNq*cubNq*Nq*Nq
-             + 4*cubNq*cubNq*cubNq*Nq
-             + 1*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-  else
-    Nflops =(  4*cubNq*Nq*Nq
-             + 4*cubNq*cubNq*Nq
-             + 1*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+  switch (mesh.elementType) {
+    case mesh_t::TRIANGLES:
+    case mesh_t::TETRAHEDRA:
+      Nflops =(  4*cubNp*Np
+                 + 1*cubNp)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::QUADRILATERALS:
+      Nflops =(  4*cubNq*Nq*Nq
+                 + 4*cubNq*cubNq*Nq
+                 + 1*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::HEXAHEDRA:
+      Nflops =(  4*cubNq*Nq*Nq*Nq
+                 + 4*cubNq*cubNq*Nq*Nq
+                 + 4*cubNq*cubNq*cubNq*Nq
+                 + 1*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+      break;
+  }
 
   if ((mesh.rank==0)){
     printf("BK2: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e \n",

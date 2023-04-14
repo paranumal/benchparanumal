@@ -1,12 +1,19 @@
 #!/bin/bash
 
+mpi="mpirun -np 1 "
+exe=./BK2
+
 function HELP {
-  echo "Usage: ./runBK2.sh -m MODE"
+  echo "Usage: ./runBK2.sh -m MODE -e ELEMENT -n NDOFS"
   exit 1
 }
 
+#defaults
+element=Hex
+ndofs=4000000
+
 #parse options
-while getopts :m:h FLAG; do
+while getopts :m:e:n:h FLAG; do
   case $FLAG in
     m)
         mode=$OPTARG
@@ -14,6 +21,16 @@ while getopts :m:h FLAG; do
             echo "Incorrect run mode provided"
             exit 1
         }
+        ;;
+    e)
+        element=$OPTARG
+        [[ ! $element =~ Tri|Tet|Quad|Hex ]] && {
+            echo "Incorrect element type provided"
+            exit 1
+        }
+        ;;
+    n)
+        ndofs=$OPTARG
         ;;
     h)  #show help
         HELP
@@ -30,25 +47,19 @@ then
     mode=HIP
 fi
 
-# Build the code
-# make -j `nproc`
-
 echo "Running BK2..."
 
-mpirun -np 1 BK2 -m $mode -nx  87 -ny  87 -nz  87 -p 1
-mpirun -np 1 BK2 -m $mode -nx  56 -ny  56 -nz  56 -p 2
-mpirun -np 1 BK2 -m $mode -nx  37 -ny  37 -nz  37 -p 3
-mpirun -np 1 BK2 -m $mode -nx  28 -ny  28 -nz  28 -p 4
-mpirun -np 1 BK2 -m $mode -nx  23 -ny  23 -nz  23 -p 5
-mpirun -np 1 BK2 -m $mode -nx  19 -ny  19 -nz  19 -p 6
-mpirun -np 1 BK2 -m $mode -nx  16 -ny  16 -nz  16 -p 7
-mpirun -np 1 BK2 -m $mode -nx  14 -ny  14 -nz  14 -p 8
-mpirun -np 1 BK2 -m $mode -nx  12 -ny  12 -nz  12 -p 9
-mpirun -np 1 BK2 -m $mode -nx  11 -ny  11 -nz  11 -p 10
-# mpirun -np 1 BK2 -m $mode -nx  10 -ny  10 -nz  10 -p 11
-# mpirun -np 1 BK2 -m $mode -nx  10 -ny  10 -nz  10 -p 12
-# mpirun -np 1 BK2 -m $mode -nx  9 -ny  9 -nz  9 -p 13
-# mpirun -np 1 BK2 -m $mode -nx  8 -ny  8 -nz  8 -p 14
+for p in {1..10}
+do
+    #compute mesh size
+    if [ "$element" == "Hex" ] || [ "$element" == "Tet" ]; then
+        N=$(echo $ndofs $p | awk '{ printf "%3.0f", ($1/(3*$2*$2*$2))^(1/3)+0.499 }')
+        $mpi $exe -m $mode -e $element -nx $N -ny $N -nz $N -p $p
+    elif [ "$element" == "Quad" ] || [ "$element" == "Tri" ]; then
+        N=$(echo $ndofs $p | awk '{ printf "%3.0f", ($1/(2*$2*$2))^(1/2)+0.499 }')
+        $mpi $exe -m $mode -e $element -nx $N -ny $N -p $p
+    fi
+done
 
 #
 # Noel Chalmers

@@ -33,7 +33,69 @@ void mesh_t::ReferenceNodesTet3D(){
   Np = ((N+1)*(N+2)*(N+3))/6;
   Nfp = ((N+1)*(N+2))/2;
 
-  LIBP_FORCE_ABORT("Tet node setup not complete.");
+  /* Nodal Data */
+  NodesTet3D(N, r, s, t);
+  FaceNodesTet3D(N, r, s, t, faceNodes);
+  VertexNodesTet3D(N, r, s, t, vertexNodes);
+
+  memory<dfloat> V;
+  VandermondeTet3D(N, r, s, t, V);
+
+  //Mass matrix
+  MassMatrixTet3D(Np, V, MM);
+  o_MM = platform.malloc<dfloat>(MM); //MM is symmetric
+
+  //packed D matrices
+  DmatrixTet3D(N, r, s, t, D);
+  Dr = D + 0*Np*Np;
+  Ds = D + 1*Np*Np;
+  Dt = D + 2*Np*Np;
+
+  memory<dfloat> DT(3*Np*Np);
+  memory<dfloat> DrT = DT + 0*Np*Np;
+  memory<dfloat> DsT = DT + 1*Np*Np;
+  memory<dfloat> DtT = DT + 2*Np*Np;
+  linAlg_t::matrixTranspose(Np, Np, Dr, Np, DrT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Ds, Np, DsT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Dt, Np, DtT, Np);
+  o_D = platform.malloc<dfloat>(DT);
+
+  //packed stiffness matrices
+  SmatrixTet3D(N, Dr, Ds, Dt, MM, S);
+  Srr = S + 0*Np*Np;
+  Srs = S + 1*Np*Np;
+  Srt = S + 2*Np*Np;
+  Sss = S + 3*Np*Np;
+  Sst = S + 4*Np*Np;
+  Stt = S + 5*Np*Np;
+
+  memory<dfloat> ST(6*Np*Np);
+  memory<dfloat> SrrT = ST + 0*Np*Np;
+  memory<dfloat> SrsT = ST + 1*Np*Np;
+  memory<dfloat> SrtT = ST + 2*Np*Np;
+  memory<dfloat> SssT = ST + 3*Np*Np;
+  memory<dfloat> SstT = ST + 4*Np*Np;
+  memory<dfloat> SttT = ST + 5*Np*Np;
+  linAlg_t::matrixTranspose(Np, Np, Srr, Np, SrrT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Srs, Np, SrsT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Srt, Np, SrtT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Sss, Np, SssT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Sst, Np, SstT, Np);
+  linAlg_t::matrixTranspose(Np, Np, Stt, Np, SttT, Np);
+
+  o_S = platform.malloc<dfloat>(ST);
+
+  /* Plotting data */
+  plotN = N; //enriched interpolation space for plotting
+  plotNelements = plotN*plotN*plotN;
+  plotNverts = 4;
+  EquispacedEToVTet3D(plotN, plotEToV);
+
+  props["defines/" "p_dim"]= dim;
+  props["defines/" "p_N"]= N;
+  props["defines/" "p_Np"]= Np;
+  props["defines/" "p_Nfp"]= Nfp;
+  props["defines/" "p_NfacesNfp"]= Nfp*Nfaces;
 }
 
 } //namespace libp

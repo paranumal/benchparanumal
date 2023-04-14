@@ -95,18 +95,30 @@ void bk4_t::Run(){
                   + Np*Nfields*sizeof(dlong) // GlobalToLocal
                   + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
 
-  double Nflops=0;
-  if (mesh.dim==3)
-    Nflops =((double)  4*cubNq*Nq*Nq*Nq
-             + 4*cubNq*cubNq*Nq*Nq
-             + 4*cubNq*cubNq*cubNq*Nq
-             +12*cubNq*cubNq*cubNq*cubNq
-             +17*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-  else
-    Nflops =(  4*cubNq*Nq*Nq
-             + 4*cubNq*cubNq*Nq
-             + 8*cubNq*cubNq*cubNq
-             + 9*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+  size_t Nflops=0;
+  switch (mesh.elementType) {
+    case mesh_t::TRIANGLES:
+      Nflops =( 12*cubNp*Np
+                 + 8*cubNp)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::TETRAHEDRA:
+      Nflops =( 16*cubNp*Np
+                 +17*cubNp)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::QUADRILATERALS:
+      Nflops =(  4*cubNq*Nq*Nq
+                 + 4*cubNq*cubNq*Nq
+                 + 8*cubNq*cubNq*cubNq
+                 + 9*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::HEXAHEDRA:
+      Nflops =(  4*cubNq*Nq*Nq*Nq
+                 + 4*cubNq*cubNq*Nq*Nq
+                 + 4*cubNq*cubNq*cubNq*Nq
+                 +12*cubNq*cubNq*cubNq*cubNq
+                 +17*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+      break;
+  }
 
   if ((mesh.rank==0)){
     printf("BK4: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e \n",

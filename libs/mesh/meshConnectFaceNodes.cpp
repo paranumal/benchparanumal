@@ -35,17 +35,15 @@ void mesh_t::ConnectFaceNodes(){
   memory<int> R(Nfaces*Nfaces*NfaceVertices*Nfp);
 
   switch (elementType) {
-    // case TRIANGLES:
-    //   FaceNodeMatchingTri2D(N, r.ptr(), s.ptr(),
-    //                         faceNodes.ptr(), R.ptr());
-    //   break;
+    case TRIANGLES:
+      FaceNodeMatchingTri2D(r, s, faceNodes, faceVertices, R);
+      break;
     case QUADRILATERALS:
       FaceNodeMatchingQuad2D(r, s, faceNodes, faceVertices, R);
       break;
-    // case TETRAHEDRA:
-    //   FaceNodeMatchingTet3D(N, r.ptr(), s.ptr(), t.ptr(),
-    //                         faceNodes.ptr(), R.ptr());
-    //   break;
+    case TETRAHEDRA:
+      FaceNodeMatchingTet3D(r, s, t, faceNodes, faceVertices, R);
+      break;
     case HEXAHEDRA:
       FaceNodeMatchingHex3D(r, s, t, faceNodes, faceVertices, R);
       break;

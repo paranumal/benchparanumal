@@ -57,6 +57,7 @@ void bk6_t::Run(){
                    mesh.o_localGatherElementList,
                    o_GlobalToLocal,
                    mesh.o_wJ,
+                   mesh.o_vgeo,
                    mesh.o_ggeo,
                    mesh.o_D,
                    mesh.o_S,
@@ -72,6 +73,7 @@ void bk6_t::Run(){
                    mesh.o_localGatherElementList,
                    o_GlobalToLocal,
                    mesh.o_wJ,
+                   mesh.o_vgeo,
                    mesh.o_ggeo,
                    mesh.o_D,
                    mesh.o_S,
@@ -87,19 +89,45 @@ void bk6_t::Run(){
 
   hlong Ndofs = ogs.NgatherGlobal;
 
-  size_t Nbytes =   Ndofs*sizeof(dfloat) //q
-                  + (Np*(mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
-                  + sizeof(dlong) // localGatherElementList
-                  + Np*Nfields*sizeof(dlong) // GlobalToLocal
-                  + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  size_t Nbytes = 0;
+  switch (mesh.elementType) {
+    case mesh_t::TRIANGLES:
+    case mesh_t::TETRAHEDRA:
+      Nbytes = Ndofs*sizeof(dfloat) //q
+               + (Np*(mesh.dim==3 ? 10 : 5)*sizeof(dfloat) // vgeo
+               +  sizeof(dlong) // localGatherElementList
+               +  Np*Nfields*sizeof(dlong) // GlobalToLocal
+               +  Np*Nfields*sizeof(dfloat) /*AqL*/ )*mesh.NelementsGlobal;
+      break;
+    case mesh_t::QUADRILATERALS:
+    case mesh_t::HEXAHEDRA:
+      Nbytes = Ndofs*sizeof(dfloat) //q
+               + (Np*(mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
+               +  sizeof(dlong) // localGatherElementList
+               +  Np*Nfields*sizeof(dlong) // GlobalToLocal
+               +  Np*Nfields*sizeof(dfloat) /*AqL*/ )*mesh.NelementsGlobal;
+      break;
+  }
 
   size_t Nflops=0;
-  if (mesh.dim==3)
-    Nflops =( 12*Nq*Nq*Nq*Nq
-             +18*Nq*Nq*Nq)*Nfields*mesh.NelementsGlobal;
-  else
-    Nflops =(  8*Nq*Nq*Nq
-             + 8*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+  switch (mesh.elementType) {
+    case mesh_t::TRIANGLES:
+      Nflops =( 14*Np*Np
+                 +14*Np)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::TETRAHEDRA:
+      Nflops =( 20*Np*Np
+                 +32*Np)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::QUADRILATERALS:
+      Nflops =(  8*Nq*Nq*Nq
+                 + 8*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+      break;
+    case mesh_t::HEXAHEDRA:
+      Nflops =( 12*Nq*Nq*Nq*Nq
+                 +18*Nq*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+      break;
+  }
 
   if ((mesh.rank==0)){
     printf("BK6: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e \n",
