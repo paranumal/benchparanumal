@@ -162,6 +162,10 @@ void settings_t::parseSettings(const int argc, char** argv) {
               strcmp(argv[i], "--verbose") == 0) {
             changeSetting("VERBOSE", "TRUE");
             i++;
+          } else if (strcmp(argv[i], "-a") == 0 ||
+                     strcmp(argv[i], "--affine") == 0) {
+            changeSetting("AFFINE MESH", "TRUE");
+            i++;
           } else {
             changeSetting(setting.name, string(argv[i+1]));
             i+=2;

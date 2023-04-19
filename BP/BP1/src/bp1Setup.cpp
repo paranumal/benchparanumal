@@ -73,14 +73,23 @@ void bp1_t::Setup(platform_t& _platform, settings_t& _settings,
   char fileName[BUFSIZ], kernelName[BUFSIZ];
 
   // Ax kernel
-  sprintf(fileName,  LIBP_DIR "/okl/bp1Ax%s.okl", suffix);
-  sprintf(kernelName, "bp1Ax%s", suffix);
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
+    sprintf(fileName,  LIBP_DIR "/okl/bp1AxAffine%s.okl", suffix);
+    sprintf(kernelName, "bp1AxAffine%s", suffix);
+  } else {
+    sprintf(fileName,  LIBP_DIR "/okl/bp1Ax%s.okl", suffix);
+    sprintf(kernelName, "bp1Ax%s", suffix);
+  }
 
   operatorKernel = platform.buildKernel(fileName, kernelName,
                                    kernelInfo);
 
   sprintf(fileName, LIBP_DIR "/okl/rhs%s.okl", suffix);
-  sprintf(kernelName, "rhs%s", suffix);
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
+    sprintf(kernelName, "rhsAffine%s", suffix);
+  } else {
+    sprintf(kernelName, "rhs%s", suffix);
+  }
   forcingKernel = platform.buildKernel(fileName, kernelName,
                                    kernelInfo);
 }

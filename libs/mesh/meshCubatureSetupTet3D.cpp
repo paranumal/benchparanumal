@@ -73,89 +73,100 @@ void mesh_t::CubatureSetupTet3D(){
   o_cubD = platform.malloc<dfloat>(cubDT);
 
   /*Geofactors*/
-  cubwJ.malloc(Nelements*cubNp);
-  // cubvgeo.malloc(Nelements*Nvgeo*cubNp);
-  // cubsgeo.malloc(Nelements*Nsgeo*cubNfp*Nfaces);
-  cubggeo.malloc(Nelements*Nggeo*cubNp);
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
 
-  //temp arrays
-  memory<dfloat> xre(Np);
-  memory<dfloat> xse(Np);
-  memory<dfloat> xte(Np);
-  memory<dfloat> yre(Np);
-  memory<dfloat> yse(Np);
-  memory<dfloat> yte(Np);
-  memory<dfloat> zre(Np);
-  memory<dfloat> zse(Np);
-  memory<dfloat> zte(Np);
+    cubwJ = wJ;
+    cubggeo = ggeo;
+    o_cubwJ = o_wJ;
+    o_cubggeo = o_ggeo;
 
-  //geometric data for quadrature
-  for(dlong e=0;e<Nelements;++e){ /* for each element */
-    for(int n=0;n<Np;++n){
-      //differentiate physical coordinates
-      xre[n] = 0.0; xse[n] = 0.0; xte[n] = 0.0;
-      yre[n] = 0.0; yse[n] = 0.0; yte[n] = 0.0;
-      zre[n] = 0.0; zse[n] = 0.0; zte[n] = 0.0;
+  } else {
 
-      for(int m=0;m<Np;++m){
-        xre[n] += Dr[n*Np+m]*x[m+e*Np];
-        xse[n] += Ds[n*Np+m]*x[m+e*Np];
-        xte[n] += Dt[n*Np+m]*x[m+e*Np];
-        yre[n] += Dr[n*Np+m]*y[m+e*Np];
-        yse[n] += Ds[n*Np+m]*y[m+e*Np];
-        yte[n] += Dt[n*Np+m]*y[m+e*Np];
-        zre[n] += Dr[n*Np+m]*z[m+e*Np];
-        zse[n] += Ds[n*Np+m]*z[m+e*Np];
-        zte[n] += Dt[n*Np+m]*z[m+e*Np];
+    cubwJ.malloc(Nelements*cubNp);
+    // cubvgeo.malloc(Nelements*Nvgeo*cubNp);
+    // cubsgeo.malloc(Nelements*Nsgeo*cubNfp*Nfaces);
+    cubggeo.malloc(Nelements*Nggeo*cubNp);
+
+    //temp arrays
+    memory<dfloat> xre(Np);
+    memory<dfloat> xse(Np);
+    memory<dfloat> xte(Np);
+    memory<dfloat> yre(Np);
+    memory<dfloat> yse(Np);
+    memory<dfloat> yte(Np);
+    memory<dfloat> zre(Np);
+    memory<dfloat> zse(Np);
+    memory<dfloat> zte(Np);
+
+    //geometric data for quadrature
+    for(dlong e=0;e<Nelements;++e){ /* for each element */
+      for(int n=0;n<Np;++n){
+        //differentiate physical coordinates
+        xre[n] = 0.0; xse[n] = 0.0; xte[n] = 0.0;
+        yre[n] = 0.0; yse[n] = 0.0; yte[n] = 0.0;
+        zre[n] = 0.0; zse[n] = 0.0; zte[n] = 0.0;
+
+        for(int m=0;m<Np;++m){
+          xre[n] += Dr[n*Np+m]*x[m+e*Np];
+          xse[n] += Ds[n*Np+m]*x[m+e*Np];
+          xte[n] += Dt[n*Np+m]*x[m+e*Np];
+          yre[n] += Dr[n*Np+m]*y[m+e*Np];
+          yse[n] += Ds[n*Np+m]*y[m+e*Np];
+          yte[n] += Dt[n*Np+m]*y[m+e*Np];
+          zre[n] += Dr[n*Np+m]*z[m+e*Np];
+          zse[n] += Ds[n*Np+m]*z[m+e*Np];
+          zte[n] += Dt[n*Np+m]*z[m+e*Np];
+        }
+      }
+
+      //interpolate derivaties to cubature
+      for(int n=0;n<cubNp;++n){
+        //differentiate physical coordinates
+        dfloat xr = 0.0, xs = 0.0, xt = 0.0;
+        dfloat yr = 0.0, ys = 0.0, yt = 0.0;
+        dfloat zr = 0.0, zs = 0.0, zt = 0.0;
+
+        for(int m=0;m<Np;++m){
+          xr += cubInterp[n*Np+m]*xre[m];
+          xs += cubInterp[n*Np+m]*xse[m];
+          xt += cubInterp[n*Np+m]*xte[m];
+          yr += cubInterp[n*Np+m]*yre[m];
+          ys += cubInterp[n*Np+m]*yse[m];
+          yt += cubInterp[n*Np+m]*yte[m];
+          zr += cubInterp[n*Np+m]*zre[m];
+          zs += cubInterp[n*Np+m]*zse[m];
+          zt += cubInterp[n*Np+m]*zte[m];
+        }
+
+        /* compute geometric factors for affine coordinate transform*/
+        dfloat J = xr*(ys*zt-zs*yt) - yr*(xs*zt-zs*xt) + zr*(xs*yt-ys*xt);
+
+        dfloat rx =  (ys*zt - zs*yt)/J, ry = -(xs*zt - zs*xt)/J, rz =  (xs*yt - ys*xt)/J;
+        dfloat sx = -(yr*zt - zr*yt)/J, sy =  (xr*zt - zr*xt)/J, sz = -(xr*yt - yr*xt)/J;
+        dfloat tx =  (yr*zs - zr*ys)/J, ty = -(xr*zs - zr*xs)/J, tz =  (xr*ys - yr*xs)/J;
+
+        LIBP_ABORT("Negative J found at element " << e,
+                   J<0);
+
+        dfloat JW = J*cubw[n];
+
+        cubwJ[cubNp*e + n] = JW;
+
+        /* store second order geometric factors */
+        dlong base = Nggeo*(cubNp*e + n);
+        cubggeo[base + G00ID] = JW*(rx*rx + ry*ry + rz*rz);
+        cubggeo[base + G01ID] = JW*(rx*sx + ry*sy + rz*sz);
+        cubggeo[base + G02ID] = JW*(rx*tx + ry*ty + rz*tz);
+        cubggeo[base + G11ID] = JW*(sx*sx + sy*sy + sz*sz);
+        cubggeo[base + G12ID] = JW*(sx*tx + sy*ty + sz*tz);
+        cubggeo[base + G22ID] = JW*(tx*tx + ty*ty + tz*tz);
       }
     }
 
-    //interpolate derivaties to cubature
-    for(int n=0;n<cubNp;++n){
-      //differentiate physical coordinates
-      dfloat xr = 0.0, xs = 0.0, xt = 0.0;
-      dfloat yr = 0.0, ys = 0.0, yt = 0.0;
-      dfloat zr = 0.0, zs = 0.0, zt = 0.0;
-
-      for(int m=0;m<Np;++m){
-        xr += cubInterp[n*Np+m]*xre[m];
-        xs += cubInterp[n*Np+m]*xse[m];
-        xt += cubInterp[n*Np+m]*xte[m];
-        yr += cubInterp[n*Np+m]*yre[m];
-        ys += cubInterp[n*Np+m]*yse[m];
-        yt += cubInterp[n*Np+m]*yte[m];
-        zr += cubInterp[n*Np+m]*zre[m];
-        zs += cubInterp[n*Np+m]*zse[m];
-        zt += cubInterp[n*Np+m]*zte[m];
-      }
-
-      /* compute geometric factors for affine coordinate transform*/
-      dfloat J = xr*(ys*zt-zs*yt) - yr*(xs*zt-zs*xt) + zr*(xs*yt-ys*xt);
-
-      dfloat rx =  (ys*zt - zs*yt)/J, ry = -(xs*zt - zs*xt)/J, rz =  (xs*yt - ys*xt)/J;
-      dfloat sx = -(yr*zt - zr*yt)/J, sy =  (xr*zt - zr*xt)/J, sz = -(xr*yt - yr*xt)/J;
-      dfloat tx =  (yr*zs - zr*ys)/J, ty = -(xr*zs - zr*xs)/J, tz =  (xr*ys - yr*xs)/J;
-
-      LIBP_ABORT("Negative J found at element " << e,
-                 J<0);
-
-      dfloat JW = J*cubw[n];
-
-      cubwJ[cubNp*e + n] = JW;
-
-      /* store second order geometric factors */
-      dlong base = Nggeo*(cubNp*e + n);
-      cubggeo[base + G00ID] = JW*(rx*rx + ry*ry + rz*rz);
-      cubggeo[base + G01ID] = JW*(rx*sx + ry*sy + rz*sz);
-      cubggeo[base + G02ID] = JW*(rx*tx + ry*ty + rz*tz);
-      cubggeo[base + G11ID] = JW*(sx*sx + sy*sy + sz*sz);
-      cubggeo[base + G12ID] = JW*(sx*tx + sy*ty + sz*tz);
-      cubggeo[base + G22ID] = JW*(tx*tx + ty*ty + tz*tz);
-    }
+    o_cubwJ = platform.malloc<dfloat>(cubwJ);
+    o_cubggeo = platform.malloc<dfloat>(cubggeo);
   }
 
-  o_cubwJ = platform.malloc<dfloat>(cubwJ);
-  o_cubggeo = platform.malloc<dfloat>(cubggeo);
 }
 
 } //namespace libp

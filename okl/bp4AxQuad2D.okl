@@ -56,6 +56,7 @@ SOFTWARE.
                         @restrict const  dfloat *  cubggeo,
                         @restrict const  dfloat *  D,
                         @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
                         @restrict const  dfloat *  S,
                         @restrict const  dfloat *  MM,
                         const dfloat lambda,

@@ -63,6 +63,7 @@ SOFTWARE.
                         @restrict const  dlong  *  GlobalToLocal,
                         @restrict const  dfloat *  cubwJ,
                         @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 
@@ -348,6 +349,7 @@ SOFTWARE.
                         @restrict const  dlong  *  GlobalToLocal,
                         @restrict const  dfloat *  cubwJ,
                         @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 

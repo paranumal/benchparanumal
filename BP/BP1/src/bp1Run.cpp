@@ -53,6 +53,7 @@ void bp1_t::Run(){
   dfloat zero=0.0;
   forcingKernel(mesh.Nelements,
                 mesh.o_wJ,
+                mesh.o_gllw,
                 mesh.o_MM,
                 mesh.o_x,
                 mesh.o_y,
@@ -75,6 +76,7 @@ void bp1_t::Run(){
   //populate rhs forcing
   forcingKernel(mesh.Nelements,
                 mesh.o_wJ,
+                mesh.o_gllw,
                 mesh.o_MM,
                 mesh.o_x,
                 mesh.o_y,
@@ -100,11 +102,22 @@ void bp1_t::Run(){
 
   hlong Ndofs = NgatherGlobal;
 
-  size_t NbytesAx =   NgatherGlobal*sizeof(dfloat) //q
-                    + (cubNp*sizeof(dfloat) // JW
-                    + sizeof(dlong) // localGatherElementList
-                    + Np*Nfields*sizeof(dlong) // GlobalToLocal
-                    + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
+
+  size_t NbytesAx=0;
+  if (affine) {
+    NbytesAx = Ndofs*sizeof(dfloat) //q
+            + (sizeof(dfloat) // J
+            + sizeof(dlong) // localGatherElementList
+            + Np*Nfields*sizeof(dlong) // GlobalToLocal
+            + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  } else {
+    NbytesAx = Ndofs*sizeof(dfloat) //q
+            + (cubNp*sizeof(dfloat) // JW
+            + sizeof(dlong) // localGatherElementList
+            + Np*Nfields*sizeof(dlong) // GlobalToLocal
+            + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  }
 
   size_t NbytesGather =  (NgatherGlobal+1)*sizeof(dlong) //row starts
                        + NGlobal*sizeof(dlong) //local Ids
@@ -115,23 +128,41 @@ void bp1_t::Run(){
                 + (11*Ndofs*sizeof(dfloat) + NbytesAx + NbytesGather)*Niter; //bytes per CG iteration
 
   size_t NflopsAx=0;
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-    case mesh_t::TETRAHEDRA:
-      NflopsAx =(  4*cubNp*Np
-                 + 1*cubNp)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::QUADRILATERALS:
-      NflopsAx =(  4*cubNq*Nq*Nq
-                 + 4*cubNq*cubNq*Nq
-                 + 1*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::HEXAHEDRA:
-      NflopsAx =(  4*cubNq*Nq*Nq*Nq
-                 + 4*cubNq*cubNq*Nq*Nq
-                 + 4*cubNq*cubNq*cubNq*Nq
-                 + 1*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-      break;
+  if (affine) {
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+      case mesh_t::TETRAHEDRA:
+        NflopsAx =(  2*Np*Np
+                   + 1*Np)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::QUADRILATERALS:
+        NflopsAx =(  4*Nq*Nq*Nq
+                   + 1*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::HEXAHEDRA:
+        NflopsAx =(  6*Nq*Nq*Nq*Nq
+                   + 1*Nq*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+        break;
+    }
+  } else {
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+      case mesh_t::TETRAHEDRA:
+        NflopsAx =(  4*cubNp*Np
+                   + 1*cubNp)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::QUADRILATERALS:
+        NflopsAx =(  4*cubNq*Nq*Nq
+                   + 4*cubNq*cubNq*Nq
+                   + 1*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::HEXAHEDRA:
+        NflopsAx =(  4*cubNq*Nq*Nq*Nq
+                   + 4*cubNq*cubNq*Nq*Nq
+                   + 4*cubNq*cubNq*cubNq*Nq
+                   + 1*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+        break;
+    }
   }
 
   size_t NflopsGather = NGlobal;
@@ -140,7 +171,24 @@ void bp1_t::Run(){
                   + (11*Ndofs + NflopsAx + NflopsGather)*Niter; //flops per CG iteration
 
   if ((mesh.rank==0)){
-    printf("BP1: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, iterations=%d, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs*iterations/ranks*time=%1.2e \n",
+    std::string suffix("Element=");
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+        suffix += "Tri";
+        break;
+      case mesh_t::TETRAHEDRA:
+        suffix += "Tet";
+        break;
+      case mesh_t::QUADRILATERALS:
+        suffix += "Quad";
+        break;
+      case mesh_t::HEXAHEDRA:
+        suffix += "Hex";
+        break;
+    }
+    if (affine) suffix += ", Affine";
+
+    printf("BP1: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, iterations=%d, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs*iterations/ranks*time=%1.2e, %s \n",
            mesh.N,
            Ndofs,
            elapsedTime,
@@ -148,7 +196,8 @@ void bp1_t::Run(){
            elapsedTime/(Ndofs),
            Nbytes/(1.0e9 * elapsedTime),
            Nflops/(1.0e9 * elapsedTime),
-           Ndofs*((dfloat)Niter/(mesh.size*elapsedTime)));
+           Ndofs*((dfloat)Niter/(mesh.size*elapsedTime)),
+           suffix.c_str());
   }
 
   std::string name;

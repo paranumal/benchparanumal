@@ -55,6 +55,7 @@ SOFTWARE.
                         @restrict const  dfloat *  wJ,
                         @restrict const  dfloat *  vgeo,
                         @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  gllw,
                         @restrict const  dfloat *  D,
                         @restrict const  dfloat *  S,
                         @restrict const  dfloat *  MM,

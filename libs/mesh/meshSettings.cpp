@@ -54,6 +54,12 @@ void meshAddSettings(settings_t& settings) {
                       "4",
                       "Degree of polynomial finite element space",
                       {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"});
+
+  settings.newSetting("-a", "--affine",
+                      "AFFINE MESH",
+                      "FALSE",
+                      "Assume elements are affine images of reference element",
+                      {"TRUE","FALSE"});
 }
 
 void meshReportSettings(settings_t& settings) {
@@ -67,6 +73,8 @@ void meshReportSettings(settings_t& settings) {
   if (settings.compareSetting("ELEMENT TYPE", "Tet") ||
       settings.compareSetting("ELEMENT TYPE", "Hex") )
     settings.reportSetting("BOX NZ");
+
+  settings.reportSetting("AFFINE MESH");
 
   settings.reportSetting("POLYNOMIAL DEGREE");
 }

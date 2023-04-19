@@ -30,12 +30,8 @@ namespace libp {
 
 void mesh_t::GeometricFactorsHex3D(){
 
-  wJ.malloc(Nelements*Np);
-
   /* number of second order geometric factors */
   Nggeo = 6;
-  ggeo.malloc(Nelements*Nggeo*Np);
-
   G00ID=0;
   G01ID=1;
   G02ID=2;
@@ -43,54 +39,101 @@ void mesh_t::GeometricFactorsHex3D(){
   G12ID=4;
   G22ID=5;
 
-  #pragma omp parallel for
-  for(dlong e=0;e<Nelements;++e){ /* for each element */
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
+    wJ.malloc(Nelements);
+    ggeo.malloc(Nelements*Nggeo);
 
-    for(int k=0;k<Nq;++k){
-      for(int j=0;j<Nq;++j){
-        for(int i=0;i<Nq;++i){
+    #pragma omp parallel for
+    for(dlong e=0;e<Nelements;++e){ /* for each element */
+      /* find vertex indices and physical coordinates */
+      dlong id = e*Nverts+0;
 
-          int n = i + j*Nq + k*Nq*Nq;
+      /* vertex coordinates */
+      dfloat xe1 = EX[id+0], ye1 = EY[id+0], ze1 = EZ[id+0];
+      dfloat xe2 = EX[id+1], ye2 = EY[id+1], ze2 = EZ[id+1];
+      dfloat xe3 = EX[id+3], ye3 = EY[id+3], ze3 = EZ[id+3];
+      dfloat xe4 = EX[id+4], ye4 = EY[id+4], ze4 = EZ[id+4];
 
-          dfloat xr = 0, xs = 0, xt = 0;
-          dfloat yr = 0, ys = 0, yt = 0;
-          dfloat zr = 0, zs = 0, zt = 0;
-          for(int m=0;m<Nq;++m){
-            int idr = e*Np + k*Nq*Nq + j*Nq + m;
-            int ids = e*Np + k*Nq*Nq + m*Nq + i;
-            int idt = e*Np + m*Nq*Nq + j*Nq + i;
-            xr += D[i*Nq+m]*x[idr];
-            xs += D[j*Nq+m]*x[ids];
-            xt += D[k*Nq+m]*x[idt];
-            yr += D[i*Nq+m]*y[idr];
-            ys += D[j*Nq+m]*y[ids];
-            yt += D[k*Nq+m]*y[idt];
-            zr += D[i*Nq+m]*z[idr];
-            zs += D[j*Nq+m]*z[ids];
-            zt += D[k*Nq+m]*z[idt];
+      /* Jacobian matrix */
+      dfloat xr = 0.5*(xe2-xe1), xs = 0.5*(xe3-xe1), xt = 0.5*(xe4-xe1);
+      dfloat yr = 0.5*(ye2-ye1), ys = 0.5*(ye3-ye1), yt = 0.5*(ye4-ye1);
+      dfloat zr = 0.5*(ze2-ze1), zs = 0.5*(ze3-ze1), zt = 0.5*(ze4-ze1);
+
+      /* compute geometric factors for affine coordinate transform*/
+      dfloat J = xr*(ys*zt-zs*yt) - yr*(xs*zt-zs*xt) + zr*(xs*yt-ys*xt);
+
+      dfloat rx =  (ys*zt - zs*yt)/J, ry = -(xs*zt - zs*xt)/J, rz =  (xs*yt - ys*xt)/J;
+      dfloat sx = -(yr*zt - zr*yt)/J, sy =  (xr*zt - zr*xt)/J, sz = -(xr*yt - yr*xt)/J;
+      dfloat tx =  (yr*zs - zr*ys)/J, ty = -(xr*zs - zr*xs)/J, tz =  (xr*ys - yr*xs)/J;
+
+      LIBP_ABORT("Negative J found at element " << e,
+                 J<0);
+
+      wJ[e] = J;
+
+      /* store second order geometric factors */
+      dlong gbase = Nggeo*e;
+      ggeo[gbase + G00ID] = J*(rx*rx + ry*ry + rz*rz);
+      ggeo[gbase + G01ID] = J*(rx*sx + ry*sy + rz*sz);
+      ggeo[gbase + G02ID] = J*(rx*tx + ry*ty + rz*tz);
+      ggeo[gbase + G11ID] = J*(sx*sx + sy*sy + sz*sz);
+      ggeo[gbase + G12ID] = J*(sx*tx + sy*ty + sz*tz);
+      ggeo[gbase + G22ID] = J*(tx*tx + ty*ty + tz*tz);
+    }
+
+  } else {
+    wJ.malloc(Nelements*Np);
+    ggeo.malloc(Nelements*Nggeo*Np);
+
+    #pragma omp parallel for
+    for(dlong e=0;e<Nelements;++e){ /* for each element */
+
+      for(int k=0;k<Nq;++k){
+        for(int j=0;j<Nq;++j){
+          for(int i=0;i<Nq;++i){
+
+            int n = i + j*Nq + k*Nq*Nq;
+
+            dfloat xr = 0, xs = 0, xt = 0;
+            dfloat yr = 0, ys = 0, yt = 0;
+            dfloat zr = 0, zs = 0, zt = 0;
+            for(int m=0;m<Nq;++m){
+              int idr = e*Np + k*Nq*Nq + j*Nq + m;
+              int ids = e*Np + k*Nq*Nq + m*Nq + i;
+              int idt = e*Np + m*Nq*Nq + j*Nq + i;
+              xr += D[i*Nq+m]*x[idr];
+              xs += D[j*Nq+m]*x[ids];
+              xt += D[k*Nq+m]*x[idt];
+              yr += D[i*Nq+m]*y[idr];
+              ys += D[j*Nq+m]*y[ids];
+              yt += D[k*Nq+m]*y[idt];
+              zr += D[i*Nq+m]*z[idr];
+              zs += D[j*Nq+m]*z[ids];
+              zt += D[k*Nq+m]*z[idt];
+            }
+
+            /* compute geometric factors for affine coordinate transform*/
+            dfloat J = xr*(ys*zt-zs*yt) - yr*(xs*zt-zs*xt) + zr*(xs*yt-ys*xt);
+
+            LIBP_ABORT("Negative J found at element " << e,
+                       J<1e-12);
+
+            dfloat rx =  (ys*zt - zs*yt)/J, ry = -(xs*zt - zs*xt)/J, rz =  (xs*yt - ys*xt)/J;
+            dfloat sx = -(yr*zt - zr*yt)/J, sy =  (xr*zt - zr*xt)/J, sz = -(xr*yt - yr*xt)/J;
+            dfloat tx =  (yr*zs - zr*ys)/J, ty = -(xr*zs - zr*xs)/J, tz =  (xr*ys - yr*xs)/J;
+
+            dfloat JW = J*gllw[i]*gllw[j]*gllw[k];
+
+            wJ[Np*e + n] = JW;
+
+            /* store second order geometric factors */
+            ggeo[Nggeo*(Np*e + n) + G00ID] = JW*(rx*rx + ry*ry + rz*rz);
+            ggeo[Nggeo*(Np*e + n) + G01ID] = JW*(rx*sx + ry*sy + rz*sz);
+            ggeo[Nggeo*(Np*e + n) + G02ID] = JW*(rx*tx + ry*ty + rz*tz);
+            ggeo[Nggeo*(Np*e + n) + G11ID] = JW*(sx*sx + sy*sy + sz*sz);
+            ggeo[Nggeo*(Np*e + n) + G12ID] = JW*(sx*tx + sy*ty + sz*tz);
+            ggeo[Nggeo*(Np*e + n) + G22ID] = JW*(tx*tx + ty*ty + tz*tz);
           }
-
-          /* compute geometric factors for affine coordinate transform*/
-          dfloat J = xr*(ys*zt-zs*yt) - yr*(xs*zt-zs*xt) + zr*(xs*yt-ys*xt);
-
-          LIBP_ABORT("Negative J found at element " << e,
-                     J<1e-12);
-
-          dfloat rx =  (ys*zt - zs*yt)/J, ry = -(xs*zt - zs*xt)/J, rz =  (xs*yt - ys*xt)/J;
-          dfloat sx = -(yr*zt - zr*yt)/J, sy =  (xr*zt - zr*xt)/J, sz = -(xr*yt - yr*xt)/J;
-          dfloat tx =  (yr*zs - zr*ys)/J, ty = -(xr*zs - zr*xs)/J, tz =  (xr*ys - yr*xs)/J;
-
-          dfloat JW = J*gllw[i]*gllw[j]*gllw[k];
-
-          wJ[Np*e + n] = JW;
-
-          /* store second order geometric factors */
-          ggeo[Nggeo*(Np*e + n) + G00ID] = JW*(rx*rx + ry*ry + rz*rz);
-          ggeo[Nggeo*(Np*e + n) + G01ID] = JW*(rx*sx + ry*sy + rz*sz);
-          ggeo[Nggeo*(Np*e + n) + G02ID] = JW*(rx*tx + ry*ty + rz*tz);
-          ggeo[Nggeo*(Np*e + n) + G11ID] = JW*(sx*sx + sy*sy + sz*sz);
-          ggeo[Nggeo*(Np*e + n) + G12ID] = JW*(sx*tx + sy*ty + sz*tz);
-          ggeo[Nggeo*(Np*e + n) + G22ID] = JW*(tx*tx + ty*ty + tz*tz);
         }
       }
     }

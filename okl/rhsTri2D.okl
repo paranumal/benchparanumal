@@ -43,6 +43,7 @@ SOFTWARE.
 
 @kernel void rhsTri2D(const dlong Nelements,
                        @restrict const dfloat* wJ,
+                       @restrict const dfloat* gllw,
                        @restrict const dfloat* MM,
                        @restrict const dfloat* x,
                        @restrict const dfloat* y,
@@ -69,6 +70,62 @@ SOFTWARE.
 
       s_rhs[0][n] = r_GwJ*f;
       s_rhs[1][n] = r_GwJ*g;
+    #endif
+    }
+
+    for(int n=0;n<p_Np;++n;@inner(0)){
+
+      dfloat r_rhs[p_Nfields];
+
+      for (int f=0;f<p_Nfields;++f) {
+        r_rhs[f] = 0.0;
+      }
+
+      for(int m=0;m<p_Np;++m){
+        const dfloat MMm = MM[n + m*p_Np];
+
+        for (int f=0;f<p_Nfields;++f) {
+          r_rhs[f] += MMm*s_rhs[f][m];
+        }
+      }
+
+      const dlong base = e*p_Np*p_Nfields + n;
+      for (int f=0;f<p_Nfields;++f) {
+        rhs[base+f*p_Np] = r_rhs[f];
+      }
+    }
+  }
+}
+
+@kernel void rhsAffineTri2D(const dlong Nelements,
+                       @restrict const dfloat* wJ,
+                       @restrict const dfloat* gllw,
+                       @restrict const dfloat* MM,
+                       @restrict const dfloat* x,
+                       @restrict const dfloat* y,
+                       @restrict const dfloat* z,
+                                 const dfloat  lambda,
+                       @restrict       dfloat* rhs){
+
+  for(dlong e=0;e<Nelements;e++;@outer(0)){
+
+    @shared dfloat s_rhs[p_Nfields][p_Np];
+
+    for(int n=0;n<p_Np;++n;@inner(0)){
+      const dlong id = e*p_Np + n;
+      const dfloat J = wJ[e];
+
+    #if p_Nfields==1
+      dfloat f = 0;
+      Forcing2D(x[id], y[id], lambda, f);
+
+      s_rhs[0][n] = J*f;
+    #else
+      dfloat f = 0, g = 0;
+      Forcing2D(x[id], y[id], lambda, f, g);
+
+      s_rhs[0][n] = J*f;
+      s_rhs[1][n] = J*g;
     #endif
     }
 

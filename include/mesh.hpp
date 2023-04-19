@@ -77,6 +77,7 @@ public:
   int Nq=0;                 // N = Polynomial order, Nq=N+1
   memory<dfloat> gllz;      // 1D GLL quadrature nodes
   memory<dfloat> gllw;      // 1D GLL quadrature weights
+  deviceMemory<dfloat> o_gllw;
 
   // face node info
   int Nfp=0;                // number of nodes per face
@@ -114,6 +115,8 @@ public:
   deviceMemory<dfloat> o_cubProject;
   memory<dfloat> cubD;         // 1D differentiation matrix
   deviceMemory<dfloat> o_cubD;
+  memory<dfloat> invV;
+  deviceMemory<dfloat> o_invV;
   memory<dfloat> cubDW;        // 1D weak differentiation matrix
   memory<dfloat> cubDrW;       // 'r' weak differentiation matrix
   memory<dfloat> cubDsW;       // 's' weak differentiation matrix

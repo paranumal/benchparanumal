@@ -8,9 +8,10 @@ function HELP {
 #defaults
 element=Hex
 ndofs=4000000
+affine=false
 
 #parse options
-while getopts :m:e:n:h FLAG; do
+while getopts :m:e:n:ah FLAG; do
   case $FLAG in
     m)
         mode=$OPTARG
@@ -29,6 +30,9 @@ while getopts :m:e:n:h FLAG; do
     n)
         ndofs=$OPTARG
         ;;
+    a)
+        affine=true
+        ;;
     h)  #show help
         HELP
         ;;
@@ -44,12 +48,18 @@ then
     mode=HIP
 fi
 
-cd BK1; ./runBK1.sh -m $mode -e $element -n $ndofs; cd ..
-cd BK2; ./runBK2.sh -m $mode -e $element -n $ndofs; cd ..
-cd BK3; ./runBK3.sh -m $mode -e $element -n $ndofs; cd ..
-cd BK4; ./runBK4.sh -m $mode -e $element -n $ndofs; cd ..
-cd BK5; ./runBK5.sh -m $mode -e $element -n $ndofs; cd ..
-cd BK6; ./runBK6.sh -m $mode -e $element -n $ndofs; cd ..
+args="-m $mode -e $element -n $ndofs"
+
+if [ "$affine" = true ] ; then
+    args+=" -a "
+fi
+
+cd BK1; ./runBK1.sh $args; cd ..
+cd BK2; ./runBK2.sh $args; cd ..
+cd BK3; ./runBK3.sh $args; cd ..
+cd BK4; ./runBK4.sh $args; cd ..
+cd BK5; ./runBK5.sh $args; cd ..
+cd BK6; ./runBK6.sh $args; cd ..
 
 
 #

@@ -43,6 +43,7 @@ SOFTWARE.
 
 @kernel void rhsHex3D(const dlong Nelements,
                      @restrict const dfloat* wJ,
+                     @restrict const dfloat* gllw,
                      @restrict const dfloat* MM,
                      @restrict const dfloat* x,
                      @restrict const dfloat* y,
@@ -76,6 +77,49 @@ SOFTWARE.
           rhs[base+0*p_Np] = r_GwJ*f;
           rhs[base+1*p_Np] = r_GwJ*g;
           rhs[base+2*p_Np] = r_GwJ*h;
+        #endif
+        }
+      }
+    }
+  }
+}
+
+@kernel void rhsAffineHex3D(const dlong Nelements,
+                     @restrict const dfloat* wJ,
+                     @restrict const dfloat* gllw,
+                     @restrict const dfloat* MM,
+                     @restrict const dfloat* x,
+                     @restrict const dfloat* y,
+                     @restrict const dfloat* z,
+                               const dfloat  lambda,
+                     @restrict       dfloat* rhs){
+
+  for(dlong e=0;e<Nelements;e++;@outer(0)){
+
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+        for(int k = 0;k < p_Nq; k++){
+
+          const dlong n = i + j*p_Nq + k*p_Nq*p_Nq;
+
+          // assumes w*J built into G entries
+          const dlong id = e*p_Np + n;
+          const dfloat J = wJ[e];
+
+        #if p_Nfields==1
+          dfloat f = 0;
+          Forcing3D(x[id], y[id], z[id], lambda, f);
+
+          rhs[id] = J*gllw[i]*gllw[j]*gllw[k]*f;
+        #else
+          dfloat f = 0, g = 0, h = 0;
+          Forcing3D(x[id], y[id], z[id], lambda, f, g, h);
+
+          const dlong base = e*p_Np*p_Nfields + n;
+          rhs[base+0*p_Np] = J*gllw[i]*gllw[j]*gllw[k]*f;
+          rhs[base+1*p_Np] = J*gllw[i]*gllw[j]*gllw[k]*g;
+          rhs[base+2*p_Np] = J*gllw[i]*gllw[j]*gllw[k]*h;
         #endif
         }
       }

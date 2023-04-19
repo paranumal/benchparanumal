@@ -36,6 +36,7 @@ void bp1_t::Operator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   mesh.o_MM,
                    o_q, o_AqL);
   }
 
@@ -48,6 +49,7 @@ void bp1_t::Operator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   mesh.o_MM,
                    o_q, o_AqL);
   }
 
@@ -60,6 +62,7 @@ void bp1_t::Operator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   mesh.o_MM,
                    o_q, o_AqL);
   }
 

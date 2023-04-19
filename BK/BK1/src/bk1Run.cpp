@@ -39,6 +39,7 @@ void bk1_t::Run(){
   dfloat zero = 0.0;
   forcingKernel(mesh.Nelements,
                 mesh.o_wJ,
+                mesh.o_gllw,
                 mesh.o_MM,
                 mesh.o_x,
                 mesh.o_y,
@@ -59,6 +60,7 @@ void bk1_t::Run(){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   mesh.o_MM,
                    o_q,
                    o_Aq);
   }
@@ -70,6 +72,7 @@ void bk1_t::Run(){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   mesh.o_MM,
                    o_q,
                    o_Aq);
   }
@@ -80,40 +83,87 @@ void bk1_t::Run(){
 
   hlong Ndofs = ogs.NgatherGlobal;
 
-  size_t Nbytes =   Ndofs*sizeof(dfloat) //q
-                  + (cubNp*sizeof(dfloat) // JW
-                  + sizeof(dlong) // localGatherElementList
-                  + Np*Nfields*sizeof(dlong) // GlobalToLocal
-                  + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
+
+  size_t Nbytes=0;
+  if (affine) {
+    Nbytes = Ndofs*sizeof(dfloat) //q
+            + (sizeof(dfloat) // J
+            + sizeof(dlong) // localGatherElementList
+            + Np*Nfields*sizeof(dlong) // GlobalToLocal
+            + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  } else {
+    Nbytes = Ndofs*sizeof(dfloat) //q
+            + (cubNp*sizeof(dfloat) // JW
+            + sizeof(dlong) // localGatherElementList
+            + Np*Nfields*sizeof(dlong) // GlobalToLocal
+            + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  }
 
   size_t Nflops=0;
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-    case mesh_t::TETRAHEDRA:
-      Nflops =(  4*cubNp*Np
-                 + 1*cubNp)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::QUADRILATERALS:
-      Nflops =(  4*cubNq*Nq*Nq
-                 + 4*cubNq*cubNq*Nq
-                 + 1*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::HEXAHEDRA:
-      Nflops =(  4*cubNq*Nq*Nq*Nq
-                 + 4*cubNq*cubNq*Nq*Nq
-                 + 4*cubNq*cubNq*cubNq*Nq
-                 + 1*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-      break;
+  if (affine) {
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+      case mesh_t::TETRAHEDRA:
+        Nflops =(  2*Np*Np
+                   + 1*Np)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::QUADRILATERALS:
+        Nflops =(  4*Nq*Nq*Nq
+                   + 1*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::HEXAHEDRA:
+        Nflops =(  6*Nq*Nq*Nq*Nq
+                   + 1*Nq*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+        break;
+    }
+  } else {
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+      case mesh_t::TETRAHEDRA:
+        Nflops =(  4*cubNp*Np
+                   + 1*cubNp)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::QUADRILATERALS:
+        Nflops =(  4*cubNq*Nq*Nq
+                   + 4*cubNq*cubNq*Nq
+                   + 1*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::HEXAHEDRA:
+        Nflops =(  4*cubNq*Nq*Nq*Nq
+                   + 4*cubNq*cubNq*Nq*Nq
+                   + 4*cubNq*cubNq*cubNq*Nq
+                   + 1*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+        break;
+    }
   }
 
   if (mesh.rank==0){
-    printf("BK1: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e \n",
+    std::string suffix("Element=");
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+        suffix += "Tri";
+        break;
+      case mesh_t::TETRAHEDRA:
+        suffix += "Tet";
+        break;
+      case mesh_t::QUADRILATERALS:
+        suffix += "Quad";
+        break;
+      case mesh_t::HEXAHEDRA:
+        suffix += "Hex";
+        break;
+    }
+    if (affine) suffix += ", Affine";
+
+    printf("BK1: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e, %s \n",
            mesh.N,
            Ndofs,
            elapsedTime,
            elapsedTime/(Ndofs),
            Nbytes/(1.0e9 * elapsedTime),
            Nflops/(1.0e9 * elapsedTime),
-           Ndofs/(mesh.size*elapsedTime));
+           Ndofs/(mesh.size*elapsedTime),
+           suffix.c_str());
   }
 }

@@ -11,9 +11,10 @@ function HELP {
 #defaults
 element=Hex
 ndofs=4000000
+affine=false
 
 #parse options
-while getopts :m:e:n:h FLAG; do
+while getopts :m:e:n:ah FLAG; do
   case $FLAG in
     m)
         mode=$OPTARG
@@ -32,6 +33,9 @@ while getopts :m:e:n:h FLAG; do
     n)
         ndofs=$OPTARG
         ;;
+    a)
+        affine=true
+        ;;
     h)  #show help
         HELP
         ;;
@@ -45,6 +49,10 @@ if [ -z $mode ]
 then
     echo "No mode supplied, defaulting to HIP"
     mode=HIP
+fi
+
+if [ "$affine" = true ] ; then
+    exe+=" --affine "
 fi
 
 echo "Running BK3..."

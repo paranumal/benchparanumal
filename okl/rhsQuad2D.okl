@@ -43,6 +43,7 @@ SOFTWARE.
 
 @kernel void rhsQuad2D(const dlong Nelements,
                        @restrict const dfloat* wJ,
+                       @restrict const dfloat* gllw,
                        @restrict const dfloat* MM,
                        @restrict const dfloat* x,
                        @restrict const dfloat* y,
@@ -71,6 +72,43 @@ SOFTWARE.
       rhs[base+0*p_Np] = r_GwJ*f;
       rhs[base+1*p_Np] = r_GwJ*g;
     #endif
+    }
+  }
+}
+
+@kernel void rhsAffineQuad2D(const dlong Nelements,
+                       @restrict const dfloat* wJ,
+                       @restrict const dfloat* gllw,
+                       @restrict const dfloat* MM,
+                       @restrict const dfloat* x,
+                       @restrict const dfloat* y,
+                       @restrict const dfloat* z,
+                                 const dfloat  lambda,
+                       @restrict       dfloat* rhs){
+
+  for(dlong e=0;e<Nelements;e++;@outer(0)){
+
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+        // assumes w*J built into G entries
+        const dlong id = e*p_Np + j*p_Nq + i;
+        const dfloat J = wJ[e];
+
+      #if p_Nfields==1
+        dfloat f = 0;
+        Forcing2D(x[id], y[id], lambda, f);
+
+        rhs[id] = J*gllw[i]*gllw[j]*f;
+      #else
+        dfloat f = 0, g = 0;
+        Forcing2D(x[id], y[id], lambda, f, g);
+
+        const dlong base = e*p_Np*p_Nfields + j*p_Nq + i;
+        rhs[base+0*p_Np] = J*gllw[i]*gllw[j]*f;
+        rhs[base+1*p_Np] = J*gllw[i]*gllw[j]*g;
+      #endif
+      }
     }
   }
 }

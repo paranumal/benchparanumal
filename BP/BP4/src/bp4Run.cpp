@@ -52,6 +52,7 @@ void bp4_t::Run(){
   //populate rhs forcing
   forcingKernel(mesh.Nelements,
                 mesh.o_wJ,
+                mesh.o_gllw,
                 mesh.o_MM,
                 mesh.o_x,
                 mesh.o_y,
@@ -74,6 +75,7 @@ void bp4_t::Run(){
   //populate rhs forcing
   forcingKernel(mesh.Nelements,
                 mesh.o_wJ,
+                mesh.o_gllw,
                 mesh.o_MM,
                 mesh.o_x,
                 mesh.o_y,
@@ -99,11 +101,22 @@ void bp4_t::Run(){
 
   hlong Ndofs = NgatherGlobal;
 
-  ssize_t NbytesAx =   NgatherGlobal*sizeof(dfloat) //q
-                    + (cubNp*(mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
-                    + sizeof(dlong) // localGatherElementList
-                    + Np*Nfields*sizeof(dlong) // GlobalToLocal
-                    + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
+
+  size_t NbytesAx=0;
+  if (affine) {
+    NbytesAx = Ndofs*sizeof(dfloat) //q
+              + ((mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
+              + sizeof(dlong) // localGatherElementList
+              + Np*Nfields*sizeof(dlong) // GlobalToLocal
+              + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  } else {
+    NbytesAx =   Ndofs*sizeof(dfloat) //q
+              + (cubNp*(mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
+              + sizeof(dlong) // localGatherElementList
+              + Np*Nfields*sizeof(dlong) // GlobalToLocal
+              + Np*Nfields*sizeof(dfloat) /*Aq*/ )*mesh.NelementsGlobal;
+  }
 
   size_t NbytesGather =  (NgatherGlobal+1)*sizeof(dlong) //row starts
                        + NGlobal*sizeof(dlong) //local Ids
@@ -114,28 +127,49 @@ void bp4_t::Run(){
                 + (11*Ndofs*sizeof(dfloat) + NbytesAx + NbytesGather)*Niter; //bytes per CG iteration
 
   size_t NflopsAx=0;
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      NflopsAx =( 12*cubNp*Np
-                 + 8*cubNp)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::TETRAHEDRA:
-      NflopsAx =( 16*cubNp*Np
-                 +17*cubNp)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::QUADRILATERALS:
-      NflopsAx =(  4*cubNq*Nq*Nq
-                 + 4*cubNq*cubNq*Nq
-                 + 8*cubNq*cubNq*cubNq
-                 + 9*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-      break;
-    case mesh_t::HEXAHEDRA:
-      NflopsAx =(  4*cubNq*Nq*Nq*Nq
-                 + 4*cubNq*cubNq*Nq*Nq
-                 + 4*cubNq*cubNq*cubNq*Nq
-                 +12*cubNq*cubNq*cubNq*cubNq
-                 +17*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
-      break;
+  if (affine) {
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+        NflopsAx =( 8*Np*Np
+                   + 8*Np)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::TETRAHEDRA:
+        NflopsAx =( 14*Np*Np
+                   +14*Np)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::QUADRILATERALS:
+        NflopsAx =(  16*Nq*Nq*Nq
+                   + 8*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::HEXAHEDRA:
+        NflopsAx =(  24*Nq*Nq*Nq*Nq
+                   +17*Nq*Nq*Nq)*Nfields*mesh.NelementsGlobal;
+        break;
+    }
+  } else {
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+        NflopsAx =( 12*cubNp*Np
+                   + 8*cubNp)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::TETRAHEDRA:
+        NflopsAx =( 16*cubNp*Np
+                   +17*cubNp)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::QUADRILATERALS:
+        NflopsAx =(  4*cubNq*Nq*Nq
+                   + 4*cubNq*cubNq*Nq
+                   + 8*cubNq*cubNq*cubNq
+                   + 9*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+        break;
+      case mesh_t::HEXAHEDRA:
+        NflopsAx =(  4*cubNq*Nq*Nq*Nq
+                   + 4*cubNq*cubNq*Nq*Nq
+                   + 4*cubNq*cubNq*cubNq*Nq
+                   +12*cubNq*cubNq*cubNq*cubNq
+                   +17*cubNq*cubNq*cubNq)*Nfields*mesh.NelementsGlobal;
+        break;
+    }
   }
 
   size_t NflopsGather = NGlobal;
@@ -144,7 +178,24 @@ void bp4_t::Run(){
                   + (11*Ndofs + NflopsAx + NflopsGather)*Niter; //flops per CG iteration
 
   if ((mesh.rank==0)){
-    printf("BP4: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, iterations=%d, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs*iterations/ranks*time=%1.2e \n",
+    std::string suffix("Element=");
+    switch (mesh.elementType) {
+      case mesh_t::TRIANGLES:
+        suffix += "Tri";
+        break;
+      case mesh_t::TETRAHEDRA:
+        suffix += "Tet";
+        break;
+      case mesh_t::QUADRILATERALS:
+        suffix += "Quad";
+        break;
+      case mesh_t::HEXAHEDRA:
+        suffix += "Hex";
+        break;
+    }
+    if (affine) suffix += ", Affine";
+
+    printf("BP4: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, iterations=%d, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs*iterations/ranks*time=%1.2e, %s \n",
            mesh.N,
            Ndofs,
            elapsedTime,
@@ -152,7 +203,8 @@ void bp4_t::Run(){
            elapsedTime/(Ndofs),
            Nbytes/(1.0e9 * elapsedTime),
            Nflops/(1.0e9 * elapsedTime),
-           Ndofs*((dfloat)Niter/(mesh.size*elapsedTime)));
+           Ndofs*((dfloat)Niter/(mesh.size*elapsedTime)),
+           suffix.c_str());
   }
 
 

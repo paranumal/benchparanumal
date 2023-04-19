@@ -30,12 +30,8 @@ namespace libp {
 
 void mesh_t::GeometricFactorsTri2D(){
 
-  wJ.malloc(Nelements*Np);
-
   /* number of first order geometric factors */
   Nvgeo = 4;
-  vgeo.malloc(Nelements*Nvgeo*Np);
-
   RXID  = 0;
   RYID  = 1;
   SXID  = 2;
@@ -43,25 +39,32 @@ void mesh_t::GeometricFactorsTri2D(){
 
   /* number of second order geometric factors */
   Nggeo = 3;
-  ggeo.malloc(Nelements*Nggeo*Np);
-
   G00ID=0;
   G01ID=1;
   G11ID=2;
 
-  #pragma omp parallel for
-  for(dlong e=0;e<Nelements;++e){ /* for each element */
-    for(int n=0;n<Np;++n){
-      //differentiate physical coordinates
-      dfloat xr = 0.0, xs = 0.0;
-      dfloat yr = 0.0, ys = 0.0;
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
+    wJ.malloc(Nelements);
+    vgeo.malloc(Nelements*Nvgeo);
+    ggeo.malloc(Nelements*Nggeo);
 
-      for(int m=0;m<Np;++m){
-        xr += Dr[n*Np+m]*x[m+e*Np];
-        xs += Ds[n*Np+m]*x[m+e*Np];
-        yr += Dr[n*Np+m]*y[m+e*Np];
-        ys += Ds[n*Np+m]*y[m+e*Np];
-      }
+    #pragma omp parallel for
+    for(dlong e=0;e<Nelements;++e){ /* for each element */
+      /* find vertex indices and physical coordinates */
+      dlong id = e*Nverts+0;
+
+      dfloat xe1 = EX[id+0];
+      dfloat xe2 = EX[id+1];
+      dfloat xe3 = EX[id+2];
+
+      dfloat ye1 = EY[id+0];
+      dfloat ye2 = EY[id+1];
+      dfloat ye3 = EY[id+2];
+
+      dfloat xr = 0.5*(xe2-xe1);
+      dfloat xs = 0.5*(xe3-xe1);
+      dfloat yr = 0.5*(ye2-ye1);
+      dfloat ys = 0.5*(ye3-ye1);
 
       /* compute geometric factors for affine coordinate transform*/
       dfloat J = xr*ys - xs*yr;
@@ -74,20 +77,66 @@ void mesh_t::GeometricFactorsTri2D(){
       dfloat sx = -yr/J;
       dfloat sy =  xr/J;
 
-      wJ[Np*e + n] = J;
+      wJ[e] = J;
 
       /* store geometric factors */
-      dlong vbase = Nvgeo*(Np*e + n);
+      dlong vbase = Nvgeo*e;
       vgeo[vbase + RXID] = rx;
       vgeo[vbase + RYID] = ry;
       vgeo[vbase + SXID] = sx;
       vgeo[vbase + SYID] = sy;
 
       /* store second order geometric factors */
-      dlong gbase = Nggeo*(Np*e + n);
+      dlong gbase = Nggeo*e;
       ggeo[gbase + G00ID] = J*(rx*rx + ry*ry);
       ggeo[gbase + G01ID] = J*(rx*sx + ry*sy);
       ggeo[gbase + G11ID] = J*(sx*sx + sy*sy);
+    }
+  } else {
+    wJ.malloc(Nelements*Np);
+    vgeo.malloc(Nelements*Nvgeo*Np);
+    ggeo.malloc(Nelements*Nggeo*Np);
+
+    #pragma omp parallel for
+    for(dlong e=0;e<Nelements;++e){ /* for each element */
+      for(int n=0;n<Np;++n){
+        //differentiate physical coordinates
+        dfloat xr = 0.0, xs = 0.0;
+        dfloat yr = 0.0, ys = 0.0;
+
+        for(int m=0;m<Np;++m){
+          xr += Dr[n*Np+m]*x[m+e*Np];
+          xs += Ds[n*Np+m]*x[m+e*Np];
+          yr += Dr[n*Np+m]*y[m+e*Np];
+          ys += Ds[n*Np+m]*y[m+e*Np];
+        }
+
+        /* compute geometric factors for affine coordinate transform*/
+        dfloat J = xr*ys - xs*yr;
+
+        LIBP_ABORT("Negative J found at element " << e,
+                   J<1e-8);
+
+        dfloat rx =  ys/J;
+        dfloat ry = -xs/J;
+        dfloat sx = -yr/J;
+        dfloat sy =  xr/J;
+
+        wJ[Np*e + n] = J;
+
+        /* store geometric factors */
+        dlong vbase = Nvgeo*(Np*e + n);
+        vgeo[vbase + RXID] = rx;
+        vgeo[vbase + RYID] = ry;
+        vgeo[vbase + SXID] = sx;
+        vgeo[vbase + SYID] = sy;
+
+        /* store second order geometric factors */
+        dlong gbase = Nggeo*(Np*e + n);
+        ggeo[gbase + G00ID] = J*(rx*rx + ry*ry);
+        ggeo[gbase + G01ID] = J*(rx*sx + ry*sy);
+        ggeo[gbase + G11ID] = J*(sx*sx + sy*sy);
+      }
     }
   }
 

@@ -41,6 +41,14 @@ void mesh_t::ReferenceNodesQuad2D(){
 
   //GLL quadrature
   JacobiGLL(N, gllz, gllw);
+  o_gllw = platform.malloc<dfloat>(gllw);
+
+  memory<dfloat> V;
+  Vandermonde1D(N, gllz, V);
+
+  //Mass matrix
+  MassMatrix1D(Nq, V, MM);
+  o_MM = platform.malloc<dfloat>(MM); //MM is symmetric
 
   // D matrix
   Dmatrix1D(N, gllz, gllz, D);

@@ -1,0 +1,581 @@
+/*
+
+The MIT License (MIT)
+
+Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#if p_N<=8
+#define USE_3D_SHMEM 1
+#else
+#define USE_3D_SHMEM 0
+#endif
+
+#if !USE_3D_SHMEM
+
+
+//This kernel processes 2D slices of the element in shmem and uses register arrays
+// to store the element itself. May be slower for low order but allows us to run
+// high degree efficiently
+
+/* The NV compiler doesn't like the blocked kernel. Skip using it. */
+#if OCCA_USE_CUDA==1 && p_N>8
+
+//padding for bank conflicts
+#if p_Nq==16
+#define p_pad 1
+#else
+#define p_pad 0
+#endif
+
+@kernel void bp5AxAffineHex3D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  vgeo,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  gllw,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong e=0; e<Nelements; e++; @outer(0)){
+
+    @shared dfloat s_gllw[p_Nq];
+    @shared dfloat s_D[p_Nq][p_Nq+p_pad];
+    @shared dfloat s_q[p_Nq][p_Nq+p_pad];
+    @shared dfloat s_v[p_Nq][p_Nq+p_pad];
+    @shared dfloat s_w[p_Nq][p_Nq+p_pad];
+
+    @exclusive dfloat r_GDut, r_Auk;
+
+    // register array to hold u(i,j,0:N) private to thread
+    @exclusive dfloat r_u[p_Nq];
+    // array for results Au(i,j,0:N)
+    @exclusive dfloat r_Au[p_Nq];
+
+    @exclusive dlong element;
+
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+
+        //load D into local memory
+        // s_D[i][j] = d \phi_i at node j
+        s_D[j][i] = D[p_Nq*j+i];// D is column major
+
+        if (j==0) s_gllw[i] = gllw[i];
+
+        element = elementList[e];
+
+        const dlong base = i + j*p_Nq + element*p_Np;
+
+        // load pencil of u into register
+        #pragma unroll p_Nq
+        for (int k=0;k<p_Nq;k++) {
+          const dlong id = GlobalToLocal[base + k*p_Nq*p_Nq];
+          r_u[k] = (id!=-1) ? q[id] : 0.0;
+        }
+
+        #pragma unroll p_Nq
+        for (int k=0;k<p_Nq;k++) {
+          r_Au[k] = 0.0;
+        }
+      }
+    }
+
+    // Layer by layer
+#if OCCA_USE_CUDA==1
+    // only force some type of unrolling in CUDA mode
+    #pragma unroll p_Nq
+#endif
+    for(int k = 0;k < p_Nq; k++){
+
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+          // share u(:,:,k)
+          s_q[j][i] = r_u[k];
+        }
+      }
+
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+          // prefetch geometric factors
+          const dfloat r_GwJ = wJ[element];
+          const dfloat r_G00 = ggeo[p_Nggeo*element+p_G00ID];
+          const dfloat r_G01 = ggeo[p_Nggeo*element+p_G01ID];
+          const dfloat r_G11 = ggeo[p_Nggeo*element+p_G11ID];
+          const dfloat r_G12 = ggeo[p_Nggeo*element+p_G12ID];
+          const dfloat r_G02 = ggeo[p_Nggeo*element+p_G02ID];
+          const dfloat r_G22 = ggeo[p_Nggeo*element+p_G22ID];
+
+          dfloat ur = 0.f;
+          dfloat us = 0.f;
+          dfloat ut = 0;
+
+          #pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
+            ut += s_D[k][m]*r_u[m];
+          }
+
+          #pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
+            ur   += s_D[i][m]*s_q[j][m];
+            us   += s_D[j][m]*s_q[m][i];
+          }
+
+          const dfloat w = s_gllw[i]*s_gllw[j]*s_gllw[k];
+          s_w[j][i] = w*(r_G01*ur + r_G11*us + r_G12*ut);
+          s_v[j][i] = w*(r_G00*ur + r_G01*us + r_G02*ut);
+          r_GDut    = w*(r_G02*ur + r_G12*us + r_G22*ut);
+
+          r_Auk = w*r_GwJ*lambda*r_u[k];
+        }
+      }
+
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          #pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
+            r_Au[m] += s_D[k][m]*r_GDut;
+          }
+
+          #pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
+            r_Auk += s_D[m][j]*s_w[m][i];
+            r_Auk += s_D[m][i]*s_v[j][m];
+          }
+
+          r_Au[k] += r_Auk;
+        }
+      }
+    } //end Layer by layer
+
+    // write out
+    for(int j=0;j<p_Nq;++j;@inner(1)){
+      for(int i=0;i<p_Nq;++i;@inner(0)){
+        const dlong id = element*p_Np + j*p_Nq + i;
+
+        #pragma unroll p_Nq
+        for (int k=0;k<p_Nq;k++) {
+          Aq[id+k*p_Nq*p_Nq] = r_Au[k];
+        }
+      }
+    }
+  }
+}
+
+#else
+
+/* Blocked version */
+#if p_N==1
+#define p_NelementsPerBlk 16
+#elif p_N==2
+#define p_NelementsPerBlk 56
+#elif p_N==3
+#define p_NelementsPerBlk 32
+#elif p_N==4
+#define p_NelementsPerBlk 5
+#elif p_N==5
+#define p_NelementsPerBlk 1
+#elif p_N==6
+#define p_NelementsPerBlk 5
+#elif p_N==7
+#define p_NelementsPerBlk 1
+#elif p_N==8
+#define p_NelementsPerBlk 3
+#elif p_N==9
+#define p_NelementsPerBlk 1
+#elif p_N==10
+#define p_NelementsPerBlk 1
+#elif p_N==11
+#define p_NelementsPerBlk 1
+#elif p_N==12
+#define p_NelementsPerBlk 1
+#elif p_N==13
+#define p_NelementsPerBlk 1
+#elif p_N==14
+#define p_NelementsPerBlk 1
+#elif p_N==15
+#define p_NelementsPerBlk 1
+#else
+#define p_NelementsPerBlk 1
+#endif
+
+//padding for bank conflicts
+#if p_Nq==16
+#define p_pad 1
+#else
+#define p_pad 0
+#endif
+
+@kernel void bp5AxAffineHex3D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  vgeo,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  gllw,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0; eo<Nelements; eo+=p_NelementsPerBlk; @outer(0)){
+
+    @shared dfloat s_gllw[p_Nq];
+    @shared dfloat s_D[p_Nq][p_Nq+p_pad];
+    @shared dfloat s_q[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_v[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_w[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
+
+    @exclusive dfloat r_GDut, r_Auk;
+
+    // register array to hold u(i,j,0:N) private to thread
+    @exclusive dfloat r_u[p_Nq];
+    // array for results Au(i,j,0:N)
+    @exclusive dfloat r_Au[p_Nq];
+
+    @exclusive dlong r_e, element;
+
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          //load D into local memory
+          // s_D[i][j] = d \phi_i at node j
+          if (es==0) {
+            s_D[j][i] = D[p_Nq*j+i];// D is column major
+            if (j==0) s_gllw[i] = gllw[i];
+          }
+
+          r_e = es+eo;
+
+          if(r_e<Nelements){
+            element = elementList[r_e];
+
+            const dlong base = i + j*p_Nq + element*p_Np;
+
+            // load pencil of u into register
+            #pragma unroll p_Nq
+            for (int k=0;k<p_Nq;k++) {
+              const dlong id = GlobalToLocal[base + k*p_Nq*p_Nq];
+              r_u[k] = (id!=-1) ? q[id] : 0.0;
+            }
+
+            #pragma unroll p_Nq
+            for (int k=0;k<p_Nq;k++) {
+              r_Au[k] = 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    // Layer by layer
+#if OCCA_USE_CUDA==1
+    // only force some type of unrolling in CUDA mode
+    #pragma unroll p_Nq
+#endif
+    for(int k = 0;k < p_Nq; k++){
+
+      for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+        for(int j=0;j<p_Nq;++j;@inner(1)){
+          for(int i=0;i<p_Nq;++i;@inner(0)){
+            // share u(:,:,k)
+            s_q[es][j][i] = r_u[k];
+          }
+        }
+      }
+
+      for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+        for(int j=0;j<p_Nq;++j;@inner(1)){
+          for(int i=0;i<p_Nq;++i;@inner(0)){
+
+            dfloat r_G00, r_G01, r_G02, r_G11, r_G12, r_G22, r_GwJ;
+
+            if(r_e<Nelements){
+              // prefetch geometric factors
+              r_GwJ = wJ[element];
+              r_G00 = ggeo[p_Nggeo*element+p_G00ID];
+              r_G01 = ggeo[p_Nggeo*element+p_G01ID];
+              r_G11 = ggeo[p_Nggeo*element+p_G11ID];
+              r_G12 = ggeo[p_Nggeo*element+p_G12ID];
+              r_G02 = ggeo[p_Nggeo*element+p_G02ID];
+              r_G22 = ggeo[p_Nggeo*element+p_G22ID];
+            }
+
+            dfloat ur = 0.f;
+            dfloat us = 0.f;
+            dfloat ut = 0;
+
+            #pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              ut += s_D[k][m]*r_u[m];
+            }
+
+            #pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              ur   += s_D[i][m]*s_q[es][j][m];
+              us   += s_D[j][m]*s_q[es][m][i];
+            }
+
+            const dfloat w = s_gllw[i]*s_gllw[j]*s_gllw[k];
+            s_w[es][j][i] = w*(r_G01*ur + r_G11*us + r_G12*ut);
+            s_v[es][j][i] = w*(r_G00*ur + r_G01*us + r_G02*ut);
+            r_GDut        = w*(r_G02*ur + r_G12*us + r_G22*ut);
+
+            r_Auk = w*r_GwJ*lambda*r_u[k];
+          }
+        }
+      }
+
+      for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+        for(int j=0;j<p_Nq;++j;@inner(1)){
+          for(int i=0;i<p_Nq;++i;@inner(0)){
+
+            #pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              r_Au[m] += s_D[k][m]*r_GDut;
+            }
+
+            #pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              r_Auk   += s_D[m][j]*s_w[es][m][i];
+              r_Auk   += s_D[m][i]*s_v[es][j][m];
+            }
+
+            r_Au[k] += r_Auk;
+          }
+        }
+      }
+    } //end Layer by layer
+
+    // write out
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+          if(r_e<Nelements){
+            const dlong id = element*p_Np + j*p_Nq + i;
+
+            #pragma unroll p_Nq
+            for (int k=0;k<p_Nq;k++) {
+              Aq[id+k*p_Nq*p_Nq] = r_Au[k];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#elif USE_3D_SHMEM
+//This kernel stores the entire hex element in shmem.
+// Good for low orders, but will exceed 1024 threads per block after N=9
+
+#if p_N==1
+#define p_NelementsPerBlk 8
+#elif p_N==2
+#define p_NelementsPerBlk 4
+#elif p_N==3
+#define p_NelementsPerBlk 2
+#elif p_N==4
+#define p_NelementsPerBlk 1
+#elif p_N==5
+#define p_NelementsPerBlk 1
+#elif p_N==6
+#define p_NelementsPerBlk 1
+#elif p_N==7
+#define p_NelementsPerBlk 1
+#else
+#define p_NelementsPerBlk 1
+#endif
+
+@kernel void bp5AxAffineHex3D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  vgeo,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  gllw,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+//padding for bank conflicts
+#if p_Nq==8 || p_Nq==4
+#define p_pad 1
+#else
+#define p_pad 0
+#endif
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
+
+    @shared dfloat s_gllw[p_Nq];
+    @shared dfloat s_D [p_Nq][p_Nq+p_pad];
+    @shared dfloat s_DT[p_Nq][p_Nq+p_pad];
+    @shared dfloat   s_q[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_Gqr[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_Gqs[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_Gqt[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+
+    @exclusive dlong r_e, element;
+    @exclusive dfloat r_wJ;
+
+    @exclusive int k, es;
+
+    for(int ke=0;ke<p_Nq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          //load operators
+          if(ke==0){
+            const int id = j*p_Nq+i;
+            const dfloat Dji = D[id];
+            s_D[j][i] = Dji;
+            s_DT[i][j] = Dji;
+            if (j==0) s_gllw[i] = gllw[i];
+          }
+
+          k  = ke%p_Nq;
+          es = ke/p_Nq;
+          r_e = es+eo;
+
+          if(r_e<Nelements){
+            element = elementList[r_e];
+            const dlong id = GlobalToLocal[i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np];
+            if (id!=-1)
+              s_q[es][k][j][i] = q[id];
+            else
+              s_q[es][k][j][i] = 0.0;
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_Nq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          if(r_e<Nelements){
+            // 't' terms
+            dfloat tmp=0.0;
+
+            r_wJ = wJ[element];
+            const dfloat G00 = ggeo[p_Nggeo*element+p_G00ID];
+            const dfloat G01 = ggeo[p_Nggeo*element+p_G01ID];
+            const dfloat G11 = ggeo[p_Nggeo*element+p_G11ID];
+            const dfloat G02 = ggeo[p_Nggeo*element+p_G02ID];
+            const dfloat G12 = ggeo[p_Nggeo*element+p_G12ID];
+            const dfloat G22 = ggeo[p_Nggeo*element+p_G22ID];
+
+            // #pragma unroll p_Unr
+            for(int m = 0; m < p_Nq; ++m) {
+              const dfloat pmji = s_q[es][m][j][i];
+              const dfloat Dkm = s_DT[m][k];
+              tmp += Dkm*pmji;
+            }
+
+
+            s_Gqr[es][k][j][i] = G02*tmp;
+            s_Gqs[es][k][j][i] = G12*tmp;
+            s_Gqt[es][k][j][i] = G22*tmp;
+
+
+            // 'r' terms
+            tmp = 0;
+            // #pragma unroll p_Unr
+            for(int m = 0; m < p_Nq; ++m) {
+              const dfloat Dim = s_D[i][m];
+              tmp += Dim*s_q[es][k][j][m];
+            }
+
+            s_Gqr[es][k][j][i] += G00*tmp;
+            s_Gqs[es][k][j][i] += G01*tmp;
+            s_Gqt[es][k][j][i] += G02*tmp;
+
+
+            // 's' terms
+            tmp = 0;
+            // #pragma unroll p_Unr
+            for(int m = 0; m < p_Nq; ++m) {
+              const dfloat Djm = s_D[j][m];
+              tmp += Djm*s_q[es][k][m][i];
+            }
+
+            s_Gqr[es][k][j][i] += G01*tmp;
+            s_Gqs[es][k][j][i] += G11*tmp;
+            s_Gqt[es][k][j][i] += G12*tmp;
+
+            const dfloat w = s_gllw[i]*s_gllw[j]*s_gllw[k];
+            s_Gqr[es][k][j][i] *= w;
+            s_Gqs[es][k][j][i] *= w;
+            s_Gqt[es][k][j][i] *= w;
+            r_wJ *= w;
+          }
+        }
+      }
+    }
+
+    for(int ke=0;ke<p_Nq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          if(r_e<Nelements){
+            dfloat tmpAp = s_q[es][k][j][i]*lambda*r_wJ;
+
+            // use same matrix for both slices
+            // #pragma unroll p_Unr
+            for(int m=0;m<p_Nq;++m){
+              const dfloat Dmi = s_D[m][i];
+              const dfloat Dmj = s_D[m][j];
+
+              tmpAp += Dmi*s_Gqr[es][k][j][m];
+              tmpAp += Dmj*s_Gqs[es][k][m][i];
+            }
+
+            // #pragma unroll p_Unr
+            for(int m=0;m<p_Nq;++m){
+              const dfloat Gpt = s_Gqt[es][m][j][i];
+              const dfloat Dmk = s_D[m][k];
+              tmpAp += Dmk*Gpt;
+            }
+
+            const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+            Aq[base] = tmpAp;
+          }
+        }
+      }
+    }
+  }
+}
+
+#endif
