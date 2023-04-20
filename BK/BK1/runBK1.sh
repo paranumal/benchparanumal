@@ -57,7 +57,7 @@ fi
 
 echo "Running BK1..."
 
-for p in {1..14}
+for p in {2..9}
 do
     #compute mesh size
     if [ "$element" == "Hex" ] || [ "$element" == "Tet" ]; then

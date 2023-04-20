@@ -35,6 +35,20 @@ void bk1_t::Run(){
   deviceMemory<dfloat> o_q  = platform.malloc<dfloat>(Ngather);
   deviceMemory<dfloat> o_Aq = platform.malloc<dfloat>(Nall);
 
+  deviceMemory<dfloat> o_cubInterpT = platform.malloc<dfloat>(mesh.cubNp*mesh.cubNp);
+  memory<dfloat> cubInterpT;
+  cubInterpT.malloc(mesh.cubNp*mesh.cubNp);
+
+
+  platform.linAlg().InitKernels({"axpy", "innerProd", "norm2", "set"});
+  
+  for(int n=0;n<mesh.cubNp;++n){
+    for(int m=0;m<mesh.Np;++m){
+      cubInterpT[m+n*mesh.Np] = mesh.cubInterp[n+m*mesh.cubNp];
+    }
+  }
+  o_cubInterpT.copyFrom(cubInterpT);
+  
   //populate x with a typical rhs (use Aq as temp storage)
   dfloat zero = 0.0;
   forcingKernel(mesh.Nelements,
@@ -60,6 +74,7 @@ void bk1_t::Run(){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   o_cubInterpT,
                    mesh.o_MM,
                    o_q,
                    o_Aq);
@@ -72,6 +87,7 @@ void bk1_t::Run(){
                    o_GlobalToLocal,
                    mesh.o_cubwJ,
                    mesh.o_cubInterp,
+                   o_cubInterpT,
                    mesh.o_MM,
                    o_q,
                    o_Aq);
@@ -156,6 +172,7 @@ void bk1_t::Run(){
     }
     if (affine) suffix += ", Affine";
 
+#if 0
     printf("BK1: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e, %s \n",
            mesh.N,
            Ndofs,
@@ -165,5 +182,21 @@ void bk1_t::Run(){
            Nflops/(1.0e9 * elapsedTime),
            Ndofs/(mesh.size*elapsedTime),
            suffix.c_str());
+#else
+
+    // computue l2 norm of o_Aq
+    dfloat checksum = platform.linAlg().norm2(Nall, o_Aq, Comm::World());
+    
+    printf("1, %02d, " hlongFormat ", %4.4f, %1.2e, %6.1f, %6.1f, %1.2e, %6.1f %%%% BK, N, DOFs, elapsed, time per DOF, avg BW (GB/s), avg GFLOPs, DOFs/ranks*time, checksum, %s \n",
+           mesh.N,
+           Ndofs,
+           elapsedTime,
+           elapsedTime/(Ndofs),
+           Nbytes/(1.0e9 * elapsedTime),
+           Nflops/(1.0e9 * elapsedTime),
+           Ndofs/(mesh.size*elapsedTime),
+           checksum,
+           suffix.c_str());
+#endif
   }
 }
