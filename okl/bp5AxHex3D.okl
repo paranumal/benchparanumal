@@ -32,16 +32,15 @@ SOFTWARE.
 
 #if !USE_3D_SHMEM
 
-
 //This kernel processes 2D slices of the element in shmem and uses register arrays
 // to store the element itself. May be slower for low order but allows us to run
 // high degree efficiently
 
 /* The NV compiler doesn't like the blocked kernel. Skip using it. */
-#if OCCA_USE_CUDA==1 && p_N>8
+#if OCCA_USE_CUDA==1 && p_N>5
 
 //padding for bank conflicts
-#if p_Nq==16
+#if p_Nq==16 || p_Nq==8 
 #define p_pad 1
 #else
 #define p_pad 0
@@ -78,6 +77,10 @@ SOFTWARE.
     for(int j=0;j<p_Nq;++j;@inner(1)){
       for(int i=0;i<p_Nq;++i;@inner(0)){
 
+	if(element==0 && i==0 && j==0){
+	  printf("32e2e2e- ");
+	}
+	
         //load D into local memory
         // s_D[i][j] = d \phi_i at node j
         s_D[j][i] = D[p_Nq*j+i];// D is column major
@@ -117,28 +120,36 @@ SOFTWARE.
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
           // prefetch geometric factors
-          const dlong gbase = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
+
+	  dlong gbase = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;	  
           const dfloat r_GwJ = wJ[gbase];
-          const dfloat r_G00 = ggeo[p_Nggeo*gbase+p_G00ID];
-          const dfloat r_G01 = ggeo[p_Nggeo*gbase+p_G01ID];
-          const dfloat r_G11 = ggeo[p_Nggeo*gbase+p_G11ID];
-          const dfloat r_G12 = ggeo[p_Nggeo*gbase+p_G12ID];
-          const dfloat r_G02 = ggeo[p_Nggeo*gbase+p_G02ID];
-          const dfloat r_G22 = ggeo[p_Nggeo*gbase+p_G22ID];
+	  gbase *= p_Nggeo;
+          const dfloat r_G00 = ggeo[gbase+p_G00ID];
+          const dfloat r_G01 = ggeo[gbase+p_G01ID];
+          const dfloat r_G11 = ggeo[gbase+p_G11ID];
+          const dfloat r_G12 = ggeo[gbase+p_G12ID];
+          const dfloat r_G02 = ggeo[gbase+p_G02ID];
+          const dfloat r_G22 = ggeo[gbase+p_G22ID];
 
-          dfloat ur = 0.f;
-          dfloat us = 0.f;
           dfloat ut = 0;
-
+	  
           #pragma unroll p_Nq
           for (int m=0;m<p_Nq;m++) {
             ut += s_D[k][m]*r_u[m];
           }
 
-          #pragma unroll p_Nq
+          dfloat ur = 0.f;
+
+#pragma unroll p_Nq
           for (int m=0;m<p_Nq;m++) {
-            ur   += s_D[i][m]*s_q[j][m];
-            us   += s_D[j][m]*s_q[m][i];
+            ur += s_D[i][m]*s_q[j][m];
+	  }
+
+          dfloat us = 0.f;
+	  
+#pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
+            us += s_D[j][m]*s_q[m][i];
           }
 
           s_w[j][i] = (r_G01*ur + r_G11*us + r_G12*ut);
@@ -148,21 +159,30 @@ SOFTWARE.
           r_Auk = r_GwJ*lambda*r_u[k];
         }
       }
-
+      
+      @barrier();
+      
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
+  
 
-          #pragma unroll p_Nq
-          for (int m=0;m<p_Nq;m++) {
-            r_Au[m] += s_D[k][m]*r_GDut;
-          }
-
-          #pragma unroll p_Nq
+#pragma unroll p_Nq
           for (int m=0;m<p_Nq;m++) {
             r_Auk += s_D[m][j]*s_w[m][i];
+	  }
+
+#pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
             r_Auk += s_D[m][i]*s_v[j][m];
           }
 
+#pragma unroll p_Nq
+          for (int m=0;m<p_Nq;m++) {
+            r_Au[m] += s_D[k][m]*r_GDut;
+	  }
+	  
+
+	  
           r_Au[k] += r_Auk;
         }
       }
@@ -257,8 +277,8 @@ SOFTWARE.
     for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
-
-          //load D into local memory
+	  
+	  //load D into local memory
           // s_D[i][j] = d \phi_i at node j
           if (es==0) {
             s_D[j][i] = D[p_Nq*j+i];// D is column major
@@ -488,6 +508,7 @@ SOFTWARE.
             const dfloat G22 = ggeo[p_Nggeo*gbase+p_G22ID];
 
             // #pragma unroll p_Unr
+#pragma unroll p_Nq
             for(int m = 0; m < p_Nq; ++m) {
               const dfloat pmji = s_q[es][m][j][i];
               const dfloat Dkm = s_DT[m][k];
@@ -503,6 +524,7 @@ SOFTWARE.
             // 'r' terms
             tmp = 0;
             // #pragma unroll p_Unr
+#pragma unroll p_Nq
             for(int m = 0; m < p_Nq; ++m) {
               const dfloat Dim = s_D[i][m];
               tmp += Dim*s_q[es][k][j][m];
@@ -516,6 +538,7 @@ SOFTWARE.
             // 's' terms
             tmp = 0;
             // #pragma unroll p_Unr
+#pragma unroll p_Nq
             for(int m = 0; m < p_Nq; ++m) {
               const dfloat Djm = s_D[j][m];
               tmp += Djm*s_q[es][k][m][i];
@@ -538,6 +561,7 @@ SOFTWARE.
 
             // use same matrix for both slices
             // #pragma unroll p_Unr
+#pragma unroll p_Nq
             for(int m=0;m<p_Nq;++m){
               const dfloat Dmi = s_D[m][i];
               const dfloat Dmj = s_D[m][j];
@@ -547,6 +571,7 @@ SOFTWARE.
             }
 
             // #pragma unroll p_Unr
+#pragma unroll p_Nq
             for(int m=0;m<p_Nq;++m){
               const dfloat Gpt = s_Gqt[es][m][j][i];
               const dfloat Dmk = s_D[m][k];
