@@ -81,7 +81,7 @@ endif
 endif
 
 #libraries
-CORE_LIBS=mesh ogs core
+CORE_LIBS=mesh ogs core prim
 
 .PHONY: all BP \
 				BP1 BP2 BP3 BP4 BP5 BP6 \

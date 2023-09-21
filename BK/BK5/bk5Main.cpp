@@ -29,10 +29,10 @@ SOFTWARE.
 int main(int argc, char **argv){
 
   // start up MPI
-  Comm::Init(argc, argv);
+  comm_t::Init(argc, argv);
 
   { /*Scope so everything is destructed before MPI_Finalize */
-    comm_t comm(Comm::World().Dup());
+    comm_t comm(comm_t::world().Dup());
 
     bk5Settings_t settings(argc, argv, comm);
     if (settings.compareSetting("VERBOSE", "TRUE"))
@@ -55,6 +55,6 @@ int main(int argc, char **argv){
   }
 
   // close down MPI
-  Comm::Finalize();
+  comm_t::Finalize();
   return LIBP_SUCCESS;
 }

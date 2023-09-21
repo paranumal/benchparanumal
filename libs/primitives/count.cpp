@@ -2,7 +2,7 @@
 
 The MIT License (MIT)
 
-Copyright (c) 2017-2022 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
+Copyright (c) 2017-2023 Tim Warburton, Noel Chalmers, Jesse Chan, Ali Karakus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,37 +24,32 @@ SOFTWARE.
 
 */
 
-#include "bp4.hpp"
+#include "primitives.hpp"
 
-int main(int argc, char **argv){
+namespace libp {
 
-  // start up MPI
-  comm_t::Init(argc, argv);
+namespace prim {
 
-  { /*Scope so everything is destructed before MPI_Finalize */
-    comm_t comm(comm_t::world().Dup());
 
-    bp4Settings_t settings(argc, argv, comm);
-    if (settings.compareSetting("VERBOSE", "TRUE"))
-      settings.report();
+template<typename T>
+dlong count(const dlong N, const memory<T> v, const T& value) {
 
-    // set up platform
-    platform_t platform(settings);
+  if (N<=0) return 0;
 
-    // set up mesh
-    mesh_t mesh(platform, settings, comm);
-
-    dfloat lambda = 1.0;
-    // settings.getSetting("LAMBDA", lambda);
-
-    // set up bp solver
-    bp4_t bp(platform, settings, mesh, lambda);
-
-    // run
-    bp.Run();
+  dlong cnt = 0;
+  #pragma omp parallel for reduction(+:cnt)
+  for (dlong n=0; n<N; ++n) {
+    cnt += (v[n] == value) ? 1 : 0;
   }
 
-  // close down MPI
-  comm_t::Finalize();
-  return LIBP_SUCCESS;
+  return cnt;
 }
+
+template dlong count(const dlong N, const memory<int> v, const int& value);
+template dlong count(const dlong N, const memory<long long int> v, const long long int& value);
+template dlong count(const dlong N, const memory<float> v, const float& value);
+template dlong count(const dlong N, const memory<double> v, const double& value);
+
+} //namespace prim
+
+} //namespace libp
