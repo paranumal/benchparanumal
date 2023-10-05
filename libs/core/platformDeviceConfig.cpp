@@ -54,7 +54,8 @@ void platform_t::DeviceConfig(){
 
   settings_t& Settings = settings();
 
-  if(Settings.compareSetting("THREAD MODEL", "OpenCL"))
+  if(Settings.compareSetting("THREAD MODEL", "OpenCL") ||
+     Settings.compareSetting("THREAD MODEL", "DPCPP"))
     Settings.getSetting("PLATFORM NUMBER", plat);
 
   // read thread model/device/platform from Settings
@@ -69,6 +70,9 @@ void platform_t::DeviceConfig(){
   else if(Settings.compareSetting("THREAD MODEL", "OpenCL")){
     mode = "{mode: 'OpenCL', platform_id : " + std::to_string(plat) +"}";
   }
+  else if(Settings.compareSetting("THREAD MODEL", "DPCPP")){
+    mode = "{mode: 'DPCPP', platform_id : " + std::to_string(plat) +"}";
+  }
   else if(Settings.compareSetting("THREAD MODEL", "OpenMP")){
     mode = "{mode: 'OpenMP'}";
   }
@@ -78,8 +82,10 @@ void platform_t::DeviceConfig(){
 
   //add a device_id number for some modes
   if (  Settings.compareSetting("THREAD MODEL", "CUDA")
-      ||Settings.compareSetting("THREAD MODEL", "HIP")
-      ||Settings.compareSetting("THREAD MODEL", "OpenCL")) {
+	||Settings.compareSetting("THREAD MODEL", "HIP")
+	||Settings.compareSetting("THREAD MODEL", "OpenCL")
+	||Settings.compareSetting("THREAD MODEL", "DPCPP")
+	) {
     //for testing a single device, run with 1 rank and specify DEVICE NUMBER
     if (size()==1) {
       Settings.getSetting("DEVICE NUMBER",device_id);

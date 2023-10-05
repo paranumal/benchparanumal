@@ -88,6 +88,13 @@ void platform_t::DeviceProperties(){
     Props["defines/OCCA_USE_OPENCL"] = 1;
   }
 
+  if(device.mode()=="dpcpp"){ // add backend compiler optimization for OPENCL
+    //    Props["compiler_flags"] += " -Ofast ";
+    //    Props["compiler_flags"] += " -fast ";
+    Props["defines/OCCA_USE_DPCPP"] = 1;
+  }
+
+  
   if(device.mode()=="HIP"){ // add backend compiler optimization for HIP
     Props["compiler_flags"] += " -O3 ";
     Props["compiler_flags"] += " -ffp-contract=fast ";

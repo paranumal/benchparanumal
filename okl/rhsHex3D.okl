@@ -24,7 +24,7 @@ SOFTWARE.
 
 */
 
-#define PI 3.14159265358979323846
+#define PI ((dfloat)3.14159265358979323846)
 
 /* forcing function   */
 #if p_Nfields==1
