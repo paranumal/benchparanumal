@@ -9,13 +9,15 @@ function HELP {
 element=Hex
 ndofs=4000000
 affine=false
+plat=0
+devi=0
 
 #parse options
-while getopts :m:e:n:ah FLAG; do
+while getopts :m:e:n:p:d:ah FLAG; do
   case $FLAG in
     m)
         mode=$OPTARG
-        [[ ! $mode =~ CUDA|HIP|OpenCL|OpenMP|Serial ]] && {
+        [[ ! $mode =~ CUDA|HIP|OpenCL|OpenMP|Serial|DPCPP ]] && {
             echo "Incorrect run mode provided"
             exit 1
         }
@@ -30,6 +32,12 @@ while getopts :m:e:n:ah FLAG; do
     n)
         ndofs=$OPTARG
         ;;
+    p)
+        plat=$OPTARG;
+	echo "platform=" $plat;;
+    d)
+        devi=$OPTARG;
+	echo "device=" $devi;;    
     a)
         affine=true
         ;;
@@ -48,7 +56,7 @@ then
     mode=HIP
 fi
 
-args="-m $mode -e $element -n $ndofs"
+args="-m $mode -e $element -n $ndofs -p $plat -d $devi"
 
 if [ "$affine" = true ] ; then
     args+=" -a "

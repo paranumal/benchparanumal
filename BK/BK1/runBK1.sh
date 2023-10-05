@@ -69,7 +69,11 @@ for p in {1..14}
 do
     #compute mesh size
     if [ "$element" == "Hex" ] || [ "$element" == "Tet" ]; then
+	
         N=$(echo $ndofs $p | awk '{ printf "%3.0f", ($1/($2*$2*$2))^(1/3)+0.499 }')
+
+	echo $mpi $exe " -m " $mode " -e " $element " -nx " $N " -ny " $N " -nz " $N " -p " $p " -pl " $plat " -d " $devi
+	
         $mpi $exe -m $mode -e $element -nx $N -ny $N -nz $N -p $p -pl $plat -d $devi
     elif [ "$element" == "Quad" ] || [ "$element" == "Tri" ]; then
         N=$(echo $ndofs $p | awk '{ printf "%3.0f", ($1/($2*$2))^(1/2)+0.499 }')
