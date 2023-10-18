@@ -51,6 +51,8 @@ void bk5_t::Run(){
 
   // int verbose = settings.compareSetting("VERBOSE", "TRUE") ? 1 : 0;
 
+  int Nrepeats = 1000000;
+
   int Ntests = 50;
 
   for(int n=0;n<5;++n){ //warmup
@@ -69,6 +71,8 @@ void bk5_t::Run(){
                    o_Aq);
   }
 
+  for(int rep=0;rep<Nrepeats;++rep){
+  
   timePoint_t start = GlobalPlatformTime(platform);
   for(int n=0;n<Ntests;++n){
     operatorKernel(mesh.NlocalGatherElements,
@@ -182,8 +186,9 @@ void bk5_t::Run(){
         break;
     }
     if (affine) suffix += ", Affine";
-
-    printf("BK5: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e, %s \n",
+    
+    printf("%06d, %02d, " hlongFormat ", %6.4e, %6.4e, %6.4e, %6.4e, %6.4e; %%%% test, N, Ndofs, elapsed, throughput (dofs/s), gbytes/s, gflops/s, %s\n",
+	   rep,
            mesh.N,
            Ndofs,
            elapsedTime,
@@ -192,5 +197,6 @@ void bk5_t::Run(){
            Nflops/(1.0e9 * elapsedTime),
            Ndofs/(mesh.size*elapsedTime),
            suffix.c_str());
+  }
   }
 }

@@ -1,0 +1,9 @@
+
+echo "DEFAULTS"
+./BK5  -m  DPCPP  -e  Hex  -nx  23  -ny  23  -nz  23  -p  7  -pl  3  -d  0
+
+echo "WIDTH 16"
+OCCA_DPCPP_COMPILER_FLAGS="-O3 -fsycl -fsycl-targets=intel_gpu_pvc -Xsycl-target-backend '-options -ze-intel-enable-auto-large-GRF-mode'" IGC_ForceOCLSIMDWidth=16 ./BK5  -m  DPCPP  -e  Hex  -nx  23  -ny  23  -nz  23  -p  7  -pl  3  -d  0
+
+echo "WIDTH 32"
+OCCA_DPCPP_COMPILER_FLAGS="-O3 -fsycl -fsycl-targets=intel_gpu_pvc -Xsycl-target-backend '-options -ze-intel-enable-auto-large-GRF-mode'" IGC_ForceOCLSIMDWidth=32 ./BK5  -m  DPCPP  -e  Hex  -nx  23  -ny  23  -nz  23  -p  7  -pl  3  -d  0
