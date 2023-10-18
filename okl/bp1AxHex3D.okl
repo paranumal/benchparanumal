@@ -27,6 +27,8 @@ SOFTWARE.
 /* Use slice-by-slice kernel for all orders*/
 #if p_N>0
 
+#if OCCA_USE_DPCPP!=1
+
 #if p_N==1
 #define p_NelementsPerBlk 28
 #elif p_N==2
@@ -50,13 +52,51 @@ SOFTWARE.
 #define p_NelementsPerBlk 1
 #endif
 
+#else
+
+#if p_N==1
+#define p_NelementsPerBlk 7
+#elif p_N==2
+#define p_NelementsPerBlk 2
+#elif p_N==3
+#define p_NelementsPerBlk 5
+#elif p_N==4
+#define p_NelementsPerBlk 7
+#elif p_N==5
+#define p_NelementsPerBlk 5
+#elif p_N==6
+#define p_NelementsPerBlk 1
+#elif p_N==7
+#define p_NelementsPerBlk 3
+#elif p_N==8
+#define p_NelementsPerBlk 5
+#elif p_N==9
+#define p_NelementsPerBlk 1
+#elif p_N==10
+#define p_NelementsPerBlk 2
+#elif p_N==11
+#define p_NelementsPerBlk 3
+#elif p_N==12
+#define p_NelementsPerBlk 2
+#else
+// no packing
+#define p_NelementsPerBlk 1
+#endif
+
+#endif
+
 //padding for bank conflicts
-#if p_cubNq==8 || p_cubNq==4
+#if p_cubNq==16 || p_cubNq==12 || p_cubNq==8 || p_cubNq==4
 #define p_pad 1
 #else
 #define p_pad 0
 #endif
 
+#if OCCA_USE_DPCPP==1
+#if p_cubNq==16 
+#define p_pad 1
+#endif
+#endif
 
 @kernel void bp1AxHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,

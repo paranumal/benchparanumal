@@ -43,7 +43,7 @@ void mesh_t::GeometricFactorsHex3D(){
     wJ.malloc(Nelements);
     ggeo.malloc(Nelements*Nggeo);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for(dlong e=0;e<Nelements;++e){ /* for each element */
       /* find vertex indices and physical coordinates */
       dlong id = e*Nverts+0;
@@ -85,7 +85,7 @@ void mesh_t::GeometricFactorsHex3D(){
     wJ.malloc(Nelements*Np);
     ggeo.malloc(Nelements*Nggeo*Np);
 
-    #pragma omp parallel for
+    //    #pragma omp parallel for
     for(dlong e=0;e<Nelements;++e){ /* for each element */
 
       for(int k=0;k<Nq;++k){
@@ -115,8 +115,12 @@ void mesh_t::GeometricFactorsHex3D(){
             /* compute geometric factors for affine coordinate transform*/
             dfloat J = xr*(ys*zt-zs*yt) - yr*(xs*zt-zs*xt) + zr*(xs*yt-ys*xt);
 
-            LIBP_ABORT("Negative J found at element " << e,
-                       J<1e-12);
+#if 0
+	    printf("xr=%e,yr=%e,zr=%e,xs=%e,ys=%e,zs=%e,xt=%e,yt=%e,zt=%e,J=%g\n",
+		   xr, yr, zr, xs, ys, zs, xt, yt, zt, J);
+#endif
+	    
+            LIBP_ABORT("Negative J found at element " << e, J<1e-12);
 
             dfloat rx =  (ys*zt - zs*yt)/J, ry = -(xs*zt - zs*xt)/J, rz =  (xs*yt - ys*xt)/J;
             dfloat sx = -(yr*zt - zr*yt)/J, sy =  (xr*zt - zr*xt)/J, sz = -(xr*yt - yr*xt)/J;

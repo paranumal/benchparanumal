@@ -144,7 +144,7 @@ namespace libp {
 // assume row major
 void linAlg_t::matrixRightSolve(const int NrowsA, const int NcolsA, const memory<double> A,
                                 const int NrowsB, const int NcolsB, const memory<double> B,
-                                memory<double> C){
+                                memory<double> &C){
 
   int info;
 
@@ -173,7 +173,7 @@ void linAlg_t::matrixRightSolve(const int NrowsA, const int NcolsA, const memory
 // assume row major
 void linAlg_t::matrixRightSolve(const int NrowsA, const int NcolsA, const memory<float> A,
                                 const int NrowsB, const int NcolsB, const memory<float> B,
-                                memory<float> C){
+                                memory<float> &C){
 
   int info;
 

@@ -24,21 +24,28 @@ SOFTWARE.
 
 */
 
+
+
 #if p_N<=8
-#define USE_3D_SHMEM 1
+#define bp5AxHex3Dv3 bp5AxHex3D
 #else
-#define USE_3D_SHMEM 0
+#if (OCCA_USE_CUDA==1||OCCA_USE_DPCPP==1) && p_N>8
+#define bp5AxHex3Dv0 bp5AxHex3D
+#else
+#define bp5AxHex3Dv1 bp5AxHex3D
+#endif
 #endif
 
-#if !USE_3D_SHMEM
-
+#define bp5AxHex3Dv1a bp5AxHex3D
 
 //This kernel processes 2D slices of the element in shmem and uses register arrays
 // to store the element itself. May be slower for low order but allows us to run
 // high degree efficiently
 
 /* The NV compiler doesn't like the blocked kernel. Skip using it. */
-#if OCCA_USE_CUDA==1 && p_N>8
+
+#if 0
+// start v0
 
 //padding for bank conflicts
 #if p_Nq==16
@@ -47,7 +54,7 @@ SOFTWARE.
 #define p_pad 0
 #endif
 
-@kernel void bp5AxHex3D(const dlong Nelements,
+@kernel void bp5AxHex3Dv0(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
                         @restrict const  dfloat *  wJ,
@@ -184,8 +191,6 @@ SOFTWARE.
   }
 }
 
-#else
-
 /* Blocked version */
 #if p_N==1
 #define p_NelementsPerBlk 16
@@ -228,7 +233,7 @@ SOFTWARE.
 #define p_pad 0
 #endif
 
-@kernel void bp5AxHex3D(const dlong Nelements,
+@kernel void bp5AxHex3Dv1(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
                         @restrict const  dfloat *  wJ,
@@ -388,12 +393,167 @@ SOFTWARE.
     }
   }
 }
+
+// endif v0
 #endif
 
-#elif USE_3D_SHMEM
+#define p_pad 0
+//#define p_NelementsPerBlk 4
+#define p_NelementsPerBlk 1
+
+@kernel void bp5AxHex3Dv1a(const dlong Nelements,
+			   @restrict const  dlong  *  elementList,
+			   @restrict const  dlong  *  GlobalToLocal,
+			   @restrict const  dfloat *  wJ,
+			   @restrict const  dfloat *  vgeo,
+			   @restrict const  dfloat *  ggeo,
+			   @restrict const  dfloat *  gllw,
+			   @restrict const  dfloat *  D,
+			   @restrict const  dfloat *  S,
+			   @restrict const  dfloat *  MM,
+			   const dfloat lambda,
+			   @restrict const  dfloat *  q,
+			   @restrict dfloat *  Aq){
+  
+  for(dlong eo=0; eo<Nelements; eo+=p_NelementsPerBlk; @outer(0)){
+    
+    @shared dfloat s_D[p_Nq][p_Nq+p_pad];
+    @shared dfloat s_q[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_v[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_w[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
+
+    @exclusive dfloat r_GDut, r_Auk;
+
+    // array for results Au(i,j,0:N)
+    @shared dfloat s_Au[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq];
+
+    @exclusive dlong r_e, element;
+    
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          //load D into local memory
+          // s_D[i][j] = d \phi_i at node j
+          if (es==0) {
+            s_D[j][i] = D[p_Nq*j+i];// D is column major
+          }
+
+          r_e = es+eo;
+
+          if(r_e<Nelements){
+            element = elementList[r_e];
+
+            const dlong base = i + j*p_Nq + element*p_Np;
+
+            // load pencil of u into register
+            #pragma unroll p_Nq
+            for (int k=0;k<p_Nq;k++) {
+              const dlong id = GlobalToLocal[base + k*p_Nq*p_Nq];
+              s_q[es][k][j][i] = (id!=-1) ? q[id] : 0.0;
+            }
+	    
+#pragma unroll p_Nq
+            for (int k=0;k<p_Nq;k++) {
+              s_Au[es][k][j][i] = 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    // Layer by layer
+    
+//#if OCCA_USE_CUDA==1 || OCCA_USE_DPCPP==1
+    // only force some type of unrolling in CUDA mode
+#pragma unroll p_Nq
+//#endif
+    for(int k = 0;k < p_Nq; k++){
+
+      for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+        for(int j=0;j<p_Nq;++j;@inner(1)){
+          for(int i=0;i<p_Nq;++i;@inner(0)){
+
+            dfloat r_G00=0, r_G01=0, r_G02=0, r_G11=0, r_G12=0, r_G22=0, r_GwJ=0;
+
+            if(r_e<Nelements){
+              // prefetch geometric factors
+              const dlong gbase = element*p_Np + k*p_Nq*p_Nq + j*p_Nq + i;
+
+              r_GwJ = wJ[gbase];
+              r_G00 = ggeo[p_Nggeo*gbase+p_G00ID];
+              r_G01 = ggeo[p_Nggeo*gbase+p_G01ID];
+              r_G11 = ggeo[p_Nggeo*gbase+p_G11ID];
+              r_G12 = ggeo[p_Nggeo*gbase+p_G12ID];
+              r_G02 = ggeo[p_Nggeo*gbase+p_G02ID];
+              r_G22 = ggeo[p_Nggeo*gbase+p_G22ID];
+            }
+
+            dfloat ur = 0.f;
+            dfloat us = 0.f;
+            dfloat ut = 0;
+
+#pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              ut += s_D[k][m]*s_q[es][m][j][i];
+	      ur += s_D[i][m]*s_q[es][k][j][m];
+              us += s_D[j][m]*s_q[es][k][m][i];
+            }
+	    
+            s_w[es][j][i] = (r_G01*ur + r_G11*us + r_G12*ut);
+            s_v[es][j][i] = (r_G00*ur + r_G01*us + r_G02*ut);
+            r_GDut        = (r_G02*ur + r_G12*us + r_G22*ut);
+
+#pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              s_Au[es][m][j][i] += s_D[k][m]*r_GDut;
+	    }
+	    
+            r_Auk = r_GwJ*lambda*s_q[es][k][j][i];
+          }
+        }
+      }
+      
+      for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+        for(int j=0;j<p_Nq;++j;@inner(1)){
+          for(int i=0;i<p_Nq;++i;@inner(0)){
+	    
+#pragma unroll p_Nq
+            for (int m=0;m<p_Nq;m++) {
+              r_Auk   += s_D[m][j]*s_w[es][m][i];
+              r_Auk   += s_D[m][i]*s_v[es][j][m];
+            }
+	    
+            s_Au[es][k][j][i] += r_Auk;
+          }
+        }
+      }
+    } //end Layer by layer
+    
+    // write out
+    for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+          if(r_e<Nelements){
+            const dlong id = element*p_Np + j*p_Nq + i;
+	    
+#pragma unroll p_Nq
+            for (int k=0;k<p_Nq;k++) {
+              Aq[id+k*p_Nq*p_Nq] = s_Au[es][k][j][i];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
 //This kernel stores the entire hex element in shmem.
 // Good for low orders, but will exceed 1024 threads per block after N=9
 
+#if OCCA_USE_DPCPP!=1
 #if p_N==1
 #define p_NelementsPerBlk 8
 #elif p_N==2
@@ -412,7 +572,29 @@ SOFTWARE.
 #define p_NelementsPerBlk 1
 #endif
 
-@kernel void bp5AxHex3D(const dlong Nelements,
+#else
+#if p_N==1
+#define p_NelementsPerBlk 3
+#elif p_N==2
+#define p_NelementsPerBlk 4
+#elif p_N==3
+#define p_NelementsPerBlk 4
+#elif p_N==4
+#define p_NelementsPerBlk 1
+#elif p_N==5
+#define p_NelementsPerBlk 1
+#elif p_N==6
+#define p_NelementsPerBlk 1
+#elif p_N==7
+#define p_NelementsPerBlk 2
+#else
+#define p_NelementsPerBlk 1
+#endif
+#endif
+
+#if 0
+#if (p_Np*p_NelementsPerBlk<=1024)
+@kernel void bp5AxHex3Dv2(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
                         @restrict const  dfloat *  wJ,
@@ -427,14 +609,15 @@ SOFTWARE.
                               @restrict dfloat *  Aq){
 
 //padding for bank conflicts
-#if p_Nq==8 || p_Nq==4
+//#if p_Nq==8 || p_Nq==4
+#if p_Nq==16
 #define p_pad 1
 #else
 #define p_pad 0
 #endif
 
   for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
-
+    
     @shared dfloat s_D [p_Nq][p_Nq+p_pad];
     @shared dfloat s_DT[p_Nq][p_Nq+p_pad];
     @shared dfloat   s_q[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
@@ -455,7 +638,7 @@ SOFTWARE.
           if(ke==0){
             const int id = j*p_Nq+i;
             const dfloat Dji = D[id];
-            s_D[j][i] = Dji;
+	    s_D[j][i] = Dji;
             s_DT[i][j] = Dji;
           }
 
@@ -479,57 +662,154 @@ SOFTWARE.
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
 
+	  dfloat G00 = 0, G01 = 0, G02 = 0, G11 = 0, G12 = 0, G22 = 0;
+	  r_wJ = 0;
+	  
           if(r_e<Nelements){
-            const dlong gbase = element*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
+	    // changed striding
+            const dlong gbase = element*p_Np*p_Nggeo + i + j*p_Nq + k*p_Nq*p_Nq;
+	    r_wJ = wJ[gbase];
+            G00 = ggeo[gbase+p_G00ID*p_Np];
+            G01 = ggeo[gbase+p_G01ID*p_Np];
+            G11 = ggeo[gbase+p_G11ID*p_Np];
+            G02 = ggeo[gbase+p_G02ID*p_Np];
+            G12 = ggeo[gbase+p_G12ID*p_Np];
+            G22 = ggeo[gbase+p_G22ID*p_Np];
+	  }
+	  
+	  // 't' terms
+	  dfloat tmp=0.0;
+	  
+#pragma unroll p_Nq
+	  for(int m = 0; m < p_Nq; ++m) {
+	    const dfloat pmji = s_q[es][m][j][i];
+	    const dfloat Dkm = s_DT[m][k];
+	    tmp += Dkm*pmji;
+	  }
+	  
+	  
+	  s_Gqr[es][k][j][i] = G02*tmp;
+	  s_Gqs[es][k][j][i] = G12*tmp;
+	  s_Gqt[es][k][j][i] = G22*tmp;
+	  
+	  
+	  // 'r' terms
+	  tmp = 0;
+#pragma unroll p_Nq
+	  for(int m = 0; m < p_Nq; ++m) {
+	    const dfloat Dim = s_D[i][m];
+	    tmp += Dim*s_q[es][k][j][m];
+	  }
+	  
+	  s_Gqr[es][k][j][i] += G00*tmp;
+	  s_Gqs[es][k][j][i] += G01*tmp;
+	  s_Gqt[es][k][j][i] += G02*tmp;
+	  
+	  
+	  // 's' terms
+	  tmp = 0;
+#pragma unroll p_Nq
+	  for(int m = 0; m < p_Nq; ++m) {
+	    const dfloat Djm = s_D[j][m];
+	    tmp += Djm*s_q[es][k][m][i];
+	  }
+	  
+	  s_Gqr[es][k][j][i] += G01*tmp;
+	  s_Gqs[es][k][j][i] += G11*tmp;
+	  s_Gqt[es][k][j][i] += G12*tmp;
+	}
+      }
+    }
 
-            // 't' terms
-            dfloat tmp=0.0;
-
-            r_wJ = wJ[gbase];
-            const dfloat G00 = ggeo[p_Nggeo*gbase+p_G00ID];
-            const dfloat G01 = ggeo[p_Nggeo*gbase+p_G01ID];
-            const dfloat G11 = ggeo[p_Nggeo*gbase+p_G11ID];
-            const dfloat G02 = ggeo[p_Nggeo*gbase+p_G02ID];
-            const dfloat G12 = ggeo[p_Nggeo*gbase+p_G12ID];
-            const dfloat G22 = ggeo[p_Nggeo*gbase+p_G22ID];
-
-            // #pragma unroll p_Unr
-            for(int m = 0; m < p_Nq; ++m) {
-              const dfloat pmji = s_q[es][m][j][i];
-              const dfloat Dkm = s_DT[m][k];
-              tmp += Dkm*pmji;
-            }
-
-
-            s_Gqr[es][k][j][i] = G02*tmp;
-            s_Gqs[es][k][j][i] = G12*tmp;
-            s_Gqt[es][k][j][i] = G22*tmp;
-
-
-            // 'r' terms
-            tmp = 0;
-            // #pragma unroll p_Unr
-            for(int m = 0; m < p_Nq; ++m) {
-              const dfloat Dim = s_D[i][m];
-              tmp += Dim*s_q[es][k][j][m];
-            }
-
-            s_Gqr[es][k][j][i] += G00*tmp;
-            s_Gqs[es][k][j][i] += G01*tmp;
-            s_Gqt[es][k][j][i] += G02*tmp;
+    for(int ke=0;ke<p_Nq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+	  
+	  dfloat tmpAp = s_q[es][k][j][i]*lambda*r_wJ;
+	  
+	  // use same matrix for both slices
+#pragma unroll p_Nq
+	  for(int m=0;m<p_Nq;++m){
+	    const dfloat Dmi = s_D[m][i];
+	    const dfloat Dmj = s_D[m][j];
+	    const dfloat Dmk = s_D[m][k];
+	    
+	    tmpAp += Dmi*s_Gqr[es][k][j][m];
+	    tmpAp += Dmj*s_Gqs[es][k][m][i];
+	    tmpAp += Dmk*s_Gqt[es][m][j][i];
+	  }
+	  
+	  if(r_e<Nelements){
+	    const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	    Aq[base] = tmpAp;
+	  }
+        }
+      }
+    }
+  }
+}
 
 
-            // 's' terms
-            tmp = 0;
-            // #pragma unroll p_Unr
-            for(int m = 0; m < p_Nq; ++m) {
-              const dfloat Djm = s_D[j][m];
-              tmp += Djm*s_q[es][k][m][i];
-            }
+@kernel void bp5AxHex3Dv3(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  vgeo,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  gllw,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
 
-            s_Gqr[es][k][j][i] += G01*tmp;
-            s_Gqs[es][k][j][i] += G11*tmp;
-            s_Gqt[es][k][j][i] += G12*tmp;
+//padding for bank conflicts
+//#if p_Nq==8 || p_Nq==4
+#if p_Nq==16
+#define p_pad 1
+#else
+#define p_pad 0
+#endif
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
+
+    @shared dfloat s_D [p_Nq][p_Nq+p_pad];
+    @shared dfloat s_DT[p_Nq][p_Nq+p_pad];
+    
+    @shared dfloat   s_q[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_Gqr[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_Gqs[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_Gqt[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
+
+    @exclusive dlong r_e, element;
+    @exclusive dfloat r_wJ;
+
+    @exclusive int k, es;
+
+    for(int ke=0;ke<p_Nq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+
+          //load operators
+          if(ke==0){
+            const int id = j*p_Nq+i;
+            const dfloat Dji = D[id];
+	    s_D[j][i] = Dji;
+            s_DT[i][j] = Dji;
+          }
+	  
+          k  = ke%p_Nq;
+          es = ke/p_Nq;
+          r_e = es+eo;
+
+          if(r_e<Nelements){
+            element = elementList[r_e];
+            const dlong id = GlobalToLocal[i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np];
+            if (id!=-1)
+              s_q[es][k][j][i] = q[id];
+            else
+              s_q[es][k][j][i] = 0.0;
           }
         }
       }
@@ -539,33 +819,67 @@ SOFTWARE.
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
 
+	  dfloat G00 = 0, G01 = 0, G02 = 0, G11 = 0, G12 = 0, G22 = 0;
+	  r_wJ = 0;
+	  
           if(r_e<Nelements){
-            dfloat tmpAp = s_q[es][k][j][i]*lambda*r_wJ;
+	    // changed striding
+            const dlong gbase = element*p_Np*p_Nggeo + i + j*p_Nq + k*p_Nq*p_Nq;
+	    r_wJ = wJ[gbase];
+            G00 = ggeo[gbase+p_G00ID*p_Np];
+            G01 = ggeo[gbase+p_G01ID*p_Np];
+            G11 = ggeo[gbase+p_G11ID*p_Np];
+            G02 = ggeo[gbase+p_G02ID*p_Np];
+            G12 = ggeo[gbase+p_G12ID*p_Np];
+            G22 = ggeo[gbase+p_G22ID*p_Np];
+	  }
+	  
+	  // 't' terms
+	  dfloat tmpr=0.0, tmps=0., tmpt=0.;
+	  
+#pragma unroll p_Nq
+	  for(int m = 0; m < p_Nq; ++m) {
+	    const dfloat Dim = s_D[i][m];
+	    const dfloat Djm = s_D[j][m];
+	    const dfloat Dkm = s_D[k][m];
+	    tmpr += Dim*s_q[es][k][j][m];
+	    tmps += Djm*s_q[es][k][m][i];
+	    tmpt += Dkm*s_q[es][m][j][i];
+	  }
+	  s_Gqr[es][k][j][i] = G00*tmpr+G01*tmps+G02*tmpt;
+	  s_Gqs[es][k][j][i] = G01*tmpr+G11*tmps+G12*tmpt;
+	  s_Gqt[es][k][j][i] = G02*tmpr+G12*tmps+G22*tmpt;
+	}
+      }
+    }
 
-            // use same matrix for both slices
-            // #pragma unroll p_Unr
-            for(int m=0;m<p_Nq;++m){
-              const dfloat Dmi = s_D[m][i];
-              const dfloat Dmj = s_D[m][j];
+    for(int ke=0;ke<p_Nq*p_NelementsPerBlk;++ke;@inner(2)){
+      for(int j=0;j<p_Nq;++j;@inner(1)){
+        for(int i=0;i<p_Nq;++i;@inner(0)){
+	  
+	  dfloat tmpAp = s_q[es][k][j][i]*lambda*r_wJ;
+	  
+	  // use same matrix for both slices
+#pragma unroll p_Nq
+	  for(int m=0;m<p_Nq;++m){
+	    const dfloat Dmi = s_D[m][i];
+	    const dfloat Dmj = s_D[m][j];
+	    const dfloat Dmk = s_D[m][k];
 
-              tmpAp += Dmi*s_Gqr[es][k][j][m];
-              tmpAp += Dmj*s_Gqs[es][k][m][i];
-            }
-
-            // #pragma unroll p_Unr
-            for(int m=0;m<p_Nq;++m){
-              const dfloat Gpt = s_Gqt[es][m][j][i];
-              const dfloat Dmk = s_D[m][k];
-              tmpAp += Dmk*Gpt;
-            }
-
-            const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
-            Aq[base] = tmpAp;
-          }
+	    tmpAp += Dmi*s_Gqr[es][k][j][m];
+	    tmpAp += Dmj*s_Gqs[es][k][m][i];
+	    tmpAp += Dmk*s_Gqt[es][m][j][i];
+	  }
+	  
+	  if(r_e<Nelements){
+	    const dlong base = i + j*p_Nq + k*p_Nq*p_Nq + element*p_Np;
+	    Aq[base] = tmpAp;
+	  }
         }
       }
     }
   }
 }
 
+#endif
 #endif

@@ -81,10 +81,10 @@ public:
 
   static void matrixRightSolve(const int NrowsA, const int NcolsA, const memory<double> A,
                                const int NrowsB, const int NcolsB, const memory<double> B,
-                               memory<double> C);
+                               memory<double> &C);
   static void matrixRightSolve(const int NrowsA, const int NcolsA, const memory<float> A,
                                const int NrowsB, const int NcolsB, const memory<float> B,
-                               memory<float> C);
+                               memory<float> &C);
 
   static void matrixEigenVectors(const int N, const memory<double> A,
                                  memory<double> VR, memory<double> WR, memory<double> WI);
