@@ -837,14 +837,16 @@ SOFTWARE.
 	  
           if(r_e<Nelements){
 	    // changed striding
-            const dlong gbase = element*p_Np*p_Nggeo + i + j*p_Nq + k*p_Nq*p_Nq;
+	    dlong gbase = element*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
 	    r_wJ = wJ[gbase];
-            G00 = ggeo[gbase+p_G00ID*p_Np];
-            G01 = ggeo[gbase+p_G01ID*p_Np];
-            G11 = ggeo[gbase+p_G11ID*p_Np];
-            G02 = ggeo[gbase+p_G02ID*p_Np];
-            G12 = ggeo[gbase+p_G12ID*p_Np];
-            G22 = ggeo[gbase+p_G22ID*p_Np];
+	    
+	    gbase = p_Nggeo*(element*p_Np + i + j*p_Nq + k*p_Nq*p_Nq);
+            G00 = ggeo[gbase+p_G00ID];
+            G01 = ggeo[gbase+p_G01ID];
+            G11 = ggeo[gbase+p_G11ID];
+            G02 = ggeo[gbase+p_G02ID];
+            G12 = ggeo[gbase+p_G12ID];
+            G22 = ggeo[gbase+p_G22ID];
 	  }
 	  
 	  // 't' terms
