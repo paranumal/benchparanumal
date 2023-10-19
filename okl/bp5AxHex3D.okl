@@ -671,7 +671,8 @@ SOFTWARE.
             dlong gbase = element*p_Np + i + j*p_Nq + k*p_Nq*p_Nq;
 	    r_wJ = wJ[gbase];
 
-#if 0
+#if 1
+    // THIS FOR DPCPP
 	    gbase = element*p_Np*p_Nggeo + i + j*p_Nq + k*p_Nq*p_Nq;
             G00 = ggeo[gbase+p_G00ID*p_Np];
             G01 = ggeo[gbase+p_G01ID*p_Np];
