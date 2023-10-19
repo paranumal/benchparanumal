@@ -553,8 +553,8 @@ SOFTWARE.
 //This kernel stores the entire hex element in shmem.
 // Good for low orders, but will exceed 1024 threads per block after N=9
 
-//#if OCCA_USE_DPCPP!=1
-#if 0
+#if OCCA_USE_DPCPP!=1
+
 #if p_N==1
 #define p_NelementsPerBlk 8
 #elif p_N==2
