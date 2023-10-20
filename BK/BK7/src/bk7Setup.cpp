@@ -53,7 +53,7 @@ void bk7_t::Setup(platform_t& _platform, settings_t& _settings,
   // OCCA build stuff
   properties_t kernelInfo = mesh.props; //copy base occa properties
 
-  Next = 1;
+  Next = 2;
 
   kernelInfo["defines/" "p_Next"]= Next;
   kernelInfo["defines/" "p_Nfields"]= Nfields;
