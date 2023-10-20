@@ -31,7 +31,7 @@ namespace libp {
 void mesh_t::CubatureSetupHex3D(){
 
   /* Quadrature data */
-  cubN = N+1;
+  cubN = (int)(N*3/2.);
   cubNq = cubN+1;
   cubNp = cubNq*cubNq*cubNq;
   cubNfp = cubNq*cubNq;
