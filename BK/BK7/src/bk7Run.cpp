@@ -61,6 +61,12 @@ void bk7_t::Run(){
 		   o_NU);
   }
 
+  usleep(1000);
+
+  int Nrepeats = 100000;
+
+  for(int rep=0;rep<Nrepeats;++rep){
+  
   timePoint_t start = GlobalPlatformTime(platform);
   for(int n=0;n<Ntests;++n){
 
@@ -140,7 +146,8 @@ void bk7_t::Run(){
       suffix += "Hex";
       break;
     }
-    printf("BK7: N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e, %s \n",
+    printf("BK7: Test=%d, N=%2d, DOFs=" hlongFormat ", elapsed=%4.4f, time per DOF=%1.2e, avg BW (GB/s)=%6.1f, avg GFLOPs=%6.1f, DOFs/ranks*time=%1.2e, %s \n",
+	   rep,
 	   mesh.N,
 	   Ndofs,
 	   elapsedTime,
@@ -149,6 +156,6 @@ void bk7_t::Run(){
 	   Nflops/(1.0e9 * elapsedTime),
 	   Ndofs/(mesh.size*elapsedTime),
 	   suffix.c_str());
-  
+  }  
   }
 }

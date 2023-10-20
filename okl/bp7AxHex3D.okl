@@ -77,7 +77,6 @@ SOFTWARE.
           r_c[s] = coeff;
         }
 
-#if 1
         for (int k = 0; k < p_cubNq; ++k) {        
           r_Uhat[k] = 0;
           r_Vhat[k] = 0;
@@ -91,8 +90,6 @@ SOFTWARE.
             r_What[k] += r_c[s] * conv[id + 2 * cubatureOffset + s_offset];            
           }
         }
-#endif
-	
       }
     }
 
