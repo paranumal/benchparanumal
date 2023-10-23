@@ -55,6 +55,12 @@ void meshAddSettings(settings_t& settings) {
                       "Degree of polynomial finite element space",
                       {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"});
 
+  settings.newSetting("-c", "--cubature",
+                      "CUBATURE SIZE",
+                      "4",
+                      "Number of cubature points in each dimension",
+                      {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"});
+  
   settings.newSetting("-a", "--affine",
                       "AFFINE MESH",
                       "FALSE",
@@ -77,6 +83,7 @@ void meshReportSettings(settings_t& settings) {
   settings.reportSetting("AFFINE MESH");
 
   settings.reportSetting("POLYNOMIAL DEGREE");
+  settings.reportSetting("CUBATURE SIZE");
 }
 
 } //namespace libp

@@ -1,6 +1,6 @@
 // Differentiation matrices on cubature GL points
 #if p_cubNq==2
-const dfloat c_D[2][2] = {
+dfloat c_D[2][2] = {
 {-8.66025403784438819e-01,8.66025403784438819e-01},
 {-8.66025403784438819e-01,8.66025403784438819e-01}
 };

@@ -36,6 +36,9 @@ void bk7_t::Setup(platform_t& _platform, settings_t& _settings,
 
   Nfields = mesh.dim;
 
+  // set up some linAlg kernels
+  platform.linAlg().InitKernels({"axpy", "innerProd", "norm2", "set"});
+  
   //Trigger JIT kernel builds
   ogs::InitializeKernels(platform, ogs::Dfloat, ogs::Add);
 
@@ -50,41 +53,5 @@ void bk7_t::Setup(platform_t& _platform, settings_t& _settings,
 
   o_GlobalToLocal = platform.malloc<dlong>(GlobalToLocal);
 
-  // OCCA build stuff
-  properties_t kernelInfo = mesh.props; //copy base occa properties
-
-  Next = 2;
-
-  kernelInfo["defines/" "p_Next"]= Next;
-  kernelInfo["defines/" "p_Nfields"]= Nfields;
-  kernelInfo["defines/" "p_NVfields"]= mesh.dim;
-
-  kernelInfo["includes"] += "constantInterpolationMatrices.h";
-  kernelInfo["includes"] += "constantDifferentiationMatrices.h";
-  
-  // set kernel name suffix
-  char *suffix;
-  if(mesh.elementType==mesh_t::TRIANGLES)
-    suffix = strdup("Tri2D");
-  else if(mesh.elementType==mesh_t::QUADRILATERALS)
-    suffix = strdup("Quad2D");
-  else if(mesh.elementType==mesh_t::TETRAHEDRA)
-    suffix = strdup("Tet3D");
-  else //if(mesh.elementType==mesh_t::HEXAHEDRA)
-    suffix = strdup("Hex3D");
-
-  char fileName[BUFSIZ], kernelName[BUFSIZ];
-
-  // Ax kernel
-  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
-    sprintf(fileName,  LIBP_DIR "/okl/bp7Ax%s.okl", suffix);
-    sprintf(kernelName, "bp7AxAffine%s", suffix);
-  } else {
-    sprintf(fileName,  LIBP_DIR "/okl/bp7Ax%s.okl", suffix);
-    sprintf(kernelName, "bp7Ax%s", suffix);
-  }
-
-  operatorKernel = platform.buildKernel(fileName, kernelName,
-                                   kernelInfo);
 
 }

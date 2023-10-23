@@ -1,6 +1,6 @@
 // Interpolation matrices from GLL to cubature GL points
 #if p_Nq==2 && p_cubNq==2
-const dfloat c_I[2][2] = {
+dfloat c_I[2][2] = {
 {7.88675134594812866e-01,2.11324865405187079e-01},
 {2.11324865405187218e-01,7.88675134594812977e-01}
 };

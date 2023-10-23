@@ -31,8 +31,14 @@ namespace libp {
 void mesh_t::CubatureSetupHex3D(){
 
   /* Quadrature data */
-  cubN = (int)(N*3/2.);
-  cubNq = cubN+1;
+  int inCubNq = -1;
+  settings.getSetting("CUBATURE SIZE", inCubNq);
+  if(inCubNq==-1)
+    cubNq = Nq;
+  else
+    cubNq = inCubNq;
+  cubN = cubNq-1;
+
   cubNp = cubNq*cubNq*cubNq;
   cubNfp = cubNq*cubNq;
 
