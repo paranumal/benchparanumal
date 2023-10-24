@@ -24,29 +24,51 @@ SOFTWARE.
 
 */
 
-#ifndef SOLVER_HPP
-#define SOLVER_HPP
+#include "bp.hpp"
 
-#include "platform.hpp"
+//settings for bp solver
+bpSettings_t::bpSettings_t(const int argc, char** argv, comm_t _comm):
+  settings_t(_comm) {
 
-namespace libp {
+  platformAddSettings(*this);
+  meshAddSettings(*this);
 
-class solver_t {
-public:
-  platform_t platform;
-  settings_t settings;
+  newSetting("-P", "--problem",
+             "BENCHMARK PROBLEM",
+             "1",
+             "Benchmark problem to run",
+             {"1","2","3","4","5","6"});
 
-  solver_t() = default;
+  newToggle("-k", "--kernel",
+            "KERNEL TEST",
+            "FALSE",
+            "Benchmark only operator kernel (i.e. run BK)");
 
-  solver_t(platform_t _platform, settings_t _settings):
-    platform(_platform),
-    settings(_settings) {};
+  newToggle("-t", "--tuning",
+            "KERNEL TUNING",
+            "FALSE",
+            "Run tuning sweep on operator kernel");
 
-  virtual void Operator(deviceMemory<dfloat>& o_q, deviceMemory<dfloat>& o_Aq) {
-    LIBP_FORCE_ABORT("Operator not implemented in this solver");
+  newSetting("-o", "--output",
+             "OUTPUT FILE NAME",
+             "");
+
+  newToggle("-v", "--verbose",
+            "VERBOSE",
+            "FALSE",
+            "Enable verbose output");
+
+  parseSettings(argc, argv);
+}
+
+void bpSettings_t::report() {
+
+  if (comm.rank()==0) {
+    std::cout << "Settings:\n\n";
+    platformReportSettings(*this);
+    meshReportSettings(*this);
+
+    if (getSetting("OUTPUT FILE NAME").size()>0)
+      reportSetting("OUTPUT FILE NAME");
   }
-};
-
-} //namespace libp
-
-#endif
+}

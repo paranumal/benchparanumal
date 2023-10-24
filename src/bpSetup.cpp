@@ -24,29 +24,45 @@ SOFTWARE.
 
 */
 
-#ifndef SOLVER_HPP
-#define SOLVER_HPP
+#include "bp.hpp"
 
-#include "platform.hpp"
+void bp_t::Setup(platform_t& _platform,
+                 settings_t& _settings,
+                 mesh_t& _mesh){
 
-namespace libp {
+  platform = _platform;
+  settings = _settings;
+  mesh = _mesh;
 
-class solver_t {
-public:
-  platform_t platform;
-  settings_t settings;
+  settings.getSetting("BENCHMARK PROBLEM", problemNumber);
 
-  solver_t() = default;
-
-  solver_t(platform_t _platform, settings_t _settings):
-    platform(_platform),
-    settings(_settings) {};
-
-  virtual void Operator(deviceMemory<dfloat>& o_q, deviceMemory<dfloat>& o_Aq) {
-    LIBP_FORCE_ABORT("Operator not implemented in this solver");
+  if (problemNumber==1 || problemNumber==3 || problemNumber==5) {
+    Nfields = 1;
+  } else {
+    Nfields = mesh.dim;
   }
-};
 
-} //namespace libp
+  lambda = 1.0;
 
-#endif
+  //Trigger JIT kernel builds
+  ogs::InitializeKernels(platform, ogs::Dfloat, ogs::Add);
+
+  if (settings.compareSetting("AFFINE MESH", "FALSE")) {
+    if (problemNumber==1 || problemNumber==2 ||
+        problemNumber==3 || problemNumber==4 ) {
+      mesh.CubatureSetup();
+    }
+  }
+
+  ogs = mesh.MaskedGatherScatterSetup(Nfields); //make masked ogs
+
+  gHalo.SetupFromGather(ogs);
+
+  GlobalToLocal.malloc(mesh.Nelements*mesh.Np*Nfields);
+  ogs.SetupGlobalToLocalMapping(GlobalToLocal);
+
+  o_GlobalToLocal = platform.malloc<dlong>(GlobalToLocal);
+
+  //tmp local storage buffer for Ax op
+  o_AqL = platform.malloc<dfloat>(mesh.Np*mesh.Nelements*Nfields);
+}

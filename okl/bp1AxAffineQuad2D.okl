@@ -24,31 +24,6 @@ SOFTWARE.
 
 */
 
-#if p_N==1
-#define p_NelementsPerBlk 38
-#define p_NelementsPerThread 2
-#elif p_N==2
-#define p_NelementsPerBlk 28
-#define p_NelementsPerThread 2
-#elif p_N==3
-#define p_NelementsPerBlk 20
-#define p_NelementsPerThread 2
-#elif p_N==4
-#define p_NelementsPerBlk 14
-#define p_NelementsPerThread 2
-#elif p_N==5
-#define p_NelementsPerBlk 10
-#define p_NelementsPerThread 2
-#elif p_N==6
-#define p_NelementsPerBlk 8
-#define p_NelementsPerThread 2
-#else
-// unoptimized
-#define p_NelementsPerBlk 1
-#define p_NelementsPerThread 1
-#endif
-
-
 @kernel void bp1AxAffineQuad2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -58,12 +33,12 @@ SOFTWARE.
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 
-  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThread;@outer(0)){
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
     @shared dfloat s_MM[p_Nq][p_Nq];
-    @shared dfloat  s_q[p_NelementsPerBlk][p_NelementsPerThread][p_Nq][p_Nq];
+    @shared dfloat  s_q[p_NelementsPerBlk][p_NelementsPerThd][p_Nq][p_Nq];
 
-    @exclusive dlong element[p_NelementsPerThread];
+    @exclusive dlong element[p_NelementsPerThd];
 
     for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
       for(int j=0;j<p_Nq;++j;@inner(1)){
@@ -76,9 +51,9 @@ SOFTWARE.
             s_MM[j][i] = MMji;
           }
 
-          for (int ek=0;ek<p_NelementsPerThread;++ek) {
-            if(eo+es*p_NelementsPerThread+ek<Nelements) {
-              element[ek] = elementList[eo+es*p_NelementsPerThread+ek];
+          for (int ek=0;ek<p_NelementsPerThd;++ek) {
+            if(eo+es*p_NelementsPerThd+ek<Nelements) {
+              element[ek] = elementList[eo+es*p_NelementsPerThd+ek];
               const dlong id = GlobalToLocal[i + j*p_Nq + element[ek]*p_Np];
               s_q[es][ek][j][i] = (id!=-1) ? q[id] : 0.0;
             }
@@ -88,21 +63,21 @@ SOFTWARE.
     }
 
     // multiply by M in 'r'
-    @exclusive dfloat Mq[p_NelementsPerThread];
+    @exclusive dfloat Mq[p_NelementsPerThd];
 
     for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
 
-          for(int s=0;s<p_NelementsPerThread;++s)
+          for(int s=0;s<p_NelementsPerThd;++s)
             Mq[s] = 0;
 
           // #pragma unroll p_Nq
           for(int m=0;m<p_Nq;++m){
             dfloat Mim = s_MM[m][i];
 
-            // #pragma unroll p_NelementsPerThread
-            for(int s=0;s<p_NelementsPerThread;++s){
+            // #pragma unroll p_NelementsPerThd
+            for(int s=0;s<p_NelementsPerThd;++s){
               Mq[s] += Mim*s_q[es][s][j][m];
             }
           }
@@ -113,7 +88,7 @@ SOFTWARE.
     for(int es=0;es<p_NelementsPerBlk;++es;@inner(2)){
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
-          for(int s=0;s<p_NelementsPerThread;++s){
+          for(int s=0;s<p_NelementsPerThd;++s){
             s_q[es][s][j][i] = Mq[s];
           }
         }
@@ -126,29 +101,29 @@ SOFTWARE.
         for(int i=0;i<p_Nq;++i;@inner(0)){
 
           // Load J
-          dfloat J[p_NelementsPerThread];
-          for (int ek=0;ek<p_NelementsPerThread;++ek) {
-            if(eo+es*p_NelementsPerThread+ek<Nelements) {
+          dfloat J[p_NelementsPerThd];
+          for (int ek=0;ek<p_NelementsPerThd;++ek) {
+            if(eo+es*p_NelementsPerThd+ek<Nelements) {
               J[ek] = cubwJ[element[ek]];
             }
           }
 
-          for(int s=0;s<p_NelementsPerThread;++s)
+          for(int s=0;s<p_NelementsPerThd;++s)
             Mq[s] = 0;
 
           // #pragma unroll p_Nq
           for(int m=0;m<p_Nq;++m){
             dfloat Mim = s_MM[m][j];
 
-            // #pragma unroll p_NelementsPerThread
-            for(int s=0;s<p_NelementsPerThread;++s){
+            // #pragma unroll p_NelementsPerThd
+            for(int s=0;s<p_NelementsPerThd;++s){
               Mq[s] += Mim*s_q[es][s][m][i];
             }
           }
 
-          // #pragma unroll p_NelementsPerThread
-          for(int ek=0;ek<p_NelementsPerThread;++ek){
-            if(eo+es*p_NelementsPerThread+ek<Nelements){
+          // #pragma unroll p_NelementsPerThd
+          for(int ek=0;ek<p_NelementsPerThd;++ek){
+            if(eo+es*p_NelementsPerThd+ek<Nelements){
               const dlong base = i + j*p_Nq + element[ek]*p_Np;
               Aq[base] = J[ek]*Mq[ek];
             }

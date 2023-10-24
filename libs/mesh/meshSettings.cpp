@@ -55,11 +55,10 @@ void meshAddSettings(settings_t& settings) {
                       "Degree of polynomial finite element space",
                       {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"});
 
-  settings.newSetting("-a", "--affine",
-                      "AFFINE MESH",
-                      "FALSE",
-                      "Assume elements are affine images of reference element",
-                      {"TRUE","FALSE"});
+  settings.newToggle("-a", "--affine",
+                     "AFFINE MESH",
+                     "FALSE",
+                     "Assume elements are affine images of reference element");
 }
 
 void meshReportSettings(settings_t& settings) {

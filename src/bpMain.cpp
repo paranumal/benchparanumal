@@ -24,29 +24,40 @@ SOFTWARE.
 
 */
 
-#ifndef SOLVER_HPP
-#define SOLVER_HPP
+#include "bp.hpp"
 
-#include "platform.hpp"
+int main(int argc, char **argv){
 
-namespace libp {
+  // start up MPI
+  comm_t::Init(argc, argv);
 
-class solver_t {
-public:
-  platform_t platform;
-  settings_t settings;
+  { /*Scope so everything is destructed before MPI_Finalize */
+    comm_t comm(comm_t::world().Dup());
 
-  solver_t() = default;
+    bpSettings_t settings(argc, argv, comm);
+    if (settings.compareSetting("VERBOSE", "TRUE"))
+      settings.report();
 
-  solver_t(platform_t _platform, settings_t _settings):
-    platform(_platform),
-    settings(_settings) {};
+    // set up platform
+    platform_t platform(settings);
 
-  virtual void Operator(deviceMemory<dfloat>& o_q, deviceMemory<dfloat>& o_Aq) {
-    LIBP_FORCE_ABORT("Operator not implemented in this solver");
+    // set up mesh
+    mesh_t mesh(platform, settings, comm);
+
+    // set up bp solver
+    bp_t bp(platform, settings, mesh);
+
+    // run
+    if (settings.compareSetting("KERNEL TUNING", "TRUE")) {
+      bp.RunTuning();
+    } else if (settings.compareSetting("KERNEL TEST", "TRUE")) {
+      bp.RunBK();
+    } else {
+      bp.RunBP();
+    }
   }
-};
 
-} //namespace libp
-
-#endif
+  // close down MPI
+  comm_t::Finalize();
+  return LIBP_SUCCESS;
+}

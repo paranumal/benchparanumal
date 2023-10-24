@@ -24,21 +24,11 @@ SOFTWARE.
 
 */
 
-#if p_N<7
-#define USE_3D_SHMEM 1
-#else
-#define USE_3D_SHMEM 0
-#endif
-
-#if !USE_3D_SHMEM
-
+#if KERNEL_NUMBER==0
 
 //This kernel processes 2D slices of the element in shmem and uses register arrays
 // to store the element itself. May be slower for low order but allows us to run
 // high degree efficiently
-
-/* The NV compiler doesn't like the blocked kernel. Skip using it. */
-#if OCCA_USE_CUDA==1 && p_N>=8
 
 //padding for bank conflicts
 #if p_Nq==16
@@ -253,43 +243,11 @@ SOFTWARE.
     }
   }
 }
+#endif
 
-#else
+#if KERNEL_NUMBER==1
 
 /* Blocked version */
-#if p_N==1
-#define p_NelementsPerBlk 16
-#elif p_N==2
-#define p_NelementsPerBlk 56
-#elif p_N==3
-#define p_NelementsPerBlk 32
-#elif p_N==4
-#define p_NelementsPerBlk 5
-#elif p_N==5
-#define p_NelementsPerBlk 1
-#elif p_N==6
-#define p_NelementsPerBlk 5
-#elif p_N==7
-#define p_NelementsPerBlk 1
-#elif p_N==8
-#define p_NelementsPerBlk 3
-#elif p_N==9
-#define p_NelementsPerBlk 1
-#elif p_N==10
-#define p_NelementsPerBlk 1
-#elif p_N==11
-#define p_NelementsPerBlk 1
-#elif p_N==12
-#define p_NelementsPerBlk 1
-#elif p_N==13
-#define p_NelementsPerBlk 1
-#elif p_N==14
-#define p_NelementsPerBlk 1
-#elif p_N==15
-#define p_NelementsPerBlk 1
-#else
-#define p_NelementsPerBlk 1
-#endif
 
 //padding for bank conflicts
 #if p_Nq==16
@@ -530,27 +488,9 @@ SOFTWARE.
 }
 #endif
 
-#elif USE_3D_SHMEM
+#if KERNEL_NUMBER==2
 //This kernel stores the entire hex element in shmem.
 // Good for low orders, but will exceed 1024 threads per block after N=9
-
-#if p_N==1
-#define p_NelementsPerBlk 8
-#elif p_N==2
-#define p_NelementsPerBlk 4
-#elif p_N==3
-#define p_NelementsPerBlk 2
-#elif p_N==4
-#define p_NelementsPerBlk 1
-#elif p_N==5
-#define p_NelementsPerBlk 1
-#elif p_N==6
-#define p_NelementsPerBlk 1
-#elif p_N==7
-#define p_NelementsPerBlk 1
-#else
-#define p_NelementsPerBlk 1
-#endif
 
 @kernel void bp6AxHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,

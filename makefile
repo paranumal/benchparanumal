@@ -29,7 +29,6 @@ define LIBP_HELP_MSG
 LIBP Benchmarks makefile targets:
 
 	 make all (default)
-	 make BP/BK/BS
 	 make clean
 	 make clean-libs
 	 make realclean
@@ -39,13 +38,9 @@ LIBP Benchmarks makefile targets:
 Usage:
 
 make all
-	 Builds all benchmark executables.
-make BP/BK
-	 Builds Bakeoff Problem or Kernel executables,
+	 Builds the benchmark.
 make clean
 	 Cleans all executables and object files.
-make clean-BP/BK
-	 Cleans BP or BK executables and object files.
 make clean-libs
 	 In addition to "make clean", also clean the core, mesh, and ogs libraries.
 make clean-kernels
@@ -61,9 +56,7 @@ Can use "make verbose=true" for verbose output.
 
 endef
 
-ifeq (,$(filter BP BK \
-				clean-BP clean-BK \
-				clean clean-libs clean-kernels \
+ifeq (,$(filter all clean clean-libs clean-kernels \
 				realclean info help,$(MAKECMDGOALS)))
 ifneq (,$(MAKECMDGOALS))
 $(error ${LIBP_HELP_MSG})
@@ -81,12 +74,38 @@ endif
 #libraries
 CORE_LIBS=mesh ogs core prim
 
-.PHONY: all BP BK \
-		clean-BP clean-BK \
-		clean clean-libs clean-kernels \
+#includes
+INCLUDES=${LIBP_INCLUDES} \
+		 -I${LIBP_LIBS_DIR}/include \
+         -I.
+
+#defines
+DEFINES =${LIBP_DEFINES} \
+         -DLIBP_DIR='"${LIBP_DIR}"'
+
+#.cpp compilation flags
+BP_CXXFLAGS=${LIBP_CXXFLAGS} ${DEFINES} ${INCLUDES}
+
+#link libraries
+LIBS=-L${LIBP_LIBS_DIR} $(addprefix -l,$(CORE_LIBS)) \
+     ${LIBP_LIBS}
+
+#link flags
+LFLAGS=${BP_CXXFLAGS} ${LIBS}
+
+#object dependancies
+DEPS=$(wildcard src/*.hpp) \
+     $(wildcard $(LIBP_INCLUDE_DIR)/*.h) \
+     $(wildcard $(LIBP_INCLUDE_DIR)/*.hpp)
+
+SRC =$(wildcard src/*.cpp)
+
+OBJS=$(SRC:.cpp=.o)
+
+.PHONY: all clean clean-libs clean-kernels \
 		realclean info help
 
-all: BP BK
+all: BP
 
 ${OCCA_DIR}/lib/libocca.so:
 	${MAKE} -C ${OCCA_DIR}
@@ -98,30 +117,26 @@ else
 	@${MAKE} -C ${LIBP_LIBS_DIR} $(CORE_LIBS) --no-print-directory
 endif
 
-BP: libp_libs
+BP:$(OBJS) | libp_libs
 ifneq (,${verbose})
-	${MAKE} -C $(@F) verbose=${verbose}
+	$(LIBP_LD) -o BP $(OBJS) $(LFLAGS)
 else
-	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
-	@${MAKE} -C $(@F) --no-print-directory
+	@printf "%b" "$(EXE_COLOR)Linking $(@F)$(NO_COLOR)\n";
+	@$(LIBP_LD) -o BP $(OBJS) $(LFLAGS)
 endif
 
-BK: libp_libs
+# rule for .cpp files
+%.o: %.cpp $(DEPS) | libp_libs
 ifneq (,${verbose})
-	${MAKE} -C $(@F) verbose=${verbose}
+	$(LIBP_CXX) -o $*.o -c $*.cpp $(BP_CXXFLAGS)
 else
-	@printf "%b" "$(SOL_COLOR)Building $(@F) benchmark $(NO_COLOR)\n";
-	@${MAKE} -C $(@F) --no-print-directory
+	@printf "%b" "$(OBJ_COLOR)Compiling $(@F)$(NO_COLOR)\n";
+	@$(LIBP_CXX) -o $*.o -c $*.cpp $(BP_CXXFLAGS)
 endif
 
 #cleanup
-clean: clean-BP clean-BK
-
-clean-BP:
-	${MAKE} -C BP clean
-
-clean-BK:
-	${MAKE} -C BK clean
+clean:
+	rm -f src/*.o BP
 
 clean-libs: clean
 	${MAKE} -C ${LIBP_LIBS_DIR} clean

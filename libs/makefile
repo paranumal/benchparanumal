@@ -209,7 +209,7 @@ endif
 
 #cleanup
 clean:
-	rm -f core/*.o prim/*.o  ogs/*.o mesh/*.o *.a
+	rm -f core/*.o primitives/*.o  ogs/*.o mesh/*.o *.a
 
 clean-kernels: clean
 	rm -rf ${LIBP_DIR}/.occa

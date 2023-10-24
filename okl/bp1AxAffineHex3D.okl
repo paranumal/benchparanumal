@@ -25,30 +25,7 @@ SOFTWARE.
 */
 
 /* Use slice-by-slice kernel for all orders*/
-#if p_N>0
-
-#if p_N==1
-#define p_NelementsPerBlk 28
-#elif p_N==2
-#define p_NelementsPerBlk 16
-#elif p_N==3
-#define p_NelementsPerBlk 10
-#elif p_N==4
-#define p_NelementsPerBlk 7
-#elif p_N==5
-#define p_NelementsPerBlk 5
-#elif p_N==6
-#define p_NelementsPerBlk 4
-#elif p_N==7
-#define p_NelementsPerBlk 3
-#elif p_N==8
-#define p_NelementsPerBlk 2
-#elif p_N==9
-#define p_NelementsPerBlk 2
-#else
-// no packing
-#define p_NelementsPerBlk 1
-#endif
+#if KERNEL_NUMBER==0
 
 //padding for bank conflicts
 #if p_Nq==8 || p_Nq==4
@@ -186,29 +163,10 @@ SOFTWARE.
     }
   }
 }
-
-
-
-#else
-
-#if p_N==1
-#define p_NelementsPerBlk 7
-#elif p_N==2
-#define p_NelementsPerBlk 3
-#elif p_N==3
-#define p_NelementsPerBlk 1
-#elif p_N==4
-#define p_NelementsPerBlk 1
-#elif p_N==5
-#define p_NelementsPerBlk 1
-#elif p_N==6
-#define p_NelementsPerBlk 1
-#elif p_N==7
-#define p_NelementsPerBlk 1
-#else
-// unoptimized
-#define p_NelementsPerBlk 1
 #endif
+
+
+#if KERNEL_NUMBER==1
 
 @kernel void bp1AxAffineHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,

@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#if OCCA_USE_CUDA==1 && p_N>1
+#if KERNEL_NUMBER==0
 
 /*Unblocked 2D threadblock kernel*/
 @kernel void bp3AxAffineHex3D(const dlong Nelements,
@@ -301,33 +301,10 @@ SOFTWARE.
     }//b
   }//e
 }//kernel
-
-#else //either OCCA_USE_CUDA!=1 or p_N==1
-
-#if p_N>6
-
-#if p_N==1
-#define p_NelementsPerBlk 28
-#elif p_N==2
-#define p_NelementsPerBlk 16
-#elif p_N==3
-#define p_NelementsPerBlk 10
-#elif p_N==4
-#define p_NelementsPerBlk 7
-#elif p_N==5
-#define p_NelementsPerBlk 5
-#elif p_N==6
-#define p_NelementsPerBlk 4
-#elif p_N==7
-#define p_NelementsPerBlk 3
-#elif p_N==8
-#define p_NelementsPerBlk 2
-#elif p_N==9
-#define p_NelementsPerBlk 2
-#else
-// unoptimized
-#define p_NelementsPerBlk 1
 #endif
+
+
+#if KERNEL_NUMBER==1
 
 @kernel void bp3AxAffineHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
@@ -642,28 +619,9 @@ SOFTWARE.
     }//es
   }//eo
 }//kernel
-
-
-#else
-
-#if p_N==1
-#define p_NelementsPerBlk 7
-#elif p_N==2
-#define p_NelementsPerBlk 3
-#elif p_N==3
-#define p_NelementsPerBlk 1
-#elif p_N==4
-#define p_NelementsPerBlk 1
-#elif p_N==5
-#define p_NelementsPerBlk 1
-#elif p_N==6
-#define p_NelementsPerBlk 1
-#elif p_N==7
-#define p_NelementsPerBlk 1
-#else
-// unoptimized
-#define p_NelementsPerBlk 1
 #endif
+
+#if KERNEL_NUMBER==2
 
 @kernel void bp3AxAffineHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
@@ -922,3 +880,4 @@ SOFTWARE.
     }
   }
 }
+#endif

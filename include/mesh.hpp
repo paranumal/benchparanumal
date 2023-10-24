@@ -273,11 +273,26 @@ public:
   /* Build a masked ogs handle*/
   ogs::ogs_t MaskedGatherScatterSetup(int Nfields);
 
+
   /*Element types*/
   static constexpr int TRIANGLES     =3;
   static constexpr int QUADRILATERALS=4;
   static constexpr int TETRAHEDRA    =6;
   static constexpr int HEXAHEDRA     =12;
+
+  std::string elementName() {
+    switch (elementType) {
+      case TRIANGLES:
+        return "Tri2D"; break;
+      case TETRAHEDRA:
+        return "Tet3D"; break;
+      case QUADRILATERALS:
+        return "Quad2D"; break;
+      case HEXAHEDRA:
+        return "Hex3D"; break;
+    }
+    return "";
+  }
 
  private:
   int RXID, RYID, RZID;
