@@ -107,6 +107,13 @@ void bp_t::LocalOperator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq){
   switch (problemNumber) {
     case 1:
     case 2:
+      if (mesh.elementType == mesh_t::TRIANGLES
+          && problemNumber==1
+          && platform.device.mode() == "HIP") {
+        // Using native HIP kernel, set launch sizes
+        operatorKernel.setRunDims((mesh.NlocalGatherElements+15)/16,
+                                  occa::dim(16, 4));
+      }
       operatorKernel(mesh.NlocalGatherElements,
                      mesh.o_localGatherElementList,
                      o_GlobalToLocal,

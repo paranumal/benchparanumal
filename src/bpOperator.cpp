@@ -45,6 +45,13 @@ void bp_t::FEMMassOperator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq
   gHalo.ExchangeStart(o_q, 1);
 
   if(mesh.NlocalGatherElements/2){
+    if (mesh.elementType == mesh_t::TRIANGLES
+        && problemNumber==1
+        && platform.device.mode() == "HIP") {
+      // Using native HIP kernel, set launch sizes
+      operatorKernel.setRunDims((mesh.NlocalGatherElements/2+15)/16,
+                                occa::dim(16, 4));
+    }
     operatorKernel(mesh.NlocalGatherElements/2,
                    mesh.o_localGatherElementList,
                    o_GlobalToLocal,
@@ -58,6 +65,13 @@ void bp_t::FEMMassOperator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq
   gHalo.ExchangeFinish(o_q, 1);
 
   if(mesh.NglobalGatherElements) {
+    if (mesh.elementType == mesh_t::TRIANGLES
+        && problemNumber==1
+        && platform.device.mode() == "HIP") {
+      // Using native HIP kernel, set launch sizes
+      operatorKernel.setRunDims((mesh.NglobalGatherElements+15)/16,
+                                occa::dim(16, 4));
+    }
     operatorKernel(mesh.NglobalGatherElements,
                    mesh.o_globalGatherElementList,
                    o_GlobalToLocal,
@@ -71,6 +85,13 @@ void bp_t::FEMMassOperator(deviceMemory<dfloat> &o_q, deviceMemory<dfloat> &o_Aq
   ogs.GatherStart(o_Aq, o_AqL, 1, ogs::Add, ogs::Trans);
 
   if((mesh.NlocalGatherElements+1)/2){
+    if (mesh.elementType == mesh_t::TRIANGLES
+        && problemNumber==1
+        && platform.device.mode() == "HIP") {
+      // Using native HIP kernel, set launch sizes
+      operatorKernel.setRunDims(((mesh.NlocalGatherElements+1)/2+15)/16,
+                                occa::dim(16, 4));
+    }
     operatorKernel((mesh.NlocalGatherElements+1)/2,
                    mesh.o_localGatherElementList+(mesh.NlocalGatherElements/2),
                    o_GlobalToLocal,

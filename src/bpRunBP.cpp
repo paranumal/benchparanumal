@@ -46,7 +46,6 @@ void bp_t::RunBP(){
                                         AxKernelName(),
                                         kernelInfo);
 
-
   //setup linear algebra module
   platform.linAlg().InitKernels({"axpy", "innerProd", "norm2", "set"});
 

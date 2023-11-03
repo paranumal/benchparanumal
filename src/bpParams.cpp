@@ -44,7 +44,11 @@ std::string bp_t::AxFileName(){
   std::string suffix = mesh.elementName();
   std::string name = "bp" + std::to_string(problemNumber);
   if (settings.compareSetting("AFFINE MESH", "TRUE")) {
-    return std::string(LIBP_DIR) + "/okl/" + name + "AxAffine" + suffix + ".okl";
+    if (mesh.elementType == mesh_t::TRIANGLES && problemNumber==1 && platform.device.mode() == "HIP") {
+      return std::string(LIBP_DIR) + "/okl/" + name + "AxAffine" + suffix + "_mfma.cpp";
+    } else {
+      return std::string(LIBP_DIR) + "/okl/" + name + "AxAffine" + suffix + ".okl";
+    }
   } else {
     return std::string(LIBP_DIR) + "/okl/" + name + "Ax" + suffix + ".okl";
   }
@@ -81,24 +85,27 @@ void bp_t::bp1AxTuningParams(properties_t& kernelInfo) {
   switch (mesh.elementType) {
     case mesh_t::TRIANGLES:
       if (affine) {
-        if (mesh.N>6)
-          kernelNumber = 1;
-        else
-          kernelNumber = 0;
 
-        int ePerBlk[5][15] = { {170,  85, 51, 17, 24,  9, 28, 11, 15, 10,  5,  1, 1, 1, 1},
-                               { 64,  32,  6,  4,  3,  2,  7,  4,  1, 10,  4,  2, 1, 2, 3},
-                               {341, 170, 51, 17, 24, 18, 14, 11, 18, 14, 12,  1, 1, 2, 1},
-                               { 64,  32,  6, 17,  6,  9,  7, 11,  9, 15,  4, 11, 7, 8, 1},
-                               {  1,   1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1} };
-        int ePerThd[5][15] = { { 2, 2, 1, 1, 1, 1, 1, 1, 6, 5, 5, 1, 1, 1, 1},
-                               { 2, 2, 2, 2, 2, 3, 9, 7, 7, 6, 6, 6, 7, 8, 6},
-                               { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
+        kernelInfo["okl/enabled"] = false; //using native HIP kernel
 
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-        elementsPerThd = ePerThd[kernelNumber][mesh.N-1];
+        // if (mesh.N>6)
+        //   kernelNumber = 1;
+        // else
+        //   kernelNumber = 0;
+
+        // int ePerBlk[5][15] = { {170,  85, 51, 17, 24,  9, 28, 11, 15, 10,  5,  1, 1, 1, 1},
+        //                        { 64,  32,  6,  4,  3,  2,  7,  4,  1, 10,  4,  2, 1, 2, 3},
+        //                        {341, 170, 51, 17, 24, 18, 14, 11, 18, 14, 12,  1, 1, 2, 1},
+        //                        { 64,  32,  6, 17,  6,  9,  7, 11,  9, 15,  4, 11, 7, 8, 1},
+        //                        {  1,   1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1} };
+        // int ePerThd[5][15] = { { 2, 2, 1, 1, 1, 1, 1, 1, 6, 5, 5, 1, 1, 1, 1},
+        //                        { 2, 2, 2, 2, 2, 3, 9, 7, 7, 6, 6, 6, 7, 8, 6},
+        //                        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        //                        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        //                        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
+
+        // elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
+        // elementsPerThd = ePerThd[kernelNumber][mesh.N-1];
       }
 
       break;
