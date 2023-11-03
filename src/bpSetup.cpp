@@ -52,6 +52,9 @@ void bp_t::Setup(platform_t& _platform,
         problemNumber==3 || problemNumber==4 ) {
       mesh.CubatureSetup();
     }
+  } else {
+    mesh.o_cubwJ = mesh.o_wJ;
+    mesh.o_cubggeo = mesh.o_ggeo;
   }
 
   ogs = mesh.MaskedGatherScatterSetup(Nfields); //make masked ogs
