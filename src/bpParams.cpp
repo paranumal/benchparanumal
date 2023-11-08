@@ -297,17 +297,29 @@ void bp_t::bp5AxTuningParams(properties_t& kernelInfo) {
       break;
     case mesh_t::HEXAHEDRA:
       {
-        if (mesh.N < 9) {
+        if (mesh.N < 6) {
           kernelNumber = 2; //element in shmem for low order
         } else if (platform.device.mode() == "CUDA") {
           kernelNumber = 0; //unblocked kernel for cuda mode at high order
+        } else if (platform.device.mode() == "HIP") {
+          if (platform.device.arch().find("gfx90a")!=std::string::npos ||
+              platform.device.arch().find("gfx940")!=std::string::npos ||
+              platform.device.arch().find("gfx941")!=std::string::npos ||
+              platform.device.arch().find("gfx942")!=std::string::npos ) {
+            if (mesh.N>11) {
+              kernelNumber = 3; //MFMA kernel
+            } else {
+              kernelNumber = 1; //blocked kernel
+            }
+          }
         } else {
           kernelNumber = 1; //blocked kernel at high order
         }
 
-        int ePerBlk[3][15] = { {  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 16, 56, 32, 5, 1, 5, 3, 1, 1, 1, 1, 1, 1, 1, 1},
-                               {  8,  4,  2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
+        int ePerBlk[4][15] = { {  1,  1,  1, 1, 1,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1},
+                               {128,  7, 12, 5, 3, 19, 7, 11, 5, 4, 7, 3, 1, 1, 1},
+                               {  8, 16,  5, 6, 2,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1},
+                               {  1,  1,  1, 1, 1,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1} };
         elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
       }
       break;
