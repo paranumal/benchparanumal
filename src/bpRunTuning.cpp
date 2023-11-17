@@ -76,26 +76,26 @@ void bp_t::RunTuning(){
 
   int blockStep = ((mesh.Np+wavesize)/wavesize)*wavesize;
 
-  int kernelNumber=0;
+  int kernelNumber=6;
   kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
 
-  for (int targetBlocksize=wavesize; targetBlocksize<=1024;targetBlocksize+=blockStep)
-  // int targetBlocksize=wavesize;
+  // for (int targetBlocksize=wavesize; targetBlocksize<=1024;targetBlocksize+=blockStep)
+  int targetBlocksize=wavesize;
   {
 
     //try to get close to target blocksize
     int elementsPerBlock = targetBlocksize/mesh.Np;
 
-    if (elementsPerBlock<1) continue;
+    // if (elementsPerBlock<1) continue;
 
-    for (int elementsPerThread=1; elementsPerThread<16;elementsPerThread++)
-    // int elementsPerThread=1;
+    // for (int elementsPerThread=1; elementsPerThread<16;elementsPerThread++)
+    int elementsPerThread=1;
     {
       //Check shmem use
       // if (sizeof(dfloat)*elementsPerThread*elementsPerBlock*mesh.Np > shmemLimit) break;
 
-      if (sizeof(dfloat)*elementsPerThread*elementsPerBlock*mesh.Np +
-          sizeof(dfloat)*mesh.Np*mesh.Np > shmemLimit) break;
+      // if (sizeof(dfloat)*elementsPerThread*elementsPerBlock*mesh.Np +
+      //     sizeof(dfloat)*mesh.Np*mesh.Np > shmemLimit) break;
 
       properties_t props = kernelInfo;
 
