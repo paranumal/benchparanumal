@@ -117,7 +117,7 @@ else
 	@${MAKE} -C ${LIBP_LIBS_DIR} $(CORE_LIBS) --no-print-directory
 endif
 
-BP:$(OBJS) | libp_libs
+BP:$(OBJS) libp_libs | libp_libs
 ifneq (,${verbose})
 	$(LIBP_LD) -o BP $(OBJS) $(LFLAGS)
 else
