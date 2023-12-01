@@ -47,14 +47,9 @@ void bp_t::Setup(platform_t& _platform,
   //Trigger JIT kernel builds
   ogs::InitializeKernels(platform, ogs::Dfloat, ogs::Add);
 
-  if (settings.compareSetting("AFFINE MESH", "FALSE")) {
-    if (problemNumber==1 || problemNumber==2 ||
-        problemNumber==3 || problemNumber==4 ) {
-      mesh.CubatureSetup();
-    }
-  } else {
-    mesh.o_cubwJ = mesh.o_wJ;
-    mesh.o_cubggeo = mesh.o_ggeo;
+  if (problemNumber==1 || problemNumber==2 ||
+      problemNumber==3 || problemNumber==4 ) {
+    mesh.CubatureSetup();
   }
 
   ogs = mesh.MaskedGatherScatterSetup(Nfields); //make masked ogs
