@@ -87,12 +87,6 @@ public:
   std::string AxKernelName();
 
   void AxTuningParams(properties_t& kernelInfo);
-  void bp1AxTuningParams(properties_t& kernelInfo);
-  void bp2AxTuningParams(properties_t& kernelInfo);
-  void bp3AxTuningParams(properties_t& kernelInfo);
-  void bp4AxTuningParams(properties_t& kernelInfo);
-  void bp5AxTuningParams(properties_t& kernelInfo);
-  void bp6AxTuningParams(properties_t& kernelInfo);
 
   size_t AxBytesMoved();
   size_t AxFLOPs();

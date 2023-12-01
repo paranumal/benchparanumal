@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include "bp.hpp"
+#include "parameters.hpp"
 
 std::string bp_t::rhsFileName(){
   std::string suffix = mesh.elementName();
@@ -61,316 +62,45 @@ std::string bp_t::AxKernelName(){
 }
 
 void bp_t::AxTuningParams(properties_t& kernelInfo) {
-  switch (problemNumber) {
-    case 1: bp1AxTuningParams(kernelInfo); break;
-    case 2: bp2AxTuningParams(kernelInfo); break;
-    case 3: bp3AxTuningParams(kernelInfo); break;
-    case 4: bp4AxTuningParams(kernelInfo); break;
-    case 5: bp5AxTuningParams(kernelInfo); break;
-    case 6: bp6AxTuningParams(kernelInfo); break;
+
+  parameters_t tuningParameters;
+
+  std::string suffix = mesh.elementName();
+  std::string filename = std::string(LIBP_DIR) + "/json/bp" + std::to_string(problemNumber) + "Ax";
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) filename += "Affine";
+  filename += suffix + ".json";
+
+  properties_t keys;
+  keys["dfloat"] = (sizeof(dfloat)==4) ? "float" : "double";
+  keys["N"] = mesh.N;
+  keys["mode"] = platform.device.mode();
+
+  std::string arch = platform.device.arch();
+  if (platform.device.mode()=="HIP") {
+    arch = arch.substr(0,arch.find(":")); //For HIP mode, remove the stuff after the :
   }
-}
+  keys["arch"] = arch;
 
-void bp_t::bp1AxTuningParams(properties_t& kernelInfo) {
-  bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
-
-  int kernelNumber = 0;
-  int elementsPerBlk = 1;
-  int elementsPerThd = 1;
-
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      if (affine) {
-        if (mesh.N>6)
-          kernelNumber = 1;
-        else
-          kernelNumber = 0;
-
-        int ePerBlk[5][15] = { {170,  85, 51, 17, 24,  9, 28, 11, 15, 10,  5,  1, 1, 1, 1},
-                               { 64,  32,  6,  4,  3,  2,  7,  4,  1, 10,  4,  2, 1, 2, 3},
-                               {341, 170, 51, 17, 24, 18, 14, 11, 18, 14, 12,  1, 1, 2, 1},
-                               { 64,  32,  6, 17,  6,  9,  7, 11,  9, 15,  4, 11, 7, 8, 1},
-                               {  1,   1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1} };
-        int ePerThd[5][15] = { { 2, 2, 1, 1, 1, 1, 1, 1, 6, 5, 5, 1, 1, 1, 1},
-                               { 2, 2, 2, 2, 2, 3, 9, 7, 7, 6, 6, 6, 7, 8, 6},
-                               { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-        elementsPerThd = ePerThd[kernelNumber][mesh.N-1];
-      }
-
-      break;
-    case mesh_t::TETRAHEDRA:
-      break;
-    case mesh_t::QUADRILATERALS:
-      {
-        int ePerBlk[15] = {38, 28, 20, 14, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      }
-      break;
-    case mesh_t::HEXAHEDRA:
-      {
-        kernelNumber = 0; //use the slice-by-slice kernel for all orders
-        int ePerBlk[2][15] = { {28, 16, 10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1},
-                               { 7,  3,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      }
-      break;
+  std::string name = "bp" + std::to_string(problemNumber);
+  if (settings.compareSetting("AFFINE MESH", "TRUE")) {
+    name += "AxAffine" + suffix + ".okl";
+  } else {
+    name += "Ax" + suffix + ".okl";
   }
 
-  kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
-  kernelInfo["defines/p_NelementsPerBlk"] = elementsPerBlk;
-  kernelInfo["defines/p_NelementsPerThd"] = elementsPerThd;
-}
-
-void bp_t::bp2AxTuningParams(properties_t& kernelInfo) {
-  bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
-
-  int kernelNumber = 0;
-  int elementsPerBlk = 1;
-  int elementsPerThd = 1;
-
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      break;
-    case mesh_t::TETRAHEDRA:
-      break;
-    case mesh_t::QUADRILATERALS:
-      if (affine) {
-        int ePerBlk[15] = {38, 28, 20, 14, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      } else {
-        int ePerBlk[15] = {38, 28, 20, 2, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      }
-      break;
-    case mesh_t::HEXAHEDRA:
-      if (affine) {
-        kernelNumber = 0; //use the slice-by-slice kernel for all orders
-        int ePerBlk[2][15] = { {28, 16, 10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1},
-                               { 7,  3,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      } else {
-        kernelNumber = 0; //use the slice-by-slice kernel for all orders
-        if (platform.device.mode() == "CUDA") {
-          int ePerBlk[2][15] = { {28, 16, 10, 7, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1},
-                                 {28, 16, 10, 7, 5, 4, 3, 1, 1, 1, 1, 1, 1, 1, 1} };
-          elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-        } else {
-          int ePerBlk[2][15] = { {28, 16, 10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1},
-                                 {28, 16, 10, 7, 5, 4, 3, 1, 1, 1, 1, 1, 1, 1, 1} };
-          elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-        }
-      }
-      break;
-
+  if (settings.compareSetting("VERBOSE", "TRUE") && mesh.rank==0) {
+    std::cout << "Loading Tuning Parameters, looking for match for Name:'" << name << "', keys:" << tuningParameters.toString(keys) << std::endl;
   }
 
-  kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
-  kernelInfo["defines/p_NelementsPerBlk"] = elementsPerBlk;
-  kernelInfo["defines/p_NelementsPerThd"] = elementsPerThd;
-}
+  tuningParameters.load(filename, mesh.comm);
 
-void bp_t::bp3AxTuningParams(properties_t& kernelInfo) {
-  // bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
+  properties_t matchProps = tuningParameters.findProperties(name, keys);
 
-  int kernelNumber = 0;
-  int elementsPerBlk = 1;
-  int elementsPerThd = 1;
-
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      break;
-    case mesh_t::TETRAHEDRA:
-      break;
-    case mesh_t::QUADRILATERALS:
-      {
-        int ePerBlk[15] = {38, 28, 20, 14, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      }
-      break;
-    case mesh_t::HEXAHEDRA:
-      {
-        if (platform.device.mode() == "CUDA" || mesh.N==1) {
-          kernelNumber = 0; //always use the unblocked kernel for cuda
-        } else if (mesh.N>6) {
-          kernelNumber = 1;
-        } else {
-          kernelNumber = 2;
-        }
-
-        int ePerBlk[3][15] = { {  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 28, 16, 10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1},
-                               {  7,  3,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      }
-      break;
+  if (settings.compareSetting("VERBOSE", "TRUE") && mesh.rank==0) {
+    std::cout << "Found best match = " << tuningParameters.toString(matchProps) << std::endl;
   }
 
-  kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
-  kernelInfo["defines/p_NelementsPerBlk"] = elementsPerBlk;
-  kernelInfo["defines/p_NelementsPerThd"] = elementsPerThd;
-}
-
-void bp_t::bp4AxTuningParams(properties_t& kernelInfo) {
-  bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
-
-  int kernelNumber = 0;
-  int elementsPerBlk = 1;
-  int elementsPerThd = 1;
-
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      break;
-    case mesh_t::TETRAHEDRA:
-      break;
-    case mesh_t::QUADRILATERALS:
-      if (affine) {
-        int ePerBlk[15] = {38, 28, 20, 14, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      } else {
-        int ePerBlk[15] = {38, 28, 20, 2, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      }
-      break;
-    case mesh_t::HEXAHEDRA:
-      if (platform.device.mode() == "CUDA") {
-        if (mesh.N>5) {
-          kernelNumber = 0;
-        } else {
-          kernelNumber = 1;
-        }
-        int ePerBlk[2][15] = { {28, 16, 10, 7, 5, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 9,  4,  2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      } else {
-        if (mesh.N>6) {
-          kernelNumber = 0;
-        } else {
-          kernelNumber = 1;
-        }
-        int ePerBlk[2][15] = { {28, 16, 10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1},
-                               { 9,  4,  2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      }
-      break;
-  }
-
-  kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
-  kernelInfo["defines/p_NelementsPerBlk"] = elementsPerBlk;
-  kernelInfo["defines/p_NelementsPerThd"] = elementsPerThd;
-}
-
-void bp_t::bp5AxTuningParams(properties_t& kernelInfo) {
-  // bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
-
-  int kernelNumber = 0;
-  int elementsPerBlk = 1;
-  int elementsPerThd = 1;
-
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      break;
-    case mesh_t::TETRAHEDRA:
-      break;
-    case mesh_t::QUADRILATERALS:
-      {
-        int ePerBlk[15] = {38, 28, 20, 14, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      }
-      break;
-    case mesh_t::HEXAHEDRA:
-      {
-        if (mesh.N < 6) {
-          kernelNumber = 2; //element in shmem for low order
-        } else if (platform.device.mode() == "CUDA") {
-          kernelNumber = 0; //unblocked kernel for cuda mode at high order
-        } else if (platform.device.mode() == "HIP") {
-          if (platform.device.arch().find("gfx90a")!=std::string::npos ||
-              platform.device.arch().find("gfx940")!=std::string::npos ||
-              platform.device.arch().find("gfx941")!=std::string::npos ||
-              platform.device.arch().find("gfx942")!=std::string::npos ) {
-            if (mesh.N>11) {
-              kernelNumber = 3; //MFMA kernel
-            } else {
-              kernelNumber = 1; //blocked kernel
-            }
-          }
-        } else {
-          kernelNumber = 1; //blocked kernel at high order
-        }
-
-        int ePerBlk[4][15] = { {  1,  1,  1, 1, 1,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1},
-                               {128,  7, 12, 5, 3, 19, 7, 11, 5, 4, 7, 3, 1, 1, 1},
-                               {  8, 16,  5, 6, 2,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1},
-                               {  1,  1,  1, 1, 1,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      }
-      break;
-  }
-
-  kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
-  kernelInfo["defines/p_NelementsPerBlk"] = elementsPerBlk;
-  kernelInfo["defines/p_NelementsPerThd"] = elementsPerThd;
-}
-
-void bp_t::bp6AxTuningParams(properties_t& kernelInfo) {
-  // bool affine = settings.compareSetting("AFFINE MESH", "TRUE");
-
-  int kernelNumber = 0;
-  int elementsPerBlk = 1;
-  int elementsPerThd = 1;
-
-  switch (mesh.elementType) {
-    case mesh_t::TRIANGLES:
-      break;
-    case mesh_t::TETRAHEDRA:
-      break;
-    case mesh_t::QUADRILATERALS:
-      {
-        int ePerBlk[15] = {38, 28, 20, 14, 10, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        int ePerThd[15] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        elementsPerBlk = ePerBlk[mesh.N-1];
-        elementsPerThd = ePerThd[mesh.N-1];
-      }
-      break;
-    case mesh_t::HEXAHEDRA:
-      {
-        if (mesh.N < 7) {
-          kernelNumber = 2; //element in shmem for low order
-        } else if (platform.device.mode() == "CUDA") {
-          kernelNumber = 0; //unblocked kernel for cuda mode at high order
-        } else {
-          kernelNumber = 1; //blocked kernel at high order
-        }
-
-        int ePerBlk[3][15] = { {  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-                               { 16, 56, 32, 5, 1, 5, 3, 1, 1, 1, 1, 1, 1, 1, 1},
-                               {  8,  4,  2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-        elementsPerBlk = ePerBlk[kernelNumber][mesh.N-1];
-      }
-      break;
-  }
-
-  kernelInfo["defines/KERNEL_NUMBER"] = kernelNumber;
-  kernelInfo["defines/p_NelementsPerBlk"] = elementsPerBlk;
-  kernelInfo["defines/p_NelementsPerThd"] = elementsPerThd;
+  kernelInfo["defines"] += matchProps["props"];
 }
 
 size_t bp_t::AxBytesMoved() {
