@@ -58,6 +58,11 @@ bpSettings_t::bpSettings_t(const int argc, char** argv, comm_t _comm):
             "FALSE",
             "Enable verbose output");
 
+  newToggle("-ga", "--gpu-aware-mpi",
+            "GPU-AWARE MPI",
+            "FALSE",
+            "Enable direct access of GPU memory in MPI");
+
   parseSettings(argc, argv);
 }
 

@@ -30,21 +30,12 @@ To build `benchParanumal`:
     $ export LIBP_BLAS_DIR=</path/to/openblas>
     $ make -j `nproc`
 
-If your MPI supports GPU-aware RDMA functionality, you can optionally build `benchParanumal` with this support via:
-
-    $ make -j `nproc` --gpu-aware-mpi=true
-
 How to run `benchParanumal`
 --------------------
 
-`benchParanumal` contains two distinct types of tests:
+`benchParanumal` builds the `BP` executable, which can be run on its own or with the provided run script. The usage of the benchmark can be found with the `-h` option:
 
-2. BK - Benchmark Kernels
-3. BP - Benchmark Problems
-
-The usage of each benchmark, outside of the provide run scripts, can be found with the `-h` option. For example:
-
-    $ mpirun -np 1 ./BK/BK1/BK1 -h
+    $ mpirun -np 1 ./BP -h
 
     Name:     [THREAD MODEL]
     CL keys:  [-m, --mode]
@@ -81,10 +72,33 @@ The usage of each benchmark, outside of the provide run scripts, can be found wi
     Description: Degree of polynomial finite element space
     Possible values: { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
 
+    Name:     [AFFINE MESH]
+    CL keys:  [-a, --affine]
+    Description: Assume elements are affine images of reference element
+
+    Name:     [BENCHMARK PROBLEM]
+    CL keys:  [-P, --problem]
+    Description: Benchmark problem to run
+    Possible values: { 1, 2, 3, 4, 5, 6 }
+
+    Name:     [KERNEL TEST]
+    CL keys:  [-k, --kernel]
+    Description: Benchmark only operator kernel (i.e. run BK)
+
+    Name:     [KERNEL TUNING]
+    CL keys:  [-t, --tuning]
+    Description: Run tuning sweep on operator kernel
+
+    Name:     [OUTPUT FILE NAME]
+    CL keys:  [-o, --output]
+
     Name:     [VERBOSE]
     CL keys:  [-v, --verbose]
     Description: Enable verbose output
-    Possible values: { TRUE, FALSE }
+
+    Name:     [GPU-AWARE MPI]
+    CL keys:  [-ga, --gpu-aware-mpi]
+    Description: Enable direct access of GPU memory in MPI
 
     Name:     [HELP]
     CL keys:  [-h, --help]
@@ -93,11 +107,11 @@ The usage of each benchmark, outside of the provide run scripts, can be found wi
 
 Here is an example large problem size that you can run on one GPU:
 
-    $ mpirun -np 1 ./BP/BP5/BP5 -m HIP -nx 24 -ny 24 -nz 24 -p 15 -v
+    $ mpirun -np 1 ./BP -m HIP -P 5 -e Hex -nx 24 -ny 24 -nz 24 -p 15 -v
 
 Running on multiple GPUs can by done by passing a larger argument to `np`:
 
-    $ mpirun -np 4 ./BP/BP5/BP5 -m HIP -nx 24 -ny 24 -nz 24 -p 15 -v
+    $ mpirun -np 4 ./BP -m HIP -P 5 -e Hex -nx 24 -ny 24 -nz 24 -p 15 -v
 
 
 Verifying correctness
@@ -111,8 +125,7 @@ line.  Example output towards the end of the run may look like this:
     CG: it 98, r norm 1.198097786957e-04, alpha = 2.780510e+00
     CG: it 99, r norm 1.108821042895e-04, alpha = 2.907639e+00
     CG: it 100, r norm 9.086922290200e-05, alpha = 2.946219e+00
-    BP5: N, DOFs, elapsed, iterations, time per DOF, avg BW (GB/s), avg GFLOPs, DOFs*iterations/ranks*time
-    4, 68921, 0.0216, 100, 3.13e-07, 81.5, 49.8, 3.20e+08
+    BP5: N= 4, DOFs=103823, elapsed=0.0153, iterations=100, time per DOF=1.47e-07, avg BW (GB/s)= 188.0, avg GFLOPs= 120.3, DOFs*iterations/ranks*time=6.80e+08, Element=Hex3D
 
 The printed value of `r norm` at the end of 100 CG iterations should be small.
 

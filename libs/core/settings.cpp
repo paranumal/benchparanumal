@@ -124,7 +124,7 @@ void settings_t::newToggle(const string shortkey, const string longkey,
   auto search = settings.find(name);
   if (search == settings.end()) {
     settings[name] = setting_t(shortkey, longkey, name, val, description,
-                               {"TRUE", "FALSE"}, true);
+                               {}, true);
     insertOrder.push_back(name);
   } else {
     LIBP_FORCE_ABORT("Setting with name: [" << name << "] already exists.");
