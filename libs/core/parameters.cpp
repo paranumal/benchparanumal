@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include "parameters.hpp"
+#include "memory.hpp"
 #include <fstream>
 
 namespace libp {
@@ -64,22 +65,22 @@ void parameters_t::load(std::string filename, comm_t& comm) {
   for (int i=0; i<Nentries; ++i) {
     if (comm.rank()==0) {
       std::string str = toString(dataBase[i]);
-      char* c_str = const_cast<char*>(str.c_str());
-      int length = strlen(c_str)+1;
+      int length = str.length()+1;
+      memory<char> c_str(length);
       comm.Bcast(length, 0);
-      comm.Bcast(c_str, 0, length);
+
+      c_str.copyFrom(str.c_str());
+      comm.Bcast(c_str, 0);
     } else {
       int length = 0;
       comm.Bcast(length, 0);
 
-      char* c_str = new char[length];
-      comm.Bcast(c_str, 0, length);
+      memory<char> c_str(length);
+      comm.Bcast(c_str, 0);
 
       properties_t entry;
-      entry.load(c_str);
+      entry.load(c_str.ptr());
       dataBase.push_back(entry);
-
-      delete[] c_str;
     }
   }
 }

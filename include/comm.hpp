@@ -209,16 +209,6 @@ class comm_t {
     mpiType<T>::freeMpiType(type);
   }
 
-  /*raw pointer broadcast*/
-  template <typename T>
-  void Bcast(T* m,
-             const int root,
-             const int count) const {
-    MPI_Datatype type = mpiType<T>::getMpiType();
-    MPI_Bcast(m, count, type, root, comm());
-    mpiType<T>::freeMpiType(type);
-  }
-
   /*scalar broadcast*/
   template <typename T>
   void Bcast(T& val,
