@@ -343,7 +343,7 @@ SOFTWARE.
 
     @exclusive dlong element;
     
-    for(int w=0;w<(p_Np/16)+1;++w;@inner(2)){
+    for(int w=0;w<((p_Np-1)/16)+1;++w;@inner(2)){
       for(int n=0;n<4;++n;@inner(1)){
         for(int ei=0;ei<16;++ei;@inner(0)){
 
@@ -363,7 +363,7 @@ SOFTWARE.
     }
   }
 
-    for(int w=0;w<(p_Np/16)+1;++w;@inner(2)){
+    for(int w=0;w<((p_Np-1)/16)+1;++w;@inner(2)){
       for(int n=0;n<4;++n;@inner(1)){
         for(int ei=0;ei<16;++ei;@inner(0)){
 
