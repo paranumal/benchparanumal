@@ -43,7 +43,7 @@ class parameters_t {
   properties_t findProperties(std::string name, properties_t& keys);
 
   //Convert a property to a single line string
-  std::string toString(properties_t& prop);
+  static std::string toString(properties_t& prop);
 
  private:
   std::vector<properties_t> dataBase;
