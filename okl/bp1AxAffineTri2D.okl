@@ -25,6 +25,48 @@ SOFTWARE.
 */
 
 #if KERNEL_NUMBER==0
+/*Original*/
+@kernel void bp1AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong e=0;e<Nelements;e++;@outer(0)){
+
+    @shared dfloat  s_q[p_Np];
+
+    @exclusive dlong element;
+
+    for(int n=0;n<p_Np;++n;@inner(0)){
+
+      element = elementList[e];
+      const dfloat J = wJ[element];
+
+      const dlong id = GlobalToLocal[n + element*p_Np];
+      s_q[n] = (id!=-1) ? J*q[id] : 0.0;
+    }
+
+    for(int n=0;n<p_Np;++n;@inner(0)){
+
+      dfloat Mq = 0.0;
+
+      for(int m=0;m<p_Np;++m){
+        const dfloat Mm = MM[n + m*p_Np];
+        Mq += Mm * s_q[m];
+      }
+
+      const dlong base = n + element*p_Np;
+      Aq[base] = Mq;
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==1
 /* SIMD packing with MM in shmem */
 @kernel void bp1AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
@@ -35,7 +77,7 @@ SOFTWARE.
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 
-  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
     @shared dfloat  s_MM[p_Np][p_Np];
     @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_Np];
@@ -55,9 +97,10 @@ SOFTWARE.
 
           if (e<Nelements) {
             element[et] = elementList[e];
+            const dfloat J = wJ[element[et]];
 
             const dlong id = GlobalToLocal[n + element[et]*p_Np];
-            s_q[et][ei][n] = (id!=-1) ? q[id] : 0.0;
+            s_q[et][ei][n] = (id!=-1) ? J*q[id] : 0.0;
           } else {
             element[et] = -1;
           }
@@ -67,13 +110,6 @@ SOFTWARE.
 
     for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
       for(int n=0;n<p_Np;++n;@inner(0)){
-
-        dfloat J[p_NelementsPerThd];
-        for (int et = 0; et<p_NelementsPerThd;++et) {
-          if (element[et]>=0) {
-            J[et] = wJ[element[et]];
-          }
-        }
 
         dfloat Mq[p_NelementsPerThd] = {0.0};
 
@@ -87,7 +123,7 @@ SOFTWARE.
 
         for (int et = 0; et<p_NelementsPerThd;++et) {
           if (element[et]>=0) {
-            Aq[n + element[et]*p_Np] = J[et]*Mq[et];
+            Aq[n + element[et]*p_Np] = Mq[et];
           }
         }
       }
@@ -96,7 +132,7 @@ SOFTWARE.
 }
 #endif
 
-#if KERNEL_NUMBER==1
+#if KERNEL_NUMBER==2
 /* SIMD packing without MM in shmem */
 @kernel void bp1AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
@@ -107,7 +143,7 @@ SOFTWARE.
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 
-  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
     @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_Np];
 
@@ -122,9 +158,10 @@ SOFTWARE.
 
           if (e<Nelements) {
             element[et] = elementList[e];
+            const dfloat J = wJ[element[et]];
 
             const dlong id = GlobalToLocal[n + element[et]*p_Np];
-            s_q[et][ei][n] = (id!=-1) ? q[id] : 0.0;
+            s_q[et][ei][n] = (id!=-1) ? J*q[id] : 0.0;
           } else {
             element[et] = -1;
           }
@@ -134,13 +171,6 @@ SOFTWARE.
 
     for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
       for(int n=0;n<p_Np;++n;@inner(0)){
-
-        dfloat J[p_NelementsPerThd];
-        for (int et = 0; et<p_NelementsPerThd;++et) {
-          if (element[et]>=0) {
-            J[et] = wJ[element[et]];
-          }
-        }
 
         dfloat Mq[p_NelementsPerThd] = {0.0};
 
@@ -154,68 +184,8 @@ SOFTWARE.
 
         for (int et = 0; et<p_NelementsPerThd;++et) {
           if (element[et]>=0) {
-            Aq[n + element[et]*p_Np] = J[et]*Mq[et];
+            Aq[n + element[et]*p_Np] = Mq[et];
           }
-        }
-      }
-    }
-  }
-}
-#endif
-
-#if KERNEL_NUMBER==2
-/* Put MM in shmem */
-@kernel void bp1AxAffineTri2D(const dlong Nelements,
-                        @restrict const  dlong  *  elementList,
-                        @restrict const  dlong  *  GlobalToLocal,
-                        @restrict const  dfloat *  wJ,
-                        @restrict const  dfloat *  I,
-                        @restrict const  dfloat *  MM,
-                        @restrict const  dfloat *  q,
-                              @restrict dfloat *  Aq){
-
-  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
-
-    @shared dfloat  s_q[p_NelementsPerBlk][p_Np];
-    @shared dfloat  s_MM[p_Np][p_Np];
-
-    @exclusive dlong element;
-
-    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
-      for(int n=0;n<p_Np;++n;@inner(0)){
-
-        for (int m=ei;m<p_Np;m+=p_NelementsPerBlk) {
-          s_MM[m][n] = MM[n + m*p_Np];
-        }
-
-        const dlong e = eo + ei;
-
-        if (e<Nelements) {
-          element = elementList[e];
-
-          const dlong id = GlobalToLocal[n + element*p_Np];
-          s_q[ei][n] = (id!=-1) ? q[id] : 0.0;
-        }
-      }
-    }
-
-    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
-      for(int n=0;n<p_Np;++n;@inner(0)){
-
-        const dlong e = eo + ei;
-        if (e<Nelements) {
-
-          const dfloat J = wJ[element];
-
-          dfloat Mq = 0.0;
-
-          for(int m=0;m<p_Np;++m){
-            const dfloat Mm = s_MM[m][n]; //uses the fact that MM is symmetric
-            Mq += Mm * s_q[ei][m];
-          }
-
-          const dlong base = n + element*p_Np;
-          Aq[base] = J*Mq;
         }
       }
     }
@@ -224,7 +194,7 @@ SOFTWARE.
 #endif
 
 #if KERNEL_NUMBER==3
-/* Blocked version */
+/*MFMA 16x16*/
 @kernel void bp1AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -234,107 +204,9 @@ SOFTWARE.
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 
-  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
+  for(dlong eo=0;eo<Nelements;eo+=16;@outer(0)){
 
-    @shared dfloat  s_q[p_NelementsPerBlk][p_Np];
-
-    @exclusive dlong element;
-
-    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
-      for(int n=0;n<p_Np;++n;@inner(0)){
-
-        const dlong e = eo + ei;
-
-        if (e<Nelements) {
-          element = elementList[e];
-
-          const dlong id = GlobalToLocal[n + element*p_Np];
-          s_q[ei][n] = (id!=-1) ? q[id] : 0.0;
-        }
-      }
-    }
-
-    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
-      for(int n=0;n<p_Np;++n;@inner(0)){
-
-        const dlong e = eo + ei;
-        if (e<Nelements) {
-
-          const dfloat J = wJ[element];
-
-          dfloat Mq = 0.0;
-
-          for(int m=0;m<p_Np;++m){
-            const dfloat Mm = MM[n + m*p_Np];
-            Mq += Mm * s_q[ei][m];
-          }
-
-          const dlong base = n + element*p_Np;
-          Aq[base] = J*Mq;
-        }
-      }
-    }
-  }
-}
-#endif
-
-#if KERNEL_NUMBER==4
-/*Original*/
-@kernel void bp1AxAffineTri2D(const dlong Nelements,
-                        @restrict const  dlong  *  elementList,
-                        @restrict const  dlong  *  GlobalToLocal,
-                        @restrict const  dfloat *  wJ,
-                        @restrict const  dfloat *  I,
-                        @restrict const  dfloat *  MM,
-                        @restrict const  dfloat *  q,
-                              @restrict dfloat *  Aq){
-
-  for(int e=0;e<Nelements;e++;@outer(0)){
-
-    @shared dfloat  s_q[p_Np];
-
-    @exclusive dlong element;
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-
-      element = elementList[e];
-
-      const dlong id = GlobalToLocal[n + element*p_Np];
-      s_q[n] = (id!=-1) ? q[id] : 0.0;
-    }
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-
-      const dfloat J = wJ[element];
-
-      dfloat Mq = 0.0;
-
-      for(int m=0;m<p_Np;++m){
-        const dfloat Mm = MM[n + m*p_Np];
-        Mq += Mm * s_q[m];
-      }
-
-      const dlong base = n + element*p_Np;
-      Aq[base] = J*Mq;
-    }
-  }
-}
-#endif
-
-#if KERNEL_NUMBER==5
-
-@kernel void bp1AxAffineTri2D(const dlong Nelements,
-                        @restrict const  dlong  *  elementList,
-                        @restrict const  dlong  *  GlobalToLocal,
-                        @restrict const  dfloat *  wJ,
-                        @restrict const  dfloat *  I,
-                        @restrict const  dfloat *  MM,
-                        @restrict const  dfloat *  q,
-                              @restrict dfloat *  Aq){
-
-  for(int eo=0;eo<Nelements;eo+=16;@outer(0)){
-
-    @shared dfloat  s_q[16][p_Np];
+    @shared dfloat  s_q[(((p_Np-1)/16)+1)*16][16+1];
 
     @exclusive dlong element[4];
 
@@ -344,23 +216,13 @@ SOFTWARE.
 
           const int n = lx + 16*w;
 
-          if (n < p_Np) {
-            for (int i=0;i<4;++i) {
-              const dlong e = eo + ly + 4*i;
+          for (int i=0;i<4;++i) {
+            const dlong e = eo + ly + 4*i;
+            element[i] = (e<Nelements) ? elementList[e] : -1;
+            const dfloat J = (e<Nelements) ? wJ[element[i]] : 0.;
 
-              if (e<Nelements) {
-                element[i] = elementList[e];
-                const dlong id = GlobalToLocal[n + element[i]*p_Np];
-
-                const dfloat r_q = (id!=-1) ? q[id] : 0.0;
-                const dfloat J = wJ[element[i]];
-
-                s_q[ly+4*i][n] = J*r_q;
-              } else {
-                element[i] = -1;
-                s_q[ly+4*i][n] = 0.0;
-              }
-            }
+            const dlong id = (e<Nelements && n<p_Np) ? GlobalToLocal[n + element[i]*p_Np] : -1;
+            s_q[n][ly+4*i] = (id!=-1) ? J*q[id] : 0.0;
           }
         }
       }
@@ -372,19 +234,22 @@ SOFTWARE.
 
           __attribute__((__vector_size__(4 * 8))) double Mq = {0.}; // zero out 16x16 result
 
+          const int n = lx + 16*w;
+
+          dfloat r_MM = (n<p_Np && (ly)<p_Np) ? MM[n + (ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
 
-            const dfloat r_q  = ((m+ly)<p_Np) ? s_q[lx][m+ly] : 0.0; //4 DOFs from 16 elements
-            const dfloat r_MM = ((lx+16*w)<p_Np && (m+ly)<p_Np) ? MM[lx+16*w + (m+ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
+            const dfloat r_MM_next = (n<p_Np && (m+4+ly)<p_Np) ? MM[n + (m+4+ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
 
-            // Mq += r_MM^T * r_q
+            // Mq += r_q^T * r_MM
             Mq = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_MM, Mq, 0, 0, 0);
+
+            r_MM = r_MM_next;
           }
 
           //Mq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
-
-          const int n = lx + 16*w;
           if (n < p_Np) {
             for (int i=0;i<4;++i) {
               if (element[i]>-1) {
@@ -399,8 +264,119 @@ SOFTWARE.
 }
 #endif
 
-#if KERNEL_NUMBER==6
+#if KERNEL_NUMBER==4
+/* Put MM in shmem */
+@kernel void bp1AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
+
+    @shared dfloat  s_q[p_NelementsPerBlk][p_Np];
+    @shared dfloat  s_MM[p_Np][p_Np];
+
+    @exclusive dlong element;
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        for (int m=ei;m<p_Np;m+=p_NelementsPerBlk) {
+          s_MM[m][n] = MM[n + m*p_Np];
+        }
+
+        const dlong e = eo + ei;
+
+        if (e<Nelements) {
+          element = elementList[e];
+          const dfloat J = wJ[element];
+
+          const dlong id = GlobalToLocal[n + element*p_Np];
+          s_q[ei][n] = (id!=-1) ? J*q[id] : 0.0;
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        dfloat Mq = 0.0;
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Mm = s_MM[m][n]; //uses the fact that MM is symmetric
+          Mq += Mm * s_q[ei][m];
+        }
+
+        const dlong e = eo + ei;
+        if (e<Nelements) {
+          const dlong base = n + element*p_Np;
+          Aq[base] = Mq;
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==5
 /* Blocked version */
+@kernel void bp1AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
+
+    @shared dfloat  s_q[p_NelementsPerBlk][p_Np];
+
+    @exclusive dlong element;
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        const dlong e = eo + ei;
+
+        if (e<Nelements) {
+          element = elementList[e];
+          const dfloat J = wJ[element];
+
+          const dlong id = GlobalToLocal[n + element*p_Np];
+          s_q[ei][n] = (id!=-1) ? J*q[id] : 0.0;
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        dfloat Mq = 0.0;
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Mm = MM[n + m*p_Np];
+          Mq += Mm * s_q[ei][m];
+        }
+
+        const dlong e = eo + ei;
+        if (e<Nelements) {
+          const dlong base = n + element*p_Np;
+          Aq[base] = Mq;
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==6
+/* MFMA 4x4 */
 @kernel void bp1AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -412,7 +388,7 @@ SOFTWARE.
 
   static_assert (p_Np <= 4, "Kernel only supports small elements right now");
 
-  for(int eo=0;eo<Nelements;eo+=16;@outer(0)){
+  for(dlong eo=0;eo<Nelements;eo+=16;@outer(0)){
 
     @shared dfloat  s_q[16][p_Np];
 
