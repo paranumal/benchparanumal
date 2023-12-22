@@ -24,7 +24,8 @@ SOFTWARE.
 
 */
 
-
+#if KERNEL_NUMBER==0
+/*original kernel*/
 @kernel void bp1AxTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -85,3 +86,336 @@ SOFTWARE.
     }
   }
 }
+#endif
+
+#if KERNEL_NUMBER==1
+/*SIMD packing with I in shared memory*/
+@kernel void bp1AxTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_cubNp];
+    @shared dfloat  s_I[p_Np][p_cubNp];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        for (int m=ei;m<p_Np;m+=p_NelementsPerBlk) {
+          s_I[m][n] = I[n + m*p_cubNp];
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+
+          const dlong e = eo + ei*p_NelementsPerThd + et;
+
+          if (e<Nelements) {
+            element[et] = elementList[e];
+
+            if (n<p_Np) {
+              const dlong id = GlobalToLocal[n + element[et]*p_Np];
+              s_q[et][ei][n] = (id!=-1) ? q[id] : 0.0;
+            }
+          } else {
+            element[et] = -1;
+          }
+        }
+      }
+    }
+
+    @exclusive dfloat Iq[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        dfloat r_GWJ[p_NelementsPerThd];
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          r_GWJ[et] = (element[et]>-1) ? cubwJ[element[et]*p_cubNp + n] : 0.0;
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          Iq[et] = 0.0;
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Im = s_I[m][n];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            Iq[et] += Im * s_q[et][ei][m];
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          Iq[et] *= r_GWJ[et];
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          s_q[et][ei][n] = Iq[et];
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        if (n<p_Np) {
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            Iq[et] = 0.0;
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat ITm = s_I[n][m];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              Iq[et] += ITm * s_q[et][ei][m];
+            }
+          }
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            if (element[et]>-1) {
+              Aq[n + element[et]*p_Np] = Iq[et];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==2
+/*SIMD packing with I not in shared memory*/
+@kernel void bp1AxTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_cubNp];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+
+          const dlong e = eo + ei*p_NelementsPerThd + et;
+
+          if (e<Nelements) {
+            element[et] = elementList[e];
+
+            if (n<p_Np) {
+              const dlong id = GlobalToLocal[n + element[et]*p_Np];
+              s_q[et][ei][n] = (id!=-1) ? q[id] : 0.0;
+            }
+          } else {
+            element[et] = -1;
+          }
+        }
+      }
+    }
+
+    @exclusive dfloat Iq[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        dfloat r_GWJ[p_NelementsPerThd];
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          r_GWJ[et] = (element[et]>-1) ? cubwJ[element[et]*p_cubNp + n] : 0.0;
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          Iq[et] = 0.0;
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Im = I[m*p_cubNp+n];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            Iq[et] += Im * s_q[et][ei][m];
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          Iq[et] *= r_GWJ[et];
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          s_q[et][ei][n] = Iq[et];
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        if (n<p_Np) {
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            Iq[et] = 0.0;
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat ITm = I[n*p_cubNp+m];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              Iq[et] += ITm * s_q[et][ei][m];
+            }
+          }
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            if (element[et]>-1) {
+              Aq[n + element[et]*p_Np] = Iq[et];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==3
+/*MFMA 16x16*/
+@kernel void bp1AxTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=16;@outer(0)){
+
+    @shared dfloat  s_q[16][p_cubNp];
+
+    @exclusive dlong element[4];
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          for (int i=0;i<4;++i) {
+            const dlong e = eo + ly + 4*i;
+            if (e<Nelements) {
+              element[i] = elementList[e];
+              const dlong id = (n<p_Np) ? GlobalToLocal[n + element[i]*p_Np] : -1;
+              s_q[ly+4*i][n] = (id!=-1) ? q[id] : 0.0;
+            } else {
+              element[i] = -1;
+              s_q[ly+4*i][n] = 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    @exclusive __attribute__((__vector_size__(4 * 8))) double Iq;
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          dfloat r_I = (n<p_cubNp && (ly)<p_Np) ? I[n + (ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+          dfloat r_GWJ[4];
+          for (int i = 0; i<4;++i) {
+            r_GWJ[i] = (element[i]>-1 && n<p_cubNp) ? cubwJ[element[i]*p_cubNp + n] : 0.0;
+          }
+
+          for (int i = 0; i<4;++i) {
+            Iq[i] = 0.0;
+          }
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_q  = ((m+ly)<p_Np) ? s_q[lx][m+ly] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_I_next = (n<p_cubNp && (m+4+ly)<p_Np) ? I[n + (m+4+ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+            // Iq += r_q^T * r_I
+            Iq = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_I, Iq, 0, 0, 0);
+
+            r_I = r_I_next;
+          }
+
+          //Iq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
+
+          for (int i = 0; i<4;++i) {
+            Iq[i] *= r_GWJ[i];
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          for (int i = 0; i<4;++i) {
+            const int n = lx + 16*w;
+            if (n < p_cubNp) {
+              s_q[ly+4*i][n] = Iq[i];
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          dfloat r_I = ((ly)<p_cubNp && (n)<p_Np) ? I[(ly) + (n)*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+          for (int i = 0; i<4;++i) {
+            Iq[i] = 0.0;
+          }
+
+          for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_q  = ((m+ly)<p_cubNp) ? s_q[lx][m+ly] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_I_next = ((m+4+ly)<p_cubNp && n<p_Np) ? I[(m+4+ly)+n*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+            // Iq += r_q^T * r_I
+            Iq = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_I, Iq, 0, 0, 0);
+
+            r_I = r_I_next;
+          }
+
+          //Iq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
+
+          if (n < p_Np) {
+            for (int i=0;i<4;++i) {
+              if (element[i]>-1) {
+                Aq[n + element[i]*p_Np] = Iq[i];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
