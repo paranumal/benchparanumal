@@ -56,7 +56,7 @@ SOFTWARE.
     }
 
     for(int n=0;n<p_Np;++n;@inner(0)){
-      const dfloat J   = wJ[element];
+      const dfloat J   = gllw[n]*wJ[element];
       const dfloat Grr = ggeo[p_Nggeo*element + p_G00ID];
       const dfloat Grs = ggeo[p_Nggeo*element + p_G01ID];
       const dfloat Grt = ggeo[p_Nggeo*element + p_G02ID];
@@ -70,7 +70,6 @@ SOFTWARE.
       dfloat qss[p_Nfields];
       dfloat qst[p_Nfields];
       dfloat qtt[p_Nfields];
-      dfloat qM [p_Nfields];
       for(int f=0;f<p_Nfields;++f) {
         qrr[f] = 0.0;
         qrs[f] = 0.0;
@@ -78,7 +77,6 @@ SOFTWARE.
         qss[f] = 0.0;
         qst[f] = 0.0;
         qtt[f] = 0.0;
-        qM [f] = 0.0;
       }
 
       // #pragma unroll p_Np
@@ -91,7 +89,6 @@ SOFTWARE.
           qss[f] += S[n+k*p_Np+3*p_Np*p_Np]*qn;
           qst[f] += S[n+k*p_Np+4*p_Np*p_Np]*qn;
           qtt[f] += S[n+k*p_Np+5*p_Np*p_Np]*qn;
-          qM [f] += MM[n+k*p_Np]*qn;
         }
       }
 
@@ -99,7 +96,7 @@ SOFTWARE.
       for(int f=0;f<p_Nfields;++f) {
         Aq[id+f*p_Np] =   Grr*qrr[f] + Grs*qrs[f] + Grt*qrt[f]
                         + Gss*qss[f] + Gst*qst[f] + Gtt*qtt[f]
-                        + J*lambda*qM[f];
+                        + J*lambda*s_q[f][n];
       }
     }
   }

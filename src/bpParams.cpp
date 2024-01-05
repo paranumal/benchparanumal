@@ -154,24 +154,11 @@ size_t bp_t::AxBytesMoved() {
                  +  Np*Nfields*sizeof(dfloat) /*AqL*/ )*mesh.NelementsGlobal;
 
       } else {
-        switch (mesh.elementType) {
-          case mesh_t::TRIANGLES:
-          case mesh_t::TETRAHEDRA:
-            NbytesAx = Ndofs*sizeof(dfloat) //q
-                     + (Np*(mesh.dim==3 ? 10 : 5)*sizeof(dfloat) // vgeo
-                     +  sizeof(dlong) // localGatherElementList
-                     +  Np*Nfields*sizeof(dlong) // GlobalToLocal
-                     +  Np*Nfields*sizeof(dfloat) /*AqL*/ )*mesh.NelementsGlobal;
-            break;
-          case mesh_t::QUADRILATERALS:
-          case mesh_t::HEXAHEDRA:
-            NbytesAx = Ndofs*sizeof(dfloat) //q
-                     + (Np*(mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
-                     +  sizeof(dlong) // localGatherElementList
-                     +  Np*Nfields*sizeof(dlong) // GlobalToLocal
-                     +  Np*Nfields*sizeof(dfloat) /*AqL*/ )*mesh.NelementsGlobal;
-            break;
-        }
+        NbytesAx = Ndofs*sizeof(dfloat) //q
+                 + (Np*(mesh.dim==3 ? 7 : 4)*sizeof(dfloat) // ggeo
+                 +  sizeof(dlong) // localGatherElementList
+                 +  Np*Nfields*sizeof(dlong) // GlobalToLocal
+                 +  Np*Nfields*sizeof(dfloat) /*AqL*/ )*mesh.NelementsGlobal;
       }
       break;
   }
@@ -277,12 +264,12 @@ size_t bp_t::AxFLOPs() {
       if (affine) {
         switch (mesh.elementType) {
           case mesh_t::TRIANGLES:
-            NflopsAx =( 8*Np*Np
-                       +8*Np)*Nfields*mesh.NelementsGlobal;
+            NflopsAx =( 6*Np*Np
+                       +9*Np)*Nfields*mesh.NelementsGlobal;
             break;
           case mesh_t::TETRAHEDRA:
-            NflopsAx =( 14*Np*Np
-                       +14*Np)*Nfields*mesh.NelementsGlobal;
+            NflopsAx =( 12*Np*Np
+                       +15*Np)*Nfields*mesh.NelementsGlobal;
             break;
           case mesh_t::QUADRILATERALS:
             NflopsAx =(  8*Nq*Nq*Nq
@@ -296,12 +283,12 @@ size_t bp_t::AxFLOPs() {
       } else {
         switch (mesh.elementType) {
           case mesh_t::TRIANGLES:
-            NflopsAx =( 14*Np*Np
-                       +14*Np)*Nfields*mesh.NelementsGlobal;
+            NflopsAx =( 8*Np*Np
+                       +9*Np)*Nfields*mesh.NelementsGlobal;
             break;
           case mesh_t::TETRAHEDRA:
-            NflopsAx =( 20*Np*Np
-                       +32*Np)*Nfields*mesh.NelementsGlobal;
+            NflopsAx =( 12*Np*Np
+                       +17*Np)*Nfields*mesh.NelementsGlobal;
             break;
           case mesh_t::QUADRILATERALS:
             NflopsAx =(  8*Nq*Nq*Nq

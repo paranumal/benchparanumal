@@ -45,6 +45,13 @@ void mesh_t::ReferenceNodesTet3D(){
   MassMatrixTet3D(Np, V, MM);
   o_MM = platform.malloc<dfloat>(MM); //MM is symmetric
 
+  //Quadrature on W&B nodes
+  memory<dfloat> xi(Np, 0.);
+  xi[0] = 1.0/V[0];
+  gllw.malloc(Np);
+  linAlg_t::matrixRightSolve(1, Np, xi, Np, Np, V, gllw);
+  o_gllw = platform.malloc<dfloat>(gllw);
+
   //packed D matrices
   DmatrixTet3D(N, r, s, t, D);
   Dr = D + 0*Np*Np;

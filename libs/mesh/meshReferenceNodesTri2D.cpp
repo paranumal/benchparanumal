@@ -45,6 +45,13 @@ void mesh_t::ReferenceNodesTri2D(){
   MassMatrixTri2D(Np, V, MM);
   o_MM = platform.malloc<dfloat>(MM); //MM is symmetric
 
+  //Quadrature on W&B nodes
+  memory<dfloat> xi(Np, 0.);
+  xi[0] = 1.0/V[0];
+  gllw.malloc(Np);
+  linAlg_t::matrixRightSolve(1, Np, xi, Np, Np, V, gllw);
+  o_gllw = platform.malloc<dfloat>(gllw);
+
   DmatrixTri2D(N, r, s, D);
   Dr = D + 0*Np*Np;
   Ds = D + 1*Np*Np;

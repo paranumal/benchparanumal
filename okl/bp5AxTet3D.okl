@@ -55,13 +55,19 @@ SOFTWARE.
       s_q[n] = (id!=-1) ? q[id] : 0.0;
     }
 
-    @exclusive dfloat qr, qs, qt;
-
     for(int n=0;n<p_Np;++n;@inner(0)){
 
-      qr = 0.0;
-      qs = 0.0;
-      qt = 0.0;
+      const dlong gbase = element*p_Np + n;
+      const dfloat G00 = ggeo[p_Nggeo*gbase+p_G00ID];
+      const dfloat G01 = ggeo[p_Nggeo*gbase+p_G01ID];
+      const dfloat G02 = ggeo[p_Nggeo*gbase+p_G02ID];
+      const dfloat G11 = ggeo[p_Nggeo*gbase+p_G11ID];
+      const dfloat G12 = ggeo[p_Nggeo*gbase+p_G12ID];
+      const dfloat G22 = ggeo[p_Nggeo*gbase+p_G22ID];
+
+      dfloat qr = 0.0;
+      dfloat qs = 0.0;
+      dfloat qt = 0.0;
 
       for(int m=0;m<p_Np;++m){
         const dfloat qm = s_q[m];
@@ -72,57 +78,18 @@ SOFTWARE.
         qs += Ds * qm;
         qt += Dt * qm;
       }
-    }
 
-    @exclusive dfloat rx, ry, rz, sx, sy, sz, tx, ty, tz;
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-      const dlong base = element*p_Np + n;
-      const dfloat J = wJ[base];
-      rx = vgeo[p_Nvgeo*base+p_RXID];
-      ry = vgeo[p_Nvgeo*base+p_RYID];
-      rz = vgeo[p_Nvgeo*base+p_RZID];
-      sx = vgeo[p_Nvgeo*base+p_SXID];
-      sy = vgeo[p_Nvgeo*base+p_SYID];
-      sz = vgeo[p_Nvgeo*base+p_SZID];
-      tx = vgeo[p_Nvgeo*base+p_TXID];
-      ty = vgeo[p_Nvgeo*base+p_TYID];
-      tz = vgeo[p_Nvgeo*base+p_TZID];
-
-      //this is dubious, since we lose symmetry for truly curved elements
-      s_q[n] *= lambda * J;
-
-      s_qx[n] = rx * qr + sx * qs + tx * qt;
-      s_qy[n] = ry * qr + sy * qs + ty * qt;
-      s_qz[n] = rz * qr + sz * qs + tz * qt;
-    }
-
-    @exclusive dfloat Mq, Mqx, Mqy, Mqz;
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-      Mq  = 0.0;
-      Mqx = 0.0;
-      Mqy = 0.0;
-      Mqz = 0.0;
-
-      for(int m=0;m<p_Np;++m){
-        const dfloat MMn = MM[n + m*p_Np];
-        Mq  += MMn * s_q[m];
-        Mqx += MMn * s_qx[m];
-        Mqy += MMn * s_qy[m];
-        Mqz += MMn * s_qz[m];
-      }
-    }
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-      s_qx[n] = rx * Mqx + ry * Mqy + rz * Mqz;
-      s_qy[n] = sx * Mqx + sy * Mqy + sz * Mqz;
-      s_qz[n] = tx * Mqx + ty * Mqy + tz * Mqz;
+      s_qx[n] = G00*qr + G01*qs + G02*qt;
+      s_qy[n] = G01*qr + G11*qs + G12*qt;
+      s_qz[n] = G02*qr + G12*qs + G22*qt;
     }
 
     for(int n=0;n<p_Np;++n;@inner(0)){
 
-      dfloat Aqn = Mq;
+      const dlong gbase = element*p_Np + n;
+      const dfloat J = wJ[gbase];
+
+      dfloat Aqn = 0.;
 
       for(int m=0;m<p_Np;++m){
         const dfloat DrT = D[m + n*p_Np + 0*p_Np*p_Np];
@@ -132,6 +99,8 @@ SOFTWARE.
         Aqn += DsT * s_qy[m];
         Aqn += DtT * s_qz[m];
       }
+
+      Aqn += lambda * J * s_q[n];
 
       const dlong base = n + element*p_Np;
       Aq[base] = Aqn;

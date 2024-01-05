@@ -141,7 +141,7 @@ void mesh_t::GeometricFactorsTet3D(){
         LIBP_ABORT("Negative J found at element " << e,
                    J<0);
 
-        wJ[Np*e + n] = J;
+        wJ[Np*e + n] = gllw[n]*J;
 
         /* store geometric factors */
         dlong vbase = Nvgeo*(Np*e + n);
@@ -157,12 +157,12 @@ void mesh_t::GeometricFactorsTet3D(){
 
         /* store second order geometric factors */
         dlong gbase = Nggeo*(Np*e + n);
-        ggeo[gbase + G00ID] = J*(rx*rx + ry*ry + rz*rz);
-        ggeo[gbase + G01ID] = J*(rx*sx + ry*sy + rz*sz);
-        ggeo[gbase + G02ID] = J*(rx*tx + ry*ty + rz*tz);
-        ggeo[gbase + G11ID] = J*(sx*sx + sy*sy + sz*sz);
-        ggeo[gbase + G12ID] = J*(sx*tx + sy*ty + sz*tz);
-        ggeo[gbase + G22ID] = J*(tx*tx + ty*ty + tz*tz);
+        ggeo[gbase + G00ID] = gllw[n]*J*(rx*rx + ry*ry + rz*rz);
+        ggeo[gbase + G01ID] = gllw[n]*J*(rx*sx + ry*sy + rz*sz);
+        ggeo[gbase + G02ID] = gllw[n]*J*(rx*tx + ry*ty + rz*tz);
+        ggeo[gbase + G11ID] = gllw[n]*J*(sx*sx + sy*sy + sz*sz);
+        ggeo[gbase + G12ID] = gllw[n]*J*(sx*tx + sy*ty + sz*tz);
+        ggeo[gbase + G22ID] = gllw[n]*J*(tx*tx + ty*ty + tz*tz);
       }
     }
   }

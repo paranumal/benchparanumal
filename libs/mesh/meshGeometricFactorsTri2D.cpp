@@ -122,7 +122,7 @@ void mesh_t::GeometricFactorsTri2D(){
         dfloat sx = -yr/J;
         dfloat sy =  xr/J;
 
-        wJ[Np*e + n] = J;
+        wJ[Np*e + n] = gllw[n]*J;
 
         /* store geometric factors */
         dlong vbase = Nvgeo*(Np*e + n);
@@ -133,9 +133,9 @@ void mesh_t::GeometricFactorsTri2D(){
 
         /* store second order geometric factors */
         dlong gbase = Nggeo*(Np*e + n);
-        ggeo[gbase + G00ID] = J*(rx*rx + ry*ry);
-        ggeo[gbase + G01ID] = J*(rx*sx + ry*sy);
-        ggeo[gbase + G11ID] = J*(sx*sx + sy*sy);
+        ggeo[gbase + G00ID] = gllw[n]*J*(rx*rx + ry*ry);
+        ggeo[gbase + G01ID] = gllw[n]*J*(rx*sx + ry*sy);
+        ggeo[gbase + G11ID] = gllw[n]*J*(sx*sx + sy*sy);
       }
     }
   }

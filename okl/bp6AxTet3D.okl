@@ -58,9 +58,19 @@ SOFTWARE.
       }
     }
 
-    @exclusive dfloat qr[p_Nfields], qs[p_Nfields], qt[p_Nfields];
-
     for(int n=0;n<p_Np;++n;@inner(0)){
+
+      const dlong gbase = element*p_Np + n;
+      const dfloat G00 = ggeo[p_Nggeo*gbase+p_G00ID];
+      const dfloat G01 = ggeo[p_Nggeo*gbase+p_G01ID];
+      const dfloat G02 = ggeo[p_Nggeo*gbase+p_G02ID];
+      const dfloat G11 = ggeo[p_Nggeo*gbase+p_G11ID];
+      const dfloat G12 = ggeo[p_Nggeo*gbase+p_G12ID];
+      const dfloat G22 = ggeo[p_Nggeo*gbase+p_G22ID];
+
+      dfloat qr[p_Nfields];
+      dfloat qs[p_Nfields];
+      dfloat qt[p_Nfields];
 
       for (int f=0;f<p_Nfields;++f) {
         qr[f] = 0.0;
@@ -79,68 +89,21 @@ SOFTWARE.
           qt[f] += Dt * qm;
         }
       }
-    }
 
-    @exclusive dfloat rx, ry, rz, sx, sy, sz, tx, ty, tz;
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-      const dlong base = element*p_Np + n;
-      const dfloat J = wJ[base];
-      rx = vgeo[p_Nvgeo*base+p_RXID];
-      ry = vgeo[p_Nvgeo*base+p_RYID];
-      rz = vgeo[p_Nvgeo*base+p_RZID];
-      sx = vgeo[p_Nvgeo*base+p_SXID];
-      sy = vgeo[p_Nvgeo*base+p_SYID];
-      sz = vgeo[p_Nvgeo*base+p_SZID];
-      tx = vgeo[p_Nvgeo*base+p_TXID];
-      ty = vgeo[p_Nvgeo*base+p_TYID];
-      tz = vgeo[p_Nvgeo*base+p_TZID];
-
-      for (int f=0;f<p_Nfields;++f) {
-        //this is dubious, since we lose symmetry for truly curved elements
-        s_q [f][n] *= lambda * J;
-
-        s_qx[f][n] = rx * qr[f] + sx * qs[f] + tx * qt[f];
-        s_qy[f][n] = ry * qr[f] + sy * qs[f] + ty * qt[f];
-        s_qz[f][n] = rz * qr[f] + sz * qs[f] + tz * qt[f];
-      }
-    }
-
-    @exclusive dfloat Mq[p_Nfields], Mqx[p_Nfields], Mqy[p_Nfields], Mqz[p_Nfields];
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
-      for (int f=0;f<p_Nfields;++f) {
-        Mq [f] = 0.0;
-        Mqx[f] = 0.0;
-        Mqy[f] = 0.0;
-        Mqz[f] = 0.0;
-      }
-
-      for(int m=0;m<p_Np;++m){
-        const dfloat MMn = MM[n + m*p_Np];
-        for (int f=0;f<p_Nfields;++f) {
-          Mq [f] += MMn * s_q [f][m];
-          Mqx[f] += MMn * s_qx[f][m];
-          Mqy[f] += MMn * s_qy[f][m];
-          Mqz[f] += MMn * s_qz[f][m];
-        }
+      for(int f=0;f<p_Nfields;++f) {
+        s_qx[f][n] = G00*qr[f] + G01*qs[f] + G02*qt[f];
+        s_qy[f][n] = G01*qr[f] + G11*qs[f] + G12*qt[f];
+        s_qz[f][n] = G02*qr[f] + G12*qs[f] + G22*qt[f];
       }
     }
 
     for(int n=0;n<p_Np;++n;@inner(0)){
-      for (int f=0;f<p_Nfields;++f) {
-        s_qx[f][n] = rx * Mqx[f] + ry * Mqy[f] + rz * Mqz[f];
-        s_qy[f][n] = sx * Mqx[f] + sy * Mqy[f] + sz * Mqz[f];
-        s_qz[f][n] = tx * Mqx[f] + ty * Mqy[f] + tz * Mqz[f];
-      }
-    }
-
-    for(int n=0;n<p_Np;++n;@inner(0)){
+      const dlong gbase = element*p_Np + n;
+      const dfloat J = wJ[gbase];
 
       dfloat Aqn[p_Nfields];
-
       for (int f=0;f<p_Nfields;++f) {
-        Aqn[f] = Mq[f];
+        Aqn[f] = 0.;
       }
 
       for(int m=0;m<p_Np;++m){
@@ -154,9 +117,13 @@ SOFTWARE.
         }
       }
 
-      const dlong base = n + element*p_Np*p_Nfields;
       for (int f=0;f<p_Nfields;++f) {
-        Aq[base+f*p_Np] = Aqn[f];
+        Aqn[f] += lambda * J * s_q[f][n];
+      }
+
+      const dlong id = n + element*p_Np*p_Nfields;
+      for(int f=0;f<p_Nfields;++f) {
+        Aq[id+f*p_Np] = Aqn[f];
       }
     }
   }
