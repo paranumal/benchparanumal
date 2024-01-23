@@ -24,7 +24,6 @@
 {"Name":"bp1AxQuad2D.okl","keys":{"N":12,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerThd":2}}
 {"Name":"bp1AxQuad2D.okl","keys":{"N":13,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerThd":2}}
 {"Name":"bp1AxQuad2D.okl","keys":{"N":14,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerThd":2}}
-{"Name":"bp1AxQuad2D.okl","keys":{"N":15,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerThd":2}}
 
 //CUDA
 {"Name":"bp1AxQuad2D.okl","keys":{"N": 1,"mode":"CUDA"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":38,"p_NelementsPerThd":2}}
