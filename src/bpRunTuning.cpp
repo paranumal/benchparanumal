@@ -32,7 +32,7 @@ int NkernelsFn(mesh_t& mesh, bool affine, int P);
 int maxElementsPerBlockFn(mesh_t& mesh, bool affine, int P, int k);
 int maxElementsPerThreadFn(mesh_t& mesh, bool affine, int P, int k);
 int blockSizeFn(mesh_t& mesh, bool affine, int P, int k, int elementsPerBlock);
-size_t shmemUse(mesh_t& mesh, bool affine, int P, int k, int elementsPerBlock, int elementsPerThread);
+size_t shmemUse(mesh_t& mesh, bool affine, int P, int Nfields, int k, int elementsPerBlock, int elementsPerThread);
 
 void bp_t::RunTuning(){
 
@@ -72,7 +72,7 @@ void bp_t::RunTuning(){
   if (platform.device.mode() == "CUDA") wavesize = 32;
   if (platform.device.mode() == "HIP") wavesize = 64;
 
-  size_t shmemLimit = 64*1024; //64 KB
+  size_t shmemLimit = 64*1024 - 32; //64 KB
   if (platform.device.mode() == "CUDA") shmemLimit = 48*1024; //48 KB
 
   double bestKernelBW = 0;
@@ -85,7 +85,7 @@ void bp_t::RunTuning(){
 
   int Nkernels = NkernelsFn(mesh, affine, problemNumber);
 
-  for (int k=2;k<Nkernels;++k) {
+  for (int k=0;k<Nkernels;++k) {
     // if (mesh.rank==0) { printf("Testing Kernel %d\n", k);}
 
     double maxBW = 0;
@@ -114,7 +114,7 @@ void bp_t::RunTuning(){
       for (int elementsPerThread=1; elementsPerThread<=maxElementsPerThread;elementsPerThread++) {
 
         //Check shmem use
-        size_t shmem = shmemUse(mesh, affine, problemNumber, k,
+        size_t shmem = shmemUse(mesh, affine, problemNumber, Nfields, k,
                                 elementsPerBlock, elementsPerThread);
         if (shmem > shmemLimit) continue;
 
@@ -224,67 +224,174 @@ void bp_t::RunTuning(){
 
 int NkernelsFn(mesh_t& mesh, bool affine, int P) {
   if (mesh.elementType==mesh_t::TRIANGLES) {
-    if (P==1 && !affine) return 4;
-    if (P==1 &&  affine) return 4;
+    if ((P==1||P==2) &&  affine) return 4;
+    if ((P==1||P==2) && !affine) return 4;
+    if ((P==3||P==4) &&  affine) return 4;
+    if ((P==3||P==4) && !affine) return 4;
+    if ((P==5||P==6) &&  affine) return 4;
+    if ((P==5||P==6) && !affine) return 4;
   } else if (mesh.elementType==mesh_t::QUADRILATERALS) {
-    if (P==1 && !affine) return 2;
-    if (P==1 &&  affine) return 2;
+    if ((P==1||P==2) &&  affine) return 2;
+    if ((P==1||P==2) && !affine) return 2;
+    if ((P==3||P==4) &&  affine) return 2;
+    if ((P==3||P==4) && !affine) return 2;
+    if ((P==5||P==6) &&  affine) return 2;
+    if ((P==5||P==6) && !affine) return 2;
   } else if (mesh.elementType==mesh_t::TETRAHEDRA) {
-    if (P==1 && !affine) return 4;
-    if (P==1 &&  affine) return 4;
+    if ((P==1||P==2) &&  affine) return 4;
+    if ((P==1||P==2) && !affine) return 5;
+    if ((P==3||P==4) &&  affine) return 4;
+    if ((P==3||P==4) && !affine) return 5;
+    if ((P==5||P==6) &&  affine) return 4;
+    if ((P==5||P==6) && !affine) return 4;
   } else {
-    if (P==1 && !affine) return 3;
-    if (P==1 &&  affine) return 3;
+    if ((P==1||P==2) &&  affine) return 3;
+    if ((P==1||P==2) && !affine) return 4;
+    if ((P==3||P==4) &&  affine) return 4;
+    if ((P==3||P==4) && !affine) return 4;
+    if ((P==5||P==6) &&  affine) return 4;
+    if ((P==5||P==6) && !affine) return 4;
   }
   return 0;
 }
 
 int maxElementsPerBlockFn(mesh_t& mesh, bool affine, int P, int k) {
   if (mesh.elementType==mesh_t::TRIANGLES) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 1;
       if (k==1) return 1024;
       if (k==2) return 1024;
       if (k==3) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return 1;
       if (k==1) return 1024;
       if (k==2) return 1024;
       if (k==3) return 1;
     }
   } else if (mesh.elementType==mesh_t::QUADRILATERALS) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 1024;
       if (k==1) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return 1024;
+      if (k==1) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1024;
+      if (k==1) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1024;
+      if (k==1) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1024;
+      if (k==1) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return 1024;
       if (k==1) return 1;
     }
   } else if (mesh.elementType==mesh_t::TETRAHEDRA) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 1;
       if (k==1) return 1024;
       if (k==2) return 1024;
       if (k==3) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+      if (k==4) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+      if (k==4) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 1024;
+      if (k==2) return 1024;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return 1;
       if (k==1) return 1024;
       if (k==2) return 1024;
       if (k==3) return 1;
     }
   } else {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 256;
       if (k==1) return 256;
       if (k==2) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
       if (k==0) return 256;
       if (k==1) return 256;
       if (k==2) return 1;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 256;
+      if (k==2) return 128;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 256;
+      if (k==2) return 256;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 256;
+      if (k==2) return 128;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 256;
+      if (k==2) return 256;
+      if (k==3) return 1;
     }
   }
   return 0;
@@ -292,50 +399,141 @@ int maxElementsPerBlockFn(mesh_t& mesh, bool affine, int P, int k) {
 
 int maxElementsPerThreadFn(mesh_t& mesh, bool affine, int P, int k) {
   if (mesh.elementType==mesh_t::TRIANGLES) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 1;
       if (k==1) return 16;
       if (k==2) return 16;
       if (k==3) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
       if (k==0) return 1;
       if (k==1) return 16;
       if (k==2) return 16;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
       if (k==3) return 1;
     }
   } else if (mesh.elementType==mesh_t::QUADRILATERALS) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 4;
       if (k==1) return 4;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return 4;
+      if (k==1) return 4;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 4;
+      if (k==1) return 4;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 4;
+      if (k==1) return 4;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 4;
+      if (k==1) return 4;
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return 4;
       if (k==1) return 4;
     }
   } else if (mesh.elementType==mesh_t::TETRAHEDRA) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 1;
       if (k==1) return 16;
       if (k==2) return 16;
       if (k==3) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
       if (k==0) return 1;
       if (k==1) return 16;
       if (k==2) return 16;
+      if (k==3) return 1;
+      if (k==4) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
+      if (k==3) return 1;
+      if (k==4) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 10;
+      if (k==2) return 10;
       if (k==3) return 1;
     }
   } else {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return 1;
       if (k==1) return 1;
       if (k==2) return 1;
     }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) && !affine) {
       if (k==0) return 1;
       if (k==1) return 1;
       if (k==2) return 1;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 1;
+      if (k==2) return 1;
+      if (k==3) return 1;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 1;
+      if (k==2) return 1;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return 1;
+      if (k==1) return 1;
+      if (k==2) return 1;
+      if (k==3) return 1;
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return 1;
+      if (k==1) return 1;
+      if (k==2) return 1;
+      if (k==3) return 1;
     }
   }
   return 0;
@@ -348,56 +546,147 @@ int blockSizeFn(mesh_t& mesh, bool affine, int P, int k, int elementsPerBlock) {
   int cubNp = mesh.cubNp;
 
   if (mesh.elementType==mesh_t::TRIANGLES) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return Np;
+      if (k==1) return elementsPerBlock*Np;
+      if (k==2) return elementsPerBlock*Np;
+      if (k==3) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==1||P==2) && !affine) {
       if (k==0) return cubNp;
       if (k==1) return elementsPerBlock*cubNp;
       if (k==2) return elementsPerBlock*cubNp;
       if (k==3) return 4*16*((cubNp-1)/16 + 1);
     }
-    if (P==1 &&  affine) {
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return Np;
+      if (k==1) return elementsPerBlock*Np;
+      if (k==2) return elementsPerBlock*Np;
+      if (k==3) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return cubNp;
+      if (k==1) return elementsPerBlock*cubNp;
+      if (k==2) return elementsPerBlock*cubNp;
+      if (k==3) return 4*16*((cubNp-1)/16 + 1);
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return Np;
+      if (k==1) return elementsPerBlock*Np;
+      if (k==2) return elementsPerBlock*Np;
+      if (k==3) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return Np;
       if (k==1) return elementsPerBlock*Np;
       if (k==2) return elementsPerBlock*Np;
       if (k==3) return 4*16*((Np-1)/16 + 1);
     }
   } else if (mesh.elementType==mesh_t::QUADRILATERALS) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return elementsPerBlock*Nq*Nq;
+      if (k==1) return 256;
+    }
+    if ((P==1||P==2) && !affine) {
       if (k==0) return elementsPerBlock*cubNq*cubNq;
       if (k==1) return 256;
     }
-    if (P==1 &&  affine) {
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return elementsPerBlock*Nq*Nq;
+      if (k==1) return 256;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return elementsPerBlock*cubNq*cubNq;
+      if (k==1) return 256;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return elementsPerBlock*Nq*Nq;
+      if (k==1) return 256;
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return elementsPerBlock*Nq*Nq;
       if (k==1) return 256;
     }
   } else if (mesh.elementType==mesh_t::TETRAHEDRA) {
-    if (P==1 && !affine) {
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return Np;
+      if (k==1) return elementsPerBlock*Np;
+      if (k==2) return elementsPerBlock*Np;
+      if (k==3) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==1||P==2) && !affine) {
       if (k==0) return cubNp;
       if (k==1) return elementsPerBlock*cubNp;
       if (k==2) return elementsPerBlock*cubNp;
-      if (k==3) return 1024;
+      if (k==3) return 4*16*((cubNp-1)/16 + 1);
+      if (k==3) return 4*16*((Np-1)/16 + 1);
     }
-    if (P==1 &&  affine) {
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return Np;
+      if (k==1) return elementsPerBlock*Np;
+      if (k==2) return elementsPerBlock*Np;
+      if (k==3) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return cubNp;
+      if (k==1) return elementsPerBlock*cubNp;
+      if (k==2) return elementsPerBlock*cubNp;
+      if (k==3) return 4*16*((cubNp-1)/16 + 1);
+      if (k==4) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return Np;
+      if (k==1) return elementsPerBlock*Np;
+      if (k==2) return elementsPerBlock*Np;
+      if (k==3) return 4*16*((Np-1)/16 + 1);
+    }
+    if ((P==5||P==6) && !affine) {
       if (k==0) return Np;
       if (k==1) return elementsPerBlock*Np;
       if (k==2) return elementsPerBlock*Np;
       if (k==3) return 4*16*((Np-1)/16 + 1);
     }
   } else {
-    if (P==1 && !affine) {
-      if (k==0) return elementsPerBlock*cubNq*cubNq;
-      if (k==1) return elementsPerBlock*cubNq*cubNq;
-      if (k==2) return 256;
-    }
-    if (P==1 &&  affine) {
+    if ((P==1||P==2) &&  affine) {
       if (k==0) return elementsPerBlock*Nq*Nq;
       if (k==1) return elementsPerBlock*Nq*Nq;
       if (k==2) return 256;
+    }
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return elementsPerBlock*cubNq*cubNq;
+      if (k==1) return elementsPerBlock*cubNq*cubNq;
+      if (k==2) return 256;
+      if (k==3) return 256;
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return Nq*Nq;
+      if (k==1) return elementsPerBlock*Nq*Nq;
+      if (k==2) return elementsPerBlock*Nq*Nq*Nq;
+      if (k==3) return 256;
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return cubNq*cubNq;
+      if (k==1) return elementsPerBlock*cubNq*cubNq;
+      if (k==2) return elementsPerBlock*cubNq*cubNq*cubNq;
+      if (k==3) return 256;
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return Nq*Nq;
+      if (k==1) return elementsPerBlock*Nq*Nq;
+      if (k==2) return elementsPerBlock*Nq*Nq*Nq;
+      if (k==3) return 256;
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return Nq*Nq;
+      if (k==1) return elementsPerBlock*Nq*Nq;
+      if (k==2) return elementsPerBlock*Nq*Nq*Nq;
+      if (k==3) return 256;
     }
   }
   return 0;
 }
 
-size_t shmemUse(mesh_t& mesh, bool affine, int P, int k,
+size_t shmemUse(mesh_t& mesh, bool affine, int P, int Nfields, int k,
                 int elementsPerBlock, int elementsPerThread) {
   int Nq = mesh.Nq;
   int Np = mesh.Np;
@@ -405,50 +694,141 @@ size_t shmemUse(mesh_t& mesh, bool affine, int P, int k,
   int cubNp = mesh.cubNp;
 
   if (mesh.elementType==mesh_t::TRIANGLES) {
-    if (P==1 && !affine) {
-      if (k==0) return sizeof(dfloat)*cubNp;
-      if (k==1) return sizeof(dfloat)*(Np*cubNp + cubNp*elementsPerBlock*elementsPerThread);
-      if (k==2) return sizeof(dfloat)*(cubNp*elementsPerBlock*elementsPerThread);
-      if (k==3) return sizeof(dfloat)*(16*cubNp);
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return sizeof(dfloat)*Nfields*Np;
+      if (k==1) return sizeof(dfloat)*(Np*Np + Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*Np*Nfields);
     }
-    if (P==1 &&  affine) {
-      if (k==0) return sizeof(dfloat)*Np;
-      if (k==1) return sizeof(dfloat)*(Np*Np + Np*elementsPerBlock*elementsPerThread);
-      if (k==2) return sizeof(dfloat)*(Np*elementsPerBlock*elementsPerThread);
-      if (k==3) return sizeof(dfloat)*(16*Np);
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return sizeof(dfloat)*Nfields*cubNp;
+      if (k==1) return sizeof(dfloat)*(Np*cubNp + Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*cubNp*Nfields);
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return sizeof(dfloat)*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(4*Np*Np + Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*Np*Nfields);
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return sizeof(dfloat)*3*cubNp*Nfields;
+      if (k==1) return sizeof(dfloat)*(3*Np*cubNp + 3*Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(3*Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*cubNp*Nfields);
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return sizeof(dfloat)*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(3*Np*Np + Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*Np*Nfields);
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return sizeof(dfloat)*3*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(2*Np*Np + 3*Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(3*Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*Np*Nfields);
     }
   } else if (mesh.elementType==mesh_t::QUADRILATERALS) {
-    if (P==1 && !affine) {
-      if (k==0) return sizeof(dfloat)*(Nq*cubNq + cubNq*cubNq*elementsPerBlock*elementsPerThread);
-      if (k==1) return sizeof(dfloat)*((16+1)*16 + (16+1)*16*elementsPerThread);
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return sizeof(dfloat)*(Nq*Nq + Nfields*Nq*Nq*elementsPerBlock*elementsPerThread);
+      if (k==1) return sizeof(dfloat)*((16+1)*16 + (16+1)*16*Nfields*elementsPerThread);
     }
-    if (P==1 &&  affine) {
-      if (k==0) return sizeof(dfloat)*(Nq*Nq + Nq*Nq*elementsPerBlock*elementsPerThread);
-      if (k==1) return sizeof(dfloat)*((16+1)*16 + (16+1)*Nq*elementsPerThread);
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return sizeof(dfloat)*(Nq*cubNq + Nfields*cubNq*cubNq*elementsPerBlock*elementsPerThread);
+      if (k==1) return sizeof(dfloat)*((16+1)*16 + (16+1)*16*Nfields*elementsPerThread);
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return sizeof(dfloat)*(2*Nq*Nq + 3*Nfields*Nq*Nq*elementsPerBlock*elementsPerThread);
+      if (k==1) return sizeof(dfloat)*(2*(16+1)*16 + 3*(16+1)*16*Nfields*elementsPerThread);
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return sizeof(dfloat)*(2*cubNq*cubNq + 3*Nfields*cubNq*cubNq*elementsPerBlock*elementsPerThread);
+      if (k==1) return sizeof(dfloat)*(2*(16+1)*16 + 3*(16+1)*16*Nfields*elementsPerThread);
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return sizeof(dfloat)*(Nq + Nq*Nq + 3*Nfields*Nq*Nq*elementsPerBlock*elementsPerThread);
+      if (k==1) return sizeof(dfloat)*(16+(16+1)*16 + 3*(16+1)*16*Nfields*elementsPerThread);
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return sizeof(dfloat)*(Nq*Nq + 3*Nfields*Nq*Nq*elementsPerBlock*elementsPerThread);
+      if (k==1) return sizeof(dfloat)*((16+1)*16 + 3*(16+1)*16*Nfields*elementsPerThread);
     }
   } else if (mesh.elementType==mesh_t::TETRAHEDRA) {
-    if (P==1 && !affine) {
-      if (k==0) return sizeof(dfloat)*cubNp;
-      if (k==1) return sizeof(dfloat)*(Np*cubNp + cubNp*elementsPerBlock*elementsPerThread);
-      if (k==2) return sizeof(dfloat)*(cubNp*elementsPerBlock*elementsPerThread);
-      if (k==3) return sizeof(dfloat)*(16*cubNp);
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return sizeof(dfloat)*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(Np*Np + Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(Nfields*(16+1)*(((Np-1)/16)+1)*16);
     }
-    if (P==1 &&  affine) {
-      if (k==0) return sizeof(dfloat)*Np;
-      if (k==1) return sizeof(dfloat)*(Np*Np + Np*elementsPerBlock*elementsPerThread);
-      if (k==2) return sizeof(dfloat)*(Np*elementsPerBlock*elementsPerThread);
-      if (k==3) return sizeof(dfloat)*(16*Np);
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return sizeof(dfloat)*cubNp*Nfields;
+      if (k==1) return sizeof(dfloat)*(Np*cubNp + Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*cubNp*Nfields);
+      if (k==4) return sizeof(dfloat)*(2*Nfields*(16+1)*(((Np-1)/16)+1)*16);
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return sizeof(dfloat)*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(7*Np*Np + Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(((((Np-1)/16)+1)*16+1)*16*Nfields);
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return sizeof(dfloat)*4*cubNp*Nfields;
+      if (k==1) return sizeof(dfloat)*(4*Np*cubNp + 4*Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(4*Nfields*cubNp*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*cubNp*Nfields);
+      if (k==4) return sizeof(dfloat)*(((((Np-1)/16)+1)*16+1)*16*Nfields);
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return sizeof(dfloat)*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(6*Np*Np + Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*((16+1)*(((Np-1)/16)+1)*16*Nfields);
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return sizeof(dfloat)*4*Np*Nfields;
+      if (k==1) return sizeof(dfloat)*(3*Np*Np + 4*Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==2) return sizeof(dfloat)*(4*Nfields*Np*elementsPerBlock*elementsPerThread);
+      if (k==3) return sizeof(dfloat)*(16*Np*Nfields);
     }
   } else {
-    if (P==1 && !affine) {
-      if (k==0) return sizeof(dfloat)*(cubNq*Nq + cubNq*cubNq*cubNq*elementsPerBlock);
-      if (k==1) return sizeof(dfloat)*(cubNq*Nq + cubNq*cubNq*elementsPerBlock);
-      if (k==2) return sizeof(dfloat)*((16+1)*16 + (16+1)*16);
+    if ((P==1||P==2) &&  affine) {
+      if (k==0) return sizeof(dfloat)*(Nq*(Nq+1) + Nfields*(Nq+1)*Nq*Nq*elementsPerBlock);
+      if (k==1) return sizeof(dfloat)*(Nq*(Nq+1) + Nfields*(Nq+1)*Nq*elementsPerBlock);
+      if (k==2) return sizeof(dfloat)*((16+1)*16 + Nfields*(16+1)*16);
     }
-    if (P==1 &&  affine) {
-      if (k==0) return sizeof(dfloat)*(Nq*(Nq+1) + (Nq+1)*Nq*Nq*elementsPerBlock);
-      if (k==1) return sizeof(dfloat)*(Nq*(Nq+1) + (Nq+1)*Nq*elementsPerBlock);
-      if (k==2) return sizeof(dfloat)*((16+1)*16 + (16+1)*16);
+    if ((P==1||P==2) && !affine) {
+      if (k==0) return sizeof(dfloat)*(cubNq*Nq + Nfields*cubNq*cubNq*cubNq*elementsPerBlock);
+      if (k==1) return sizeof(dfloat)*(cubNq*Nq + Nfields*cubNq*cubNq*elementsPerBlock);
+      if (k==2) return sizeof(dfloat)*((16+1)*16 + Nfields*(16+1)*16*16);
+      if (k==3) return sizeof(dfloat)*((16+1)*16 + Nfields*(16+1)*16);
+    }
+    if ((P==3||P==4) &&  affine) {
+      if (k==0) return sizeof(dfloat)*(2*Nq*(Nq+1) + 2*Nfields*Nq*(Nq+1) + Nfields*(Nq+1)*Nq*Nq);
+      if (k==1) return sizeof(dfloat)*(2*Nq*(Nq+1) + 2*Nfields*(Nq+1)*Nq*elementsPerBlock + Nfields*(Nq+1)*Nq*Nq*elementsPerBlock);
+      if (k==2) return sizeof(dfloat)*(2*Nq*(Nq+1) + 4*Nfields*(Nq+1)*Nq*Nq*elementsPerBlock);
+      if (k==3) return sizeof(dfloat)*(2*(16+1)*16 + 2*Nfields*(16+1)*16 + Nfields*(16+1)*16*16);
+    }
+    if ((P==3||P==4) && !affine) {
+      if (k==0) return sizeof(dfloat)*(cubNq*Nq + cubNq*(cubNq+1) + 2*Nfields*cubNq*(cubNq+1) + Nfields*cubNq*cubNq*(cubNq+1));
+      if (k==1) return sizeof(dfloat)*(cubNq*Nq + cubNq*(cubNq+1) + 2*Nfields*cubNq*(cubNq+1)*elementsPerBlock + Nfields*cubNq*cubNq*(cubNq+1)*elementsPerBlock);
+      if (k==2) return sizeof(dfloat)*(2*cubNq*(cubNq+1) + 4*Nfields*cubNq*cubNq*(cubNq+1)*elementsPerBlock);
+      if (k==3) return sizeof(dfloat)*(2*(16+1)*16 + 2*Nfields*(16+1)*16 + Nfields*(16+1)*16*16);
+    }
+    if ((P==5||P==6) &&  affine) {
+      if (k==0) return sizeof(dfloat)*(Nq+Nq*(Nq+1) + 3*Nfields*Nq*(Nq+1));
+      if (k==1) return sizeof(dfloat)*(Nq+Nq*(Nq+1) + 3*Nfields*(Nq+1)*Nq*elementsPerBlock);
+      if (k==2) return sizeof(dfloat)*(Nq+Nq*(Nq+1) + 4*Nfields*(Nq+1)*Nq*Nq*elementsPerBlock);
+      if (k==3) return sizeof(dfloat)*(16+(16+1)*16 + 3*Nfields*(16+1)*16);
+    }
+    if ((P==5||P==6) && !affine) {
+      if (k==0) return sizeof(dfloat)*(Nq*(Nq+1) + 3*Nfields*Nq*(Nq+1));
+      if (k==1) return sizeof(dfloat)*(Nq*(Nq+1) + 3*Nfields*Nq*(Nq+1)*elementsPerBlock);
+      if (k==2) return sizeof(dfloat)*(Nq*(Nq+1) + 4*Nfields*Nq*Nq*(Nq+1)*elementsPerBlock);
+      if (k==3) return sizeof(dfloat)*((16+1)*16 + 3*Nfields*(16+1)*16);
     }
   }
   return 0;
