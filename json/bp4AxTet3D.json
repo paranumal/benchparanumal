@@ -1,2 +1,29 @@
 //Default
-{"Name":"bp4AxTet3D.okl","keys":{},"props":{}}
+{"Name":"bp4AxTet3D.okl","keys":{},"props":{"KERNEL_NUMBER":0}}
+
+//HIP mode defaults. Tuned on gfx90a (MI200)
+{"Name":"bp4AxTet3D.okl","keys":{"N":1,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":18,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":2,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":10,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":3,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":8,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":4,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":5,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":2}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":6,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":3,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":7,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":2}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":8,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":1}}
+
+//MFMA kernels
+{"Name":"bp4AxTet3D.okl","keys":{"N":2,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":3,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":4,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":5,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":7,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":4}}
+
+//CUDA mode defaults.
+{"Name":"bp4AxTet3D.okl","keys":{"N":1,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":18,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":2,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":10,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":3,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":8,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":4,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":5,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":2}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":6,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":3,"p_NelementsPerThd":1}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":7,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":2}}
+{"Name":"bp4AxTet3D.okl","keys":{"N":8,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":1}}

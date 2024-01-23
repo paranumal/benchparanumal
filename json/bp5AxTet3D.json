@@ -1,2 +1,33 @@
 //Default
-{"Name":"bp5AxTet3D.okl","keys":{},"props":{}}
+{"Name":"bp5AxTet3D.okl","keys":{},"props":{"KERNEL_NUMBER":0}}
+
+//HIP mode defaults. Tuned on gfx90a (MI200)
+{"Name":"bp5AxTet3D.okl","keys":{"N":1,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":16,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":2,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":32,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":3,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":19,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":4,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":29,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":5,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":7}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":6,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":3,"p_NelementsPerThd":4}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":7,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":7}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":8,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":6}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":9,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":9}}
+
+//MFMA kernels
+{"Name":"bp5AxTet3D.okl","keys":{"N":3,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":4,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":5,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":6,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":7,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":8,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":9,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+
+//CUDA mode defaults.
+{"Name":"bp5AxTet3D.okl","keys":{"N":1,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":16,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":2,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":32,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":3,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":19,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":4,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":29,"p_NelementsPerThd":1}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":5,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":7}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":6,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":3,"p_NelementsPerThd":4}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":7,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":7}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":8,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":6}}
+{"Name":"bp5AxTet3D.okl","keys":{"N":9,"mode":"CUDA"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":9}}

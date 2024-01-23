@@ -2,16 +2,15 @@
 {"Name":"bp4AxHex3D.okl","keys":{},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":1}}
 
 //HIP
-{"Name":"bp4AxHex3D.okl","keys":{"N":1,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":9}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":2,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":4}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":3,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":2}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":4,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":1}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":5,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":1}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":6,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":1}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":7,"mode":"HIP"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":3}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":8,"mode":"HIP"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":2}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":9,"mode":"HIP"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":2}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":10,"mode":"HIP"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":1}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":1,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":7}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":2,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":3,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":4,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":5,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":6,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":7,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":2}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":8,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":2}}
+{"Name":"bp4AxHex3D.okl","keys":{"N":9,"mode":"HIP"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":1}}
 
 //CUDA
 {"Name":"bp4AxHex3D.okl","keys":{"N":1,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":9}}
@@ -23,4 +22,4 @@
 {"Name":"bp4AxHex3D.okl","keys":{"N":7,"mode":"CUDA"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":2}}
 {"Name":"bp4AxHex3D.okl","keys":{"N":8,"mode":"CUDA"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":1}}
 {"Name":"bp4AxHex3D.okl","keys":{"N":9,"mode":"CUDA"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":1}}
-{"Name":"bp4AxHex3D.okl","keys":{"N":10,"mode":"CUDA"},"props":{"KERNEL_NUMBER":0,"p_NelementsPerBlk":1}}
+
