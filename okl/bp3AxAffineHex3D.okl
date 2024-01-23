@@ -43,17 +43,18 @@ SOFTWARE.
   for(int e=0;e<Nelements;e++;@outer(0)){
 
 //padding for bank conflicts
-#if p_Nq==8 || p_Nq==4
+#if p_Nq==16
 #define p_pad 1
 #else
 #define p_pad 0
 #endif
 
-    @shared dfloat s_q[p_Nq][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_invV[p_Nq][p_Nq+p_pad];
     @shared dfloat s_D[p_Nq][p_Nq+p_pad];
+
+    @shared dfloat s_q[p_Nq][p_Nq][p_Nq+p_pad];
     @shared dfloat s_qr[p_Nq][p_Nq+p_pad];
     @shared dfloat s_qs[p_Nq][p_Nq+p_pad];
-    @shared dfloat s_invV[p_Nq][p_Nq];
 
     @exclusive dfloat r_q[p_Nq];
     @exclusive dfloat r_qt;
@@ -103,9 +104,9 @@ SOFTWARE.
           s_q[c][j][a] = tmp;
         }
       }
-    }//for c
+    }
 
-    //transform in c
+    //transform in a
     for(int c=0;c<p_Nq;++c;@inner(1)){
       for(int j=0;j<p_Nq;++j;@inner(0)){
 
@@ -160,7 +161,9 @@ SOFTWARE.
     }
 
     //===============now differentiate once interpolated
+#if OCCA_USE_CUDA==1
     #pragma unroll p_Nq
+#endif
     for(int k=0; k<p_Nq; ++k) {
 
       for(int j=0; j<p_Nq; ++j; @inner(1)) {
@@ -305,7 +308,7 @@ SOFTWARE.
 
 
 #if KERNEL_NUMBER==1
-
+/*blocked 2D threadblock kernel*/
 @kernel void bp3AxAffineHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -323,17 +326,18 @@ SOFTWARE.
   for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
 
 //padding for bank conflicts
-#if p_Nq==8 || p_Nq==4
+#if p_Nq==16
 #define p_pad 1
 #else
 #define p_pad 0
 #endif
 
-    @shared dfloat s_q[p_Nq][p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
+    @shared dfloat s_invV[p_Nq][p_Nq+p_pad];
     @shared dfloat s_D[p_Nq][p_Nq+p_pad];
+
+    @shared dfloat s_q[p_Nq][p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
     @shared dfloat s_qr[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
     @shared dfloat s_qs[p_NelementsPerBlk][p_Nq][p_Nq+p_pad];
-    @shared dfloat s_invV[p_Nq][p_Nq];
 
     @exclusive dfloat r_q[p_Nq];
     @exclusive dfloat r_qt;
@@ -622,7 +626,7 @@ SOFTWARE.
 #endif
 
 #if KERNEL_NUMBER==2
-
+/*3d threadblock kernel*/
 @kernel void bp3AxAffineHex3D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -640,7 +644,7 @@ SOFTWARE.
   for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk;@outer(0)){
 
 //padding for bank conflicts
-#if p_Nq==8 || p_Nq==4
+#if p_Nq==16
 #define p_pad 1
 #else
 #define p_pad 0
@@ -648,6 +652,7 @@ SOFTWARE.
 
     @shared dfloat s_D [p_Nq][p_Nq+p_pad];
     @shared dfloat s_invV [p_Nq][p_Nq+p_pad];
+
     @shared dfloat   s_q[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
     @shared dfloat s_Gqr[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
     @shared dfloat s_Gqs[p_NelementsPerBlk][p_Nq][p_Nq][p_Nq+p_pad];
@@ -881,3 +886,294 @@ SOFTWARE.
   }
 }
 #endif
+
+
+#if KERNEL_NUMBER==3
+
+/*MFMA 4x4 2D threadblock kernel*/
+@kernel void bp3AxAffineHex3D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int e=0;e<Nelements;e++;@outer(0)){
+
+//padding for bank conflicts
+#define p_pad 1
+
+    @shared dfloat s_invV[16][16+p_pad];
+    @shared dfloat s_D[16][16+p_pad];
+
+    @shared dfloat s_q[16][16][16+p_pad];
+    @shared dfloat s_qr[16][16+p_pad];
+    @shared dfloat s_qs[16][16+p_pad];
+
+    @exclusive dfloat r_q[p_Nq];
+    @exclusive dfloat r_qt;
+
+    @exclusive dlong element;
+
+    for(int b=0;b<16;++b;@inner(1)){
+      for(int a=0;a<16;++a;@inner(0)){
+
+        s_invV[b][a] = (a<p_Nq && b<p_Nq) ? invV[a+p_Nq*b] : 0.0;
+        s_D[b][a] = (a<p_Nq && b<p_Nq) ? D[b*p_Nq+a] : 0.0;
+
+        element = elementList[e];
+
+        // load q
+        const dlong base = a + b*p_Nq + element*p_Np;
+
+        //#pragma unroll p_Nq
+        for(int c=0;c<p_Nq;++c) {
+          const dlong id = (a<p_Nq && b<p_Nq) ? GlobalToLocal[base + c*p_Nq*p_Nq] : -1;
+          s_q[c][b][a] = (id!=-1) ? q[id] : 0.0;
+        }
+      }
+    }
+
+
+    //============== interpolate in 3 dir ========================
+    // b --> a --> c
+    for(int c=0;c<16;++c;@inner(1)){
+      for(int a=0;a<16;++a;@inner(0)){
+
+        // #pragma unroll p_Nq
+        for(int b=0;b<p_Nq;++b)
+          r_q[b] = s_q[c][b][a];
+
+        // #pragma unroll p_Nq
+        for(int j=0;j<p_Nq;++j){
+
+          dfloat tmp = 0;
+
+          // #pragma unroll p_Nq
+          for(int b=0;b<p_Nq;++b){
+            tmp += s_invV[j][b]*r_q[b];
+          }
+
+          s_q[c][j][a] = tmp;
+        }
+      }
+    }
+
+    //transform in a
+    for(int c=0;c<16;++c;@inner(1)){
+      for(int j=0;j<16;++j;@inner(0)){
+
+        // #pragma unroll p_Nq
+        for(int a=0;a<p_Nq;++a)
+          r_q[a] = s_q[c][j][a];
+
+        // #pragma unroll p_Nq
+        for(int i=0;i<p_Nq;++i){
+
+          dfloat tmp = 0;
+
+          //#pragma unroll p_Nq
+          for(int a=0;a<p_Nq;++a){
+            tmp += s_invV[i][a]*r_q[a];
+          }
+
+          s_q[c][j][i] = tmp;
+        }
+      }
+    }
+
+    // transform in c
+    for(int j=0;j<16;++j;@inner(1)){
+      for(int i=0;i<16;++i;@inner(0)){
+
+        // #pragma unroll p_Nq
+        for(int c=0;c<p_Nq;++c)
+          r_q[c] = s_q[c][j][i];
+
+        // #pragma unroll p_Nq
+        for(int k=0;k<p_Nq;++k){
+
+          dfloat tmp = 0;
+
+          //#pragma unroll p_Nq
+          for(int c=0;c<p_Nq;++c){
+            tmp  += s_invV[k][c]*r_q[c];
+          }
+
+          s_q[k][j][i] = tmp; // ok since only this thread
+        }
+
+        // #pragma unroll p_Nq
+        for(int k=0; k<p_Nq; ++k)
+          r_q[k]=0.0f;
+      }
+    }
+
+    //===============now differentiate once interpolated
+    for(int k=0; k<p_Nq; ++k) {
+
+      for(int j=0; j<16; ++j; @inner(1)) {
+        for(int i=0; i<16; ++i; @inner(0)) {
+          //geofactors for k j i thread
+          const dfloat r_GwJ = wJ[element];
+
+          const dfloat r_G00 = ggeo[p_Nggeo*element+p_G00ID];
+          const dfloat r_G01 = ggeo[p_Nggeo*element+p_G01ID];
+          const dfloat r_G02 = ggeo[p_Nggeo*element+p_G02ID];
+
+          const dfloat r_G11 = ggeo[p_Nggeo*element+p_G11ID];
+          const dfloat r_G12 = ggeo[p_Nggeo*element+p_G12ID];
+          const dfloat r_G22 = ggeo[p_Nggeo*element+p_G22ID];
+
+          // now, put together dq/dr, qq/ds, dq/dt and dq/dI
+          dfloat dr = 0.0f;
+          dfloat ds = 0.0f;
+          dfloat dt = 0.0f;
+
+          for (int m=0;m<p_Nq;m+=4) {
+            const dfloat r_D = s_D[i][m+(j%4)]; //replicated 16 columns and 4 rows of D in each wave
+            const dfloat r_q = s_q[k][(i%4)+4*(j/4)][m+(j%4)]; //replicated 4x4 matrix of dofs
+            dr = __builtin_amdgcn_mfma_f64_4x4x4f64(r_q, r_D, dr, 0, 0, 0);
+          }
+
+          for (int m=0;m<p_Nq;m+=4) {
+            const dfloat r_D = s_D[i%4+4*(j/4)][m+j%4];//replicated 4x4 submatrix of D
+            const dfloat r_q = s_q[k][m+j%4][i]; //replicated 16 x-slices and 4 y-slices of q in each wave
+            ds = __builtin_amdgcn_mfma_f64_4x4x4f64(r_D, r_q, ds, 0, 0, 0);
+          }
+
+          for (int m=0;m<p_Nq;m++) {
+            dt += s_D[k][m]*s_q[m][j][i];
+          }
+
+          s_qr[j][i] = r_G00*dr + r_G01*ds + r_G02*dt;
+          s_qs[j][i] = r_G01*dr + r_G11*ds + r_G12*dt;
+          r_qt = r_G02*dr + r_G12*ds + r_G22*dt;
+
+          r_q[k] += lambda*r_GwJ*s_q[k][j][i];
+        }
+      }
+
+      // weak diff
+      for(int j=0;j<16;++j;@inner(1)){
+        for(int i=0;i<16;++i;@inner(0)){
+          dfloat r_qk=0.0;
+
+          for (int m=0;m<p_Nq;m+=4) {
+            const dfloat r_D = s_D[m+(j%4)][i]; //replicated 16 columns and 4 rows of D in each wave
+            const dfloat r_q = s_qr[(i%4)+4*(j/4)][m+(j%4)]; //replicated 4x4 matrix of dofs
+            r_qk = __builtin_amdgcn_mfma_f64_4x4x4f64(r_q, r_D, r_qk, 0, 0, 0);
+          }
+
+          for (int m=0;m<p_Nq;m+=4) {
+            const dfloat r_D = s_D[m+j%4][i%4+4*(j/4)];//replicated 4x4 submatrix of D
+            const dfloat r_q = s_qs[m+j%4][i]; //replicated 16 x-slices and 4 y-slices of q in each wave
+            r_qk = __builtin_amdgcn_mfma_f64_4x4x4f64(r_D, r_q, r_qk, 0, 0, 0);
+          }
+
+          //#pragma unroll p_Nq
+          for(int n=0;n<p_Nq;++n){
+            r_q[n] += s_D[k][n]*r_qt;
+          }
+
+          r_q[k] += r_qk;
+        }
+      }
+    }//k
+
+    //Loop 7
+    for(int j=0;j<16;++j;@inner(1)){
+      for(int i=0;i<16;++i;@inner(0)){
+
+        // #pragma unroll p_Nq
+        for(int k=0; k<p_Nq; ++k) {
+          s_q[k][j][i] = r_q[k];
+        }
+      }
+    }
+
+    //=========== now project =================================================
+    // b -> c -> a
+
+    // transform back in b
+    for(int k=0;k<16;++k;@inner(1)){
+      for(int i=0;i<16;++i;@inner(0)){
+
+        // #pragma unroll p_Nq
+        for(int j=0;j<p_Nq;++j){
+          r_q[j] = s_q[k][j][i];
+        }
+
+        // #pragma unroll p_Nq
+        for(int b=0;b<p_Nq;++b){
+
+          dfloat tmp = 0.0f;
+
+          //#pragma unroll p_Nq
+          for(int j=0;j<p_Nq;++j){
+            tmp  += s_invV[j][b]*r_q[j];
+          }
+
+          s_q[k][b][i] = tmp;
+        }
+      }
+    }
+
+    // transform back in a
+    for(int k=0;k<16;++k;@inner(1)){
+      for(int b=0;b<16;++b;@inner(0)){
+        // #pragma unroll p_Nq
+        for(int i=0;i<p_Nq;++i)
+          r_q[i] = s_q[k][b][i];
+
+        // #pragma unroll p_Nq
+        for(int a=0;a<p_Nq;++a){
+
+          dfloat tmp  = 0.0f;
+
+          //#pragma unroll p_Nq
+          for(int i=0;i<p_Nq;++i){
+            tmp  += s_invV[i][a]*r_q[i];
+          }
+
+          s_q[k][b][a] = tmp;
+        }
+      }
+    }
+
+    // transform back in c
+    for(int b=0;b<16;++b;@inner(1)){
+      for(int a=0;a<16;++a;@inner(0)){
+
+        if (a<p_Nq && b<p_Nq) {
+          // #pragma unroll p_Nq
+          for(int k=0;k<p_Nq;++k){
+            r_q[k] = s_q[k][b][a];
+          }
+
+          // #pragma unroll p_Nq
+          for(int c=0;c<p_Nq;++c){
+
+            dfloat tmp  = 0.0f;
+
+            //#pragma unroll p_Nq
+            for(int k=0;k<p_Nq;++k){
+              tmp  += s_invV[k][c]*r_q[k];
+            }
+
+            Aq[element*p_Np + c*p_Nq*p_Nq + b*p_Nq + a] = tmp;
+          }
+        }//c
+      }//a
+    }//b
+  }//e
+}//kernel
+#endif
+
