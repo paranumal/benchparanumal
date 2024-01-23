@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#if KERNEL_NUMBER==0
+/*Orignal*/
 @kernel void bp4AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -47,10 +49,8 @@ SOFTWARE.
     for(int n=0;n<p_Np;++n;@inner(0)){
 
       element = elementList[e];
-
-      const dlong base = n + element*p_Np*p_Nfields;
       for(int f=0;f<p_Nfields;++f) {
-        const dlong id = GlobalToLocal[base + f*p_Np];
+        const dlong id = GlobalToLocal[n + f*p_Np + element*p_Np*p_Nfields];
         s_q[f][n] = (id!=-1) ? q[id] : 0.0;
       }
     }
@@ -61,16 +61,10 @@ SOFTWARE.
       const dfloat Grs = ggeo[p_Nggeo*element + p_G01ID];
       const dfloat Gss = ggeo[p_Nggeo*element + p_G11ID];
 
-      dfloat qrr[p_Nfields];
-      dfloat qrs[p_Nfields];
-      dfloat qss[p_Nfields];
-      dfloat qM [p_Nfields];
-      for(int f=0;f<p_Nfields;++f) {
-        qrr[f] = 0.0;
-        qrs[f] = 0.0;
-        qss[f] = 0.0;
-        qM [f] = 0.0;
-      }
+      dfloat qrr[p_Nfields] = {0.};
+      dfloat qrs[p_Nfields] = {0.};
+      dfloat qss[p_Nfields] = {0.};
+      dfloat qM [p_Nfields] = {0.};
 
       // #pragma unroll p_Np
       for (int k=0;k<p_Np;k++) {
@@ -85,8 +79,476 @@ SOFTWARE.
 
       const dlong id = n + element*p_Np*p_Nfields;
       for(int f=0;f<p_Nfields;++f) {
-        Aq[id+f*p_Np] = Grr*qrr[f]+Grs*qrs[f]+Gss*qss[f] + J*lambda*qM[f];
+        Aq[id+f*p_Np] =   Grr*qrr[f] + Grs*qrs[f] + Gss*qss[f] + J*lambda*qM[f];
       }
     }
   }
 }
+#endif
+
+#if KERNEL_NUMBER==1
+/* SIMD packing with operators in shmem */
+@kernel void bp4AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_MM[p_Np][p_Np];
+    @shared dfloat  s_Srr[p_Np][p_Np];
+    @shared dfloat  s_Srs[p_Np][p_Np];
+    @shared dfloat  s_Sss[p_Np][p_Np];
+    @shared dfloat  s_q[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_Np];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        for (int m=ei;m<p_Np;m+=p_NelementsPerBlk) {
+          s_MM[m][n] = MM[n + m*p_Np];
+          s_Srr[m][n] = S[n + m*p_Np + 0*p_Np*p_Np];
+          s_Srs[m][n] = S[n + m*p_Np + 1*p_Np*p_Np];
+          s_Sss[m][n] = S[n + m*p_Np + 2*p_Np*p_Np];
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+
+          const dlong e = eo + ei*p_NelementsPerThd + et;
+
+          if (e<Nelements) {
+            element[et] = elementList[e];
+            for(int f=0;f<p_Nfields;++f) {
+              const dlong id = GlobalToLocal[n + f*p_Np + element[et]*p_Np*p_Nfields];
+              s_q[et][f][ei][n] = (id!=-1) ? q[id] : 0.0;
+            }
+          } else {
+            element[et] = -1;
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+        dfloat J[p_NelementsPerThd];
+        dfloat Grr[p_NelementsPerThd];
+        dfloat Grs[p_NelementsPerThd];
+        dfloat Gss[p_NelementsPerThd];
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          if (element[et]>-1) {
+            J[et] = wJ[element[et]];
+            Grr[et] = ggeo[p_Nggeo*element[et] + p_G00ID];
+            Grs[et] = ggeo[p_Nggeo*element[et] + p_G01ID];
+            Gss[et] = ggeo[p_Nggeo*element[et] + p_G11ID];
+          }
+        }
+
+        dfloat r_Aq[p_NelementsPerThd][p_Nfields] = {0.0};
+        dfloat r_Sq[p_NelementsPerThd][p_Nfields] = {0.0};
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Mm = s_MM[m][n];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Mm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += lambda*J[et]*r_Sq[et][f];
+            r_Sq[et][f] = 0.;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Srrm = s_Srr[m][n];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Srrm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += Grr[et]*r_Sq[et][f];
+            r_Sq[et][f] = 0.;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Srsm = s_Srs[m][n];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Srsm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += Grs[et]*r_Sq[et][f];
+            r_Sq[et][f] = 0.;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Sssm = s_Sss[m][n];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Sssm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += Gss[et]*r_Sq[et][f];
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          if (element[et]>=0) {
+            for(int f=0;f<p_Nfields;++f) {
+              Aq[n + f*p_Np + element[et]*p_Np*p_Nfields] = r_Aq[et][f];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==2
+/* SIMD packing without operators in shmem */
+@kernel void bp4AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_q[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_Np];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+
+          const dlong e = eo + ei*p_NelementsPerThd + et;
+
+          if (e<Nelements) {
+            element[et] = elementList[e];
+            for(int f=0;f<p_Nfields;++f) {
+              const dlong id = GlobalToLocal[n + f*p_Np + element[et]*p_Np*p_Nfields];
+              s_q[et][f][ei][n] = (id!=-1) ? q[id] : 0.0;
+            }
+          } else {
+            element[et] = -1;
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_Np;++n;@inner(0)){
+        dfloat J[p_NelementsPerThd];
+        dfloat Grr[p_NelementsPerThd];
+        dfloat Grs[p_NelementsPerThd];
+        dfloat Gss[p_NelementsPerThd];
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          if (element[et]>-1) {
+            J[et] = wJ[element[et]];
+            Grr[et] = ggeo[p_Nggeo*element[et] + p_G00ID];
+            Grs[et] = ggeo[p_Nggeo*element[et] + p_G01ID];
+            Gss[et] = ggeo[p_Nggeo*element[et] + p_G11ID];
+          }
+        }
+
+        dfloat r_Aq[p_NelementsPerThd][p_Nfields] = {0.0};
+        dfloat r_Sq[p_NelementsPerThd][p_Nfields] = {0.0};
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Mm = MM[m*p_Np+n];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Mm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += lambda*J[et]*r_Sq[et][f];
+            r_Sq[et][f] = 0.;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Srrm = S[m*p_Np+n+0*p_Np*p_Np];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Srrm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += Grr[et]*r_Sq[et][f];
+            r_Sq[et][f] = 0.;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Srsm = S[m*p_Np+n+1*p_Np*p_Np];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Srsm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += Grs[et]*r_Sq[et][f];
+            r_Sq[et][f] = 0.;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Sssm = S[m*p_Np+n+2*p_Np*p_Np];
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Sq[et][f] += Sssm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            r_Aq[et][f] += Gss[et]*r_Sq[et][f];
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          if (element[et]>=0) {
+            for(int f=0;f<p_Nfields;++f) {
+              Aq[n + f*p_Np + element[et]*p_Np*p_Nfields] = r_Aq[et][f];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==3
+/*MFMA 16x16*/
+@kernel void bp4AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  ggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=16;@outer(0)){
+
+    @shared dfloat  s_q[p_Nfields][(((p_Np-1)/16)+1)*16][16+1];
+
+    @exclusive dlong element[4];
+
+    for(int w=0;w<((p_Np-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          for (int i=0;i<4;++i) {
+            const dlong e = eo + ly + 4*i;
+            element[i] = (e<Nelements) ? elementList[e] : -1;
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dlong id = (e<Nelements && n<p_Np) ? GlobalToLocal[n + f*p_Np + element[i]*p_Np*p_Nfields] : -1;
+              s_q[f][n][ly+4*i] = (id!=-1) ? q[id] : 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_Np-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          dfloat J[4];
+          dfloat Grr[4];
+          dfloat Grs[4];
+          dfloat Gss[4];
+
+          for (int i = 0; i<4;++i) {
+            if (element[i]>-1) {
+              J[i] = wJ[element[i]];
+              Grr[i] = ggeo[p_Nggeo*element[i] + p_G00ID];
+              Grs[i] = ggeo[p_Nggeo*element[i] + p_G01ID];
+              Gss[i] = ggeo[p_Nggeo*element[i] + p_G11ID];
+            }
+          }
+
+          __attribute__((__vector_size__(4 * 8))) double r_Aq[p_Nfields] = {0.}; // zero out 16x16 result
+          __attribute__((__vector_size__(4 * 8))) double r_Sq[p_Nfields] = {0.}; // zero out 16x16 result
+
+          const int n = lx + 16*w;
+
+          dfloat r_S = (n<p_Np && (ly)<p_Np) ? MM[n + (ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+
+            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? MM[n + (m+4+ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = s_q[f][m+ly][lx]; //4 DOFs from 16 elements
+
+              // r_Sq += r_q^T * r_MM
+              r_Sq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_S, r_Sq[f], 0, 0, 0);
+            }
+
+            r_S = r_S_next;
+          }
+
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Aq[f][i] += lambda*J[i]*r_Sq[f][i];
+              r_Sq[f][i] = 0.;
+            }
+          }
+
+          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np + 0*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+
+            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np + 0*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = s_q[f][m+ly][lx]; //4 DOFs from 16 elements
+
+              // r_Sq += r_q^T * r_S
+              r_Sq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_S, r_Sq[f], 0, 0, 0);
+            }
+
+            r_S = r_S_next;
+          }
+
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Aq[f][i] += Grr[i]*r_Sq[f][i];
+              r_Sq[f][i] = 0.;
+            }
+          }
+
+          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np + 1*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+
+            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np + 1*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = s_q[f][m+ly][lx]; //4 DOFs from 16 elements
+
+              // r_Sq += r_q^T * r_S
+              r_Sq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_S, r_Sq[f], 0, 0, 0);
+            }
+
+            r_S = r_S_next;
+          }
+
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Aq[f][i] += Grs[i]*r_Sq[f][i];
+              r_Sq[f][i] = 0.;
+            }
+          }
+
+
+          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np + 2*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+
+            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np + 2*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = s_q[f][m+ly][lx]; //4 DOFs from 16 elements
+
+              // r_Sq += r_q^T * r_S
+              r_Sq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_S, r_Sq[f], 0, 0, 0);
+            }
+
+            r_S = r_S_next;
+          }
+
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              r_Aq[f][i] += Gss[i]*r_Sq[f][i];
+            }
+          }
+
+          //Mq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
+          if (n < p_Np) {
+            for (int i=0;i<4;++i) {
+              if (element[i]>-1) {
+                for(int f=0;f<p_Nfields;++f) {
+                  Aq[n + f*p_Np + element[i]*p_Np*p_Nfields] = r_Aq[f][i];
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+

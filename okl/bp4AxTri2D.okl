@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#if KERNEL_NUMBER==0
+/*original kernel*/
 @kernel void bp4AxTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -51,9 +53,8 @@ SOFTWARE.
       element = elementList[e];
 
       if (n<p_Np) {
-        const dlong base = n + element*p_Np*p_Nfields;
-        for (int f=0;f<p_Nfields;++f) {
-          const dlong id = GlobalToLocal[base + f*p_Np];
+        for(int f=0;f<p_Nfields;++f) {
+          const dlong id = GlobalToLocal[n + f*p_Np + element*p_Np*p_Nfields];
           s_q[f][n] = (id!=-1) ? q[id] : 0.0;
         }
       }
@@ -63,21 +64,18 @@ SOFTWARE.
 
     for(int n=0;n<p_cubNp;++n;@inner(0)){
 
-      for (int f=0;f<p_Nfields;++f) {
+      for(int f=0;f<p_Nfields;++f) {
         Iq[f] = 0.0;
         qr[f] = 0.0;
         qs[f] = 0.0;
       }
 
       for(int m=0;m<p_Np;++m){
-        const dfloat Im = I[n + m*p_cubNp];
-        const dfloat Dr = D[n + m*p_cubNp + 0*p_Np*p_cubNp];
-        const dfloat Ds = D[n + m*p_cubNp + 1*p_Np*p_cubNp];
-        for (int f=0;f<p_Nfields;++f) {
+        for(int f=0;f<p_Nfields;++f) {
           const dfloat qm = s_q[f][m];
-          Iq[f] += Im * qm;
-          qr[f] += Dr * qm;
-          qs[f] += Ds * qm;
+          Iq[f] += I[n + m*p_cubNp] * qm;
+          qr[f] += D[n + m*p_cubNp + 0*p_Np*p_cubNp] * qm;
+          qs[f] += D[n + m*p_cubNp + 1*p_Np*p_cubNp] * qm;
         }
       }
     }
@@ -89,8 +87,8 @@ SOFTWARE.
       const dfloat G01 = cubggeo[p_Nggeo*gbase+p_G01ID];
       const dfloat G11 = cubggeo[p_Nggeo*gbase+p_G11ID];
 
-      for (int f=0;f<p_Nfields;++f) {
-        s_q  [f][n] = lambda * GWJ * Iq[f];
+      for(int f=0;f<p_Nfields;++f) {
+        s_q[f][n] = lambda * GWJ * Iq[f];
         s_Gqr[f][n] = G00 * qr[f] + G01 * qs[f];
         s_Gqs[f][n] = G01 * qr[f] + G11 * qs[f];
       }
@@ -99,29 +97,657 @@ SOFTWARE.
     for(int n=0;n<p_cubNp;++n;@inner(0)){
 
       if (n<p_Np) {
-
-        dfloat Aqn[p_Nfields];
-
-        for (int f=0;f<p_Nfields;++f) {
-          Aqn[f] = 0.0;
-        }
+        dfloat Aqn[p_Nfields] = {0.0};
 
         for(int m=0;m<p_cubNp;++m){
-          const dfloat ITm = I[m + n*p_cubNp];
-          const dfloat DrT = D[m + n*p_cubNp + 0*p_Np*p_cubNp];
-          const dfloat DsT = D[m + n*p_cubNp + 1*p_Np*p_cubNp];
-          for (int f=0;f<p_Nfields;++f) {
-            Aqn[f] += ITm * s_q  [f][m];
-            Aqn[f] += DrT * s_Gqr[f][m];
-            Aqn[f] += DsT * s_Gqs[f][m];
+          for(int f=0;f<p_Nfields;++f) {
+            Aqn[f] += I[m + n*p_cubNp] * s_q[f][m];
+            Aqn[f] += D[m + n*p_cubNp + 0*p_Np*p_cubNp] * s_Gqr[f][m];
+            Aqn[f] += D[m + n*p_cubNp + 1*p_Np*p_cubNp] * s_Gqs[f][m];
           }
         }
 
         const dlong base = n + element*p_Np*p_Nfields;
-        for (int f=0;f<p_Nfields;++f) {
+        for(int f=0;f<p_Nfields;++f) {
           Aq[base+f*p_Np] = Aqn[f];
         }
       }
     }
   }
 }
+#endif
+
+#if KERNEL_NUMBER==1
+/*SIMD packing with operators in shared memory*/
+@kernel void bp4AxTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  cubggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_I[p_Np][p_cubNp];
+    @shared dfloat  s_Dr[p_Np][p_cubNp];
+    @shared dfloat  s_Ds[p_Np][p_cubNp];
+
+    @shared dfloat   s_q[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_cubNp];
+    @shared dfloat s_Gqr[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_cubNp];
+    @shared dfloat s_Gqs[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_cubNp];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        for (int m=ei;m<p_Np;m+=p_NelementsPerBlk) {
+          s_I[m][n] = I[n + m*p_cubNp];
+          s_Dr[m][n] = D[n + m*p_cubNp + 0*p_Np*p_cubNp];
+          s_Ds[m][n] = D[n + m*p_cubNp + 1*p_Np*p_cubNp];
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+
+          const dlong e = eo + ei*p_NelementsPerThd + et;
+
+          if (e<Nelements) {
+            element[et] = elementList[e];
+
+            if (n<p_Np) {
+              for(int f=0;f<p_Nfields;++f) {
+                const dlong id = GlobalToLocal[n + f*p_Np + element[et]*p_Np*p_Nfields];
+                s_q[et][f][ei][n] = (id!=-1) ? q[id] : 0.0;
+              }
+            }
+          } else {
+            element[et] = -1;
+          }
+        }
+      }
+    }
+
+    @exclusive dfloat Iq[p_NelementsPerThd][p_Nfields];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        dfloat GWJ[p_NelementsPerThd];
+        dfloat G00[p_NelementsPerThd];
+        dfloat G01[p_NelementsPerThd];
+        dfloat G11[p_NelementsPerThd];
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          if (element[et]>-1) {
+            const dlong gbase = element[et]*p_cubNp + n;
+            GWJ[et] = cubwJ[gbase];
+            G00[et] = cubggeo[p_Nggeo*gbase+p_G00ID];
+            G01[et] = cubggeo[p_Nggeo*gbase+p_G01ID];
+            G11[et] = cubggeo[p_Nggeo*gbase+p_G11ID];
+          }
+        }
+
+        dfloat qr[p_NelementsPerThd][p_Nfields];
+        dfloat qs[p_NelementsPerThd][p_Nfields];
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            Iq[et][f] = 0.0;
+            qr[et][f] = 0.0;
+            qs[et][f] = 0.0;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Im = s_I[m][n];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[et][f] += Im * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Drm = s_Dr[m][n];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              qr[et][f] += Drm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Dsm = s_Ds[m][n];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              qs[et][f] += Dsm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            Iq[et][f] *= lambda*GWJ[et];
+            s_Gqr[et][f][ei][n] = G00[et] * qr[et][f] + G01[et] * qs[et][f];
+            s_Gqs[et][f][ei][n] = G01[et] * qr[et][f] + G11[et] * qs[et][f];
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            s_q[et][f][ei][n] = Iq[et][f];
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        if (n<p_Np) {
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[et][f] = 0.0;
+            }
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat ITm = s_I[n][m];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              for(int f=0;f<p_Nfields;++f) {
+                Iq[et][f] += ITm * s_q[et][f][ei][m];
+              }
+            }
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat DrTm = s_Dr[n][m];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              for(int f=0;f<p_Nfields;++f) {
+                Iq[et][f] += DrTm * s_Gqr[et][f][ei][m];
+              }
+            }
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat DsTm = s_Ds[n][m];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              for(int f=0;f<p_Nfields;++f) {
+                Iq[et][f] += DsTm * s_Gqs[et][f][ei][m];
+              }
+            }
+          }
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            if (element[et]>-1) {
+              for(int f=0;f<p_Nfields;++f) {
+                Aq[n + f*p_Np + element[et]*p_Np*p_Nfields] = Iq[et][f];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==2
+/*SIMD packing without operators in shared memory*/
+@kernel void bp4AxTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  cubggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat   s_q[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_cubNp];
+    @shared dfloat s_Gqr[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_cubNp];
+    @shared dfloat s_Gqs[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_cubNp];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+
+          const dlong e = eo + ei*p_NelementsPerThd + et;
+
+          if (e<Nelements) {
+            element[et] = elementList[e];
+
+            if (n<p_Np) {
+              for(int f=0;f<p_Nfields;++f) {
+                const dlong id = GlobalToLocal[n + f*p_Np + element[et]*p_Np*p_Nfields];
+                s_q[et][f][ei][n] = (id!=-1) ? q[id] : 0.0;
+              }
+            }
+          } else {
+            element[et] = -1;
+          }
+        }
+      }
+    }
+
+    @exclusive dfloat Iq[p_NelementsPerThd][p_Nfields];
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        dfloat GWJ[p_NelementsPerThd];
+        dfloat G00[p_NelementsPerThd];
+        dfloat G01[p_NelementsPerThd];
+        dfloat G11[p_NelementsPerThd];
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          if (element[et]>-1) {
+            const dlong gbase = element[et]*p_cubNp + n;
+            GWJ[et] = cubwJ[gbase];
+            G00[et] = cubggeo[p_Nggeo*gbase+p_G00ID];
+            G01[et] = cubggeo[p_Nggeo*gbase+p_G01ID];
+            G11[et] = cubggeo[p_Nggeo*gbase+p_G11ID];
+          }
+        }
+
+        dfloat qr[p_NelementsPerThd][p_Nfields];
+        dfloat qs[p_NelementsPerThd][p_Nfields];
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            Iq[et][f] = 0.0;
+            qr[et][f] = 0.0;
+            qs[et][f] = 0.0;
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Im = I[m*p_cubNp+n];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[et][f] += Im * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Drm = D[m*p_cubNp+n+0*p_Np*p_cubNp];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              qr[et][f] += Drm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Dsm = D[m*p_cubNp+n+1*p_Np*p_cubNp];
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              qs[et][f] += Dsm * s_q[et][f][ei][m];
+            }
+          }
+        }
+
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            Iq[et][f] *= lambda*GWJ[et];
+            s_Gqr[et][f][ei][n] = G00[et] * qr[et][f] + G01[et] * qs[et][f];
+            s_Gqs[et][f][ei][n] = G01[et] * qr[et][f] + G11[et] * qs[et][f];
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+        for (int et = 0; et<p_NelementsPerThd;++et) {
+          for(int f=0;f<p_Nfields;++f) {
+            s_q[et][f][ei][n] = Iq[et][f];
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;++ei;@inner(1)){
+      for(int n=0;n<p_cubNp;++n;@inner(0)){
+
+        if (n<p_Np) {
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[et][f] = 0.0;
+            }
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat ITm = I[n*p_cubNp+m];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              for(int f=0;f<p_Nfields;++f) {
+                Iq[et][f] += ITm * s_q[et][f][ei][m];
+              }
+            }
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat DrTm = D[n*p_cubNp+m+0*p_Np*p_cubNp];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              for(int f=0;f<p_Nfields;++f) {
+                Iq[et][f] += DrTm * s_Gqr[et][f][ei][m];
+              }
+            }
+          }
+
+          for(int m=0;m<p_cubNp;++m){
+            const dfloat DsTm = D[n*p_cubNp+m+1*p_Np*p_cubNp];
+            for (int et = 0; et<p_NelementsPerThd;++et) {
+              for(int f=0;f<p_Nfields;++f) {
+                Iq[et][f] += DsTm * s_Gqs[et][f][ei][m];
+              }
+            }
+          }
+
+          for (int et = 0; et<p_NelementsPerThd;++et) {
+            if (element[et]>-1) {
+              for(int f=0;f<p_Nfields;++f) {
+                Aq[n + f*p_Np + element[et]*p_Np*p_Nfields] = Iq[et][f];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==3
+/*MFMA 16x16*/
+@kernel void bp4AxTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  cubwJ,
+                        @restrict const  dfloat *  cubggeo,
+                        @restrict const  dfloat *  D,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  invV,
+                        @restrict const  dfloat *  S,
+                        @restrict const  dfloat *  MM,
+                        const dfloat lambda,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(int eo=0;eo<Nelements;eo+=16;@outer(0)){
+
+    @shared dfloat  s_q[p_Nfields][16][p_cubNp];
+
+    @exclusive dlong element[4];
+
+    @exclusive __attribute__((__vector_size__(4 * 8))) double Iq[p_Nfields];
+    @exclusive __attribute__((__vector_size__(4 * 8))) double qr[p_Nfields];
+    @exclusive __attribute__((__vector_size__(4 * 8))) double qs[p_Nfields];
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          for (int i=0;i<4;++i) {
+            const dlong e = eo + ly + 4*i;
+            if (e<Nelements) {
+              element[i] = elementList[e];
+              for(int f=0;f<p_Nfields;++f) {
+                const dlong id = (n<p_Np) ? GlobalToLocal[n + f*p_Np + element[i]*p_Np*p_Nfields] : -1;
+                if (n<p_cubNp) s_q[f][ly+4*i][n] = (id!=-1) ? q[id] : 0.0;
+              }
+            } else {
+              element[i] = -1;
+              for(int f=0;f<p_Nfields;++f) {
+                if (n<p_cubNp) s_q[f][ly+4*i][n] = 0.0;
+              }
+            }
+          }
+
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[f][i] = 0.0;
+              qr[f][i] = 0.0;
+              qs[f][i] = 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          dfloat GWJ[4];
+          dfloat G00[4];
+          dfloat G01[4];
+          dfloat G11[4];
+          for (int i = 0; i<4;++i) {
+            if (element[i]>-1 && n<p_cubNp) {
+              const dlong gbase = element[i]*p_cubNp + n;
+              GWJ[i] = cubwJ[gbase];
+              G00[i] = cubggeo[p_Nggeo*gbase+p_G00ID];
+              G01[i] = cubggeo[p_Nggeo*gbase+p_G01ID];
+              G11[i] = cubggeo[p_Nggeo*gbase+p_G11ID];
+            }
+          }
+
+          dfloat r_I = (n<p_cubNp && (ly)<p_Np) ? I[n + (ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_I_next = (n<p_cubNp && (m+4+ly)<p_Np) ? I[n + (m+4+ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = ((m+ly)<p_Np) ? s_q[f][lx][m+ly] : 0.0; //4 DOFs from 16 elements
+
+              // Iq += r_q^T * r_I
+              Iq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_I, Iq[f], 0, 0, 0);
+            }
+
+            r_I = r_I_next;
+          }
+
+          dfloat r_D = (n<p_cubNp && (ly)<p_Np) ? D[n + (ly)*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_D_next = (n<p_cubNp && (m+4+ly)<p_Np) ? D[n + (m+4+ly)*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = ((m+ly)<p_Np) ? s_q[f][lx][m+ly] : 0.0; //4 DOFs from 16 elements
+
+              // Dq += r_q^T * r_D
+              qr[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_D, qr[f], 0, 0, 0);
+            }
+
+            r_D = r_D_next;
+          }
+
+          r_D = (n<p_cubNp && (ly)<p_Np) ? D[n + (ly)*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_D_next = (n<p_cubNp && (m+4+ly)<p_Np) ? D[n + (m+4+ly)*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = ((m+ly)<p_Np) ? s_q[f][lx][m+ly] : 0.0; //4 DOFs from 16 elements
+
+              // Dq += r_q^T * r_D
+              qs[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_D, qs[f], 0, 0, 0);
+            }
+
+            r_D = r_D_next;
+          }
+
+          //Iq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[f][i] *= lambda*GWJ[i];
+            }
+          }
+
+          for (int i = 0; i<4;++i) {
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat qx = qr[f][i];
+              const dfloat qy = qs[f][i];
+              qr[f][i] = G00[i] * qx + G01[i] * qy;
+              qs[f][i] = G01[i] * qx + G11[i] * qy;
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          for (int i = 0; i<4;++i) {
+            const int n = lx + 16*w;
+            if (n < p_cubNp) {
+              for(int f=0;f<p_Nfields;++f) {
+                s_q[f][ly+4*i][n] = Iq[f][i];
+              }
+            }
+            for(int f=0;f<p_Nfields;++f) {
+              Iq[f][i] = 0.;
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          const int n = lx + 16*w;
+
+          dfloat r_I = ((ly)<p_cubNp && (n)<p_Np) ? I[(ly) + (n)*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+          for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_I_next = ((m+4+ly)<p_cubNp && n<p_Np) ? I[(m+4+ly)+n*p_cubNp] : 0.0; //16 rows and 4 columns of I
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = ((m+ly)<p_cubNp) ? s_q[f][lx][m+ly] : 0.0; //4 DOFs from 16 elements
+
+              // Iq += r_q^T * r_I
+              Iq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_I, Iq[f], 0, 0, 0);
+            }
+
+            r_I = r_I_next;
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          for (int i = 0; i<4;++i) {
+            const int n = lx + 16*w;
+            if (n < p_cubNp) {
+              for(int f=0;f<p_Nfields;++f) {
+                s_q[f][ly+4*i][n] = qr[f][i];
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          const int n = lx + 16*w;
+
+          dfloat r_D = ((ly)<p_cubNp && (n)<p_Np) ? D[(ly) + (n)*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+          for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_D_next = ((m+4+ly)<p_cubNp && n<p_Np) ? D[(m+4+ly)+n*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = ((m+ly)<p_cubNp) ? s_q[f][lx][m+ly] : 0.0; //4 DOFs from 16 elements
+
+              // Iq += r_q^T * r_D
+              Iq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_D, Iq[f], 0, 0, 0);
+            }
+
+            r_D = r_D_next;
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          for (int i = 0; i<4;++i) {
+            const int n = lx + 16*w;
+            if (n < p_cubNp) {
+              for(int f=0;f<p_Nfields;++f) {
+                s_q[f][ly+4*i][n] = qs[f][i];
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+          const int n = lx + 16*w;
+
+          dfloat r_D = ((ly)<p_cubNp && (n)<p_Np) ? D[(ly) + (n)*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+          for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
+            const dfloat r_D_next = ((m+4+ly)<p_cubNp && n<p_Np) ? D[(m+4+ly)+n*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = ((m+ly)<p_cubNp) ? s_q[f][lx][m+ly] : 0.0; //4 DOFs from 16 elements
+
+              // Iq += r_q^T * r_D
+              Iq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_D, Iq[f], 0, 0, 0);
+            }
+
+            r_D = r_D_next;
+          }
+
+          //Iq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
+
+          if (n < p_Np) {
+            for (int i=0;i<4;++i) {
+              if (element[i]>-1) {
+                for(int f=0;f<p_Nfields;++f) {
+                  Aq[n + f*p_Np + element[i]*p_Np*p_Nfields] = Iq[f][i];
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif

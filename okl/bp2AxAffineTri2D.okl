@@ -24,7 +24,8 @@ SOFTWARE.
 
 */
 
-
+#if KERNEL_NUMBER==0
+/*Original*/
 @kernel void bp2AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
                         @restrict const  dlong  *  GlobalToLocal,
@@ -34,7 +35,7 @@ SOFTWARE.
                         @restrict const  dfloat *  q,
                               @restrict dfloat *  Aq){
 
-  for(int e=0;e<Nelements;e++;@outer(0)){
+  for(dlong e=0;e<Nelements;e++;@outer(0)){
 
     @shared dfloat  s_q[p_Nfields][p_Np];
 
@@ -43,34 +44,248 @@ SOFTWARE.
     for(int n=0;n<p_Np;++n;@inner(0)){
 
       element = elementList[e];
+      const dfloat J = wJ[element];
 
-      const dlong base = n + element*p_Np*p_Nfields;
       for(int f=0;f<p_Nfields;++f) {
-        const dlong id = GlobalToLocal[base + f*p_Np];
-        s_q[f][n] = (id!=-1) ? q[id] : 0.0;
+        const dlong id = GlobalToLocal[n + f*p_Np + element*p_Np*p_Nfields];
+        s_q[f][n] = (id!=-1) ? J*q[id] : 0.0;
       }
     }
 
     for(int n=0;n<p_Np;++n;@inner(0)){
 
-      const dfloat J = wJ[element];
-
-      dfloat Mq[p_Nfields];
-      for(int f=0;f<p_Nfields;++f){
-        Mq[f] = 0.0;
-      }
+      dfloat Mq[p_Nfields] = {0.0};
 
       for(int m=0;m<p_Np;++m){
         const dfloat Mm = MM[n + m*p_Np];
-        for(int f=0;f<p_Nfields;++f){
+        for(int f=0;f<p_Nfields;++f) {
           Mq[f] += Mm * s_q[f][m];
         }
       }
 
       const dlong base = n + element*p_Np*p_Nfields;
-      for(int f=0;f<p_Nfields;++f){
-        Aq[base+f*p_Np] = J*Mq[f];
+      for(int f=0;f<p_Nfields;++f) {
+        Aq[base+f*p_Np] = Mq[f];
       }
     }
   }
 }
+#endif
+
+#if KERNEL_NUMBER==1
+/* SIMD packing with MM in shmem */
+@kernel void bp2AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_MM[p_Np][p_Np];
+
+    @shared dfloat  s_q[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_Np];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;ei++;@inner(1)) {
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        for(int m=ei;m<p_Np;m+=p_NelementsPerBlk) {
+          s_MM[m][n]= MM[n + m*p_Np];
+        }
+
+        for(int r=0;r<p_NelementsPerThd;++r) {
+          const dlong e = eo+ei*p_NelementsPerThd+r;
+
+          if(e<Nelements) {
+            element[r] = elementList[e];
+            const dfloat J = wJ[element[r]];
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dlong id = GlobalToLocal[n + f*p_Np + element[r]*p_Np*p_Nfields];
+              s_q[r][f][ei][n] = (id!=-1) ? J*q[id] : 0.0;
+            }
+          } else {
+            element[r] = -1;
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;ei++;@inner(1)) {
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        dfloat Mq[p_NelementsPerThd][p_Nfields] = {0.0};
+
+        for(int m=0;m<p_Np;++m) {
+          const dfloat Mm = s_MM[m][n]; //MM[n + m*p_Np];
+
+          for(int r=0;r<p_NelementsPerThd;++r) {
+            for(int f=0;f<p_Nfields;++f) {
+              Mq[r][f] += Mm * s_q[r][f][ei][m];
+            }
+          }
+        }
+
+        for(int r=0;r<p_NelementsPerThd;++r) {
+          if(element[r]>=0) {
+            const dlong base = n + element[r]*p_Np*p_Nfields;
+            for(int f=0;f<p_Nfields;++f) {
+              Aq[base+f*p_Np] = Mq[r][f];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==2
+/* SIMD packing without MM in shmem */
+@kernel void bp2AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
+
+    @shared dfloat  s_q[p_NelementsPerThd][p_Nfields][p_NelementsPerBlk][p_Np];
+
+    @exclusive dlong element[p_NelementsPerThd];
+
+    for(int ei=0;ei<p_NelementsPerBlk;ei++;@inner(1)) {
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        for(int r=0;r<p_NelementsPerThd;++r) {
+          const dlong e = eo+ei*p_NelementsPerThd+r;
+
+          if(e<Nelements) {
+            element[r] = elementList[e];
+            const dfloat J = wJ[element[r]];
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dlong id = GlobalToLocal[n + f*p_Np + element[r]*p_Np*p_Nfields];
+              s_q[r][f][ei][n] = (id!=-1) ? J*q[id] : 0.0;
+            }
+          } else {
+            element[r] = -1;
+          }
+        }
+      }
+    }
+
+    for(int ei=0;ei<p_NelementsPerBlk;ei++;@inner(1)) {
+      for(int n=0;n<p_Np;++n;@inner(0)){
+
+        dfloat Mq[p_NelementsPerThd][p_Nfields] = {0.0};
+
+        for(int m=0;m<p_Np;++m){
+          const dfloat Mm = MM[n + m*p_Np];
+
+          for(int r=0;r<p_NelementsPerThd;++r) {
+            for(int f=0;f<p_Nfields;++f) {
+              Mq[r][f] += Mm * s_q[r][f][ei][m];
+            }
+          }
+        }
+
+        for(int r=0;r<p_NelementsPerThd;++r) {
+          if (element[r]>=0) {
+            const dlong base = n + element[r]*p_Np*p_Nfields;
+            for(int f=0;f<p_Nfields;++f) {
+              Aq[base+f*p_Np] = Mq[r][f];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+#if KERNEL_NUMBER==3
+/*MFMA 16x16*/
+@kernel void bp2AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=16;@outer(0)){
+
+    @shared dfloat  s_q[p_Nfields][(((p_Np-1)/16)+1)*16][16+1];
+
+    @exclusive dlong element[4];
+
+    for(int w=0;w<((p_Np-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          const int n = lx + 16*w;
+
+          for (int i=0;i<4;++i) {
+            const dlong e = eo + ly + 4*i;
+            element[i] = (e<Nelements) ? elementList[e] : -1;
+            const dfloat J = (e<Nelements) ? wJ[element[i]] : 0.;
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dlong id = (e<Nelements && n<p_Np) ? GlobalToLocal[n + f*p_Np + element[i]*p_Np*p_Nfields] : -1;
+              s_q[f][n][ly+4*i] = (id!=-1) ? J*q[id] : 0.0;
+            }
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_Np-1)/16)+1;++w;@inner(2)){
+      for(int ly=0;ly<4;++ly;@inner(1)){
+        for(int lx=0;lx<16;++lx;@inner(0)){
+
+          __attribute__((__vector_size__(4 * 8))) double Mq[p_Nfields] = {0.}; // zero out 16x16 result
+
+          const int n = lx + 16*w;
+
+          dfloat r_MM = (n<p_Np && (ly)<p_Np) ? MM[n + (ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
+
+            const dfloat r_MM_next = (n<p_Np && (m+4+ly)<p_Np) ? MM[n + (m+4+ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
+
+            for(int f=0;f<p_Nfields;++f) {
+              const dfloat r_q  = s_q[f][m+ly][lx]; //4 DOFs from 16 elements
+
+              // Mq += r_q^T * r_MM
+              Mq[f] = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_MM, Mq[f], 0, 0, 0);
+            }
+
+            r_MM = r_MM_next;
+          }
+
+          //Mq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
+          if (n < p_Np) {
+            for (int i=0;i<4;++i) {
+              if (element[i]>-1) {
+                for(int f=0;f<p_Nfields;++f) {
+                  Aq[n + f*p_Np + element[i]*p_Np*p_Nfields] = Mq[f][i];
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif

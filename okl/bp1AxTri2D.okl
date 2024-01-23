@@ -339,8 +339,6 @@ SOFTWARE.
 
           const int n = lx + 16*w;
 
-          dfloat r_I = (n<p_cubNp && (ly)<p_Np) ? I[n + (ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
-
           dfloat r_GWJ[4];
           for (int i = 0; i<4;++i) {
             r_GWJ[i] = (element[i]>-1 && n<p_cubNp) ? cubwJ[element[i]*p_cubNp + n] : 0.0;
@@ -349,6 +347,8 @@ SOFTWARE.
           for (int i = 0; i<4;++i) {
             Iq[i] = 0.0;
           }
+
+          dfloat r_I = (n<p_cubNp && (ly)<p_Np) ? I[n + (ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
             const dfloat r_q  = ((m+ly)<p_Np) ? s_q[lx][m+ly] : 0.0; //4 DOFs from 16 elements
