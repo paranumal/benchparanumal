@@ -80,9 +80,9 @@ SOFTWARE.
 
   for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
-    @shared dfloat  s_q[p_Np][p_NelementsPerBlk][p_NelementsPerThd];
-
     @shared dfloat  s_MM[p_Np][p_Np];
+
+    @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_Np];
 
     @exclusive dlong element[p_NelementsPerThd];
 
@@ -101,7 +101,7 @@ SOFTWARE.
             const dfloat J = wJ[element[r]];
 
             const dlong id = GlobalToLocal[n + element[r]*p_Np];
-            s_q[n][ei][r] = (id!=-1) ? J*q[id] : 0.0;
+            s_q[r][ei][n] = (id!=-1) ? J*q[id] : 0.0;
           } else {
             element[r] = -1;
           }
@@ -118,7 +118,7 @@ SOFTWARE.
           const dfloat Mm = s_MM[m][n]; //MM[n + m*p_Np];
 
           for(int r=0;r<p_NelementsPerThd;++r) {
-            Mq[r] += Mm * s_q[m][ei][r];
+            Mq[r] += Mm * s_q[r][ei][m];
           }
         }
 
@@ -147,7 +147,7 @@ SOFTWARE.
 
   for(dlong eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
-    @shared dfloat  s_q[p_Np][p_NelementsPerBlk][p_NelementsPerThd];
+    @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_Np];
 
     @exclusive dlong element[p_NelementsPerThd];
 
@@ -162,7 +162,7 @@ SOFTWARE.
             const dfloat J = wJ[element[r]];
 
             const dlong id = GlobalToLocal[n + element[r]*p_Np];
-            s_q[n][ei][r] = (id!=-1) ? J*q[id] : 0.0;
+            s_q[r][ei][n] = (id!=-1) ? J*q[id] : 0.0;
           } else {
             element[r] = -1;
           }
@@ -179,7 +179,7 @@ SOFTWARE.
           const dfloat Mm = MM[n + m*p_Np];
 
           for(int r=0;r<p_NelementsPerThd;++r) {
-            Mq[r] += Mm * s_q[m][ei][r];
+            Mq[r] += Mm * s_q[r][ei][m];
           }
         }
 
