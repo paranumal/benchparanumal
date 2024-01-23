@@ -36,7 +36,7 @@ SOFTWARE.
   for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
     @shared dfloat s_MM[p_Nq][p_Nq];
-    @shared dfloat  s_q[p_NelementsPerBlk][p_NelementsPerThd][p_Nq][p_Nq];
+    @shared dfloat  s_q[p_NelementsPerThd][p_NelementsPerBlk][p_Nq][p_Nq];
 
     @exclusive dlong element[p_NelementsPerThd];
 
@@ -51,12 +51,16 @@ SOFTWARE.
             s_MM[j][i] = MMji;
           }
 
+
           for (int ek=0;ek<p_NelementsPerThd;++ek) {
-            if(eo+es*p_NelementsPerThd+ek<Nelements) {
-              element[ek] = elementList[eo+es*p_NelementsPerThd+ek];
+            const dlong e = eo+es*p_NelementsPerThd+ek;
+            if(e<Nelements) {
+              element[ek] = elementList[e];
               const dfloat J = wJ[element[ek]];
               const dlong id = GlobalToLocal[i + j*p_Nq + element[ek]*p_Np];
-              s_q[es][ek][j][i] = (id!=-1) ? J*q[id] : 0.0;
+              s_q[ek][es][j][i] = (id!=-1) ? J*q[id] : 0.0;
+            } else {
+              element[ek] = -1;
             }
           }
         }
@@ -75,11 +79,11 @@ SOFTWARE.
 
           // #pragma unroll p_Nq
           for(int m=0;m<p_Nq;++m){
-            dfloat Mim = s_MM[m][i];
+            const dfloat Mim = s_MM[m][i];
 
             // #pragma unroll p_NelementsPerThd
             for(int s=0;s<p_NelementsPerThd;++s){
-              Mq[s] += Mim*s_q[es][s][j][m];
+              Mq[s] += Mim*s_q[s][es][j][m];
             }
           }
         }
@@ -90,7 +94,7 @@ SOFTWARE.
       for(int j=0;j<p_Nq;++j;@inner(1)){
         for(int i=0;i<p_Nq;++i;@inner(0)){
           for(int s=0;s<p_NelementsPerThd;++s){
-            s_q[es][s][j][i] = Mq[s];
+            s_q[s][es][j][i] = Mq[s];
           }
         }
       }
@@ -106,17 +110,17 @@ SOFTWARE.
 
           // #pragma unroll p_Nq
           for(int m=0;m<p_Nq;++m){
-            dfloat Mim = s_MM[m][j];
+            const dfloat Mjm = s_MM[m][j];
 
             // #pragma unroll p_NelementsPerThd
             for(int s=0;s<p_NelementsPerThd;++s){
-              Mq[s] += Mim*s_q[es][s][m][i];
+              Mq[s] += Mjm*s_q[s][es][m][i];
             }
           }
 
           // #pragma unroll p_NelementsPerThd
           for(int ek=0;ek<p_NelementsPerThd;++ek){
-            if(eo+es*p_NelementsPerThd+ek<Nelements){
+            if(element[ek]>-1){
               const dlong base = i + j*p_Nq + element[ek]*p_Np;
               Aq[base] = Mq[ek];
             }

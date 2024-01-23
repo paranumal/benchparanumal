@@ -37,7 +37,7 @@ SOFTWARE.
   for(int eo=0;eo<Nelements;eo+=p_NelementsPerBlk*p_NelementsPerThd;@outer(0)){
 
     @shared dfloat s_I [p_cubNq][p_Nq];
-    @shared dfloat s_q[p_NelementsPerBlk][p_NelementsPerThd][p_cubNq][p_cubNq];
+    @shared dfloat s_q[p_NelementsPerThd][p_NelementsPerBlk][p_cubNq][p_cubNq];
 
     @exclusive dlong element[p_NelementsPerThd];
 
@@ -60,7 +60,7 @@ SOFTWARE.
               element[ek] = elementList[e];
               if (i<p_Nq && j<p_Nq) {
                 const dlong id = GlobalToLocal[i + j*p_Nq + element[ek]*p_Np];
-                s_q[es][ek][j][i] = (id!=-1) ? q[id] : 0.0;
+                s_q[ek][es][j][i] = (id!=-1) ? q[id] : 0.0;
               }
             } else {
               element[ek] = -1;
@@ -87,7 +87,7 @@ SOFTWARE.
 
               // #pragma unroll p_NelementsPerThd
               for(int s=0;s<p_NelementsPerThd;++s){
-                Iq[s] += Iim*s_q[es][s][j][m];
+                Iq[s] += Iim*s_q[s][es][j][m];
               }
             }
           }
@@ -99,7 +99,7 @@ SOFTWARE.
       for(int j=0;j<p_cubNq;++j;@inner(1)){
         for(int i=0;i<p_cubNq;++i;@inner(0)){
           for(int s=0;s<p_NelementsPerThd;++s){
-            s_q[es][s][j][i] = Iq[s];
+            s_q[s][es][j][i] = Iq[s];
           }
         }
       }
@@ -129,7 +129,7 @@ SOFTWARE.
 
             // #pragma unroll p_NelementsPerThd
             for(int s=0;s<p_NelementsPerThd;++s){
-              Iq[s] += Iim*s_q[es][s][m][i];
+              Iq[s] += Iim*s_q[s][es][m][i];
             }
           }
 
@@ -144,7 +144,7 @@ SOFTWARE.
       for(int j=0;j<p_cubNq;++j;@inner(1)){
         for(int i=0;i<p_cubNq;++i;@inner(0)){
           for(int s=0;s<p_NelementsPerThd;++s){
-            s_q[es][s][j][i] = Iq[s];
+            s_q[s][es][j][i] = Iq[s];
           }
         }
       }
@@ -164,7 +164,7 @@ SOFTWARE.
               const dfloat Imj = s_I[m][j];
               // #pragma unroll p_NelementsPerThd
               for(int s=0;s<p_NelementsPerThd;++s){
-                Iq[s] += Imj*s_q[es][s][m][i];
+                Iq[s] += Imj*s_q[s][es][m][i];
               }
             }
           }
@@ -176,7 +176,7 @@ SOFTWARE.
       for(int j=0;j<p_cubNq;++j;@inner(1)){
         for(int i=0;i<p_cubNq;++i;@inner(0)){
           for(int s=0;s<p_NelementsPerThd;++s){
-            s_q[es][s][j][i] = Iq[s];
+            s_q[s][es][j][i] = Iq[s];
           }
         }
       }
@@ -196,7 +196,7 @@ SOFTWARE.
               const dfloat Imj = s_I[m][i];
               // #pragma unroll p_NelementsPerThd
               for(int s=0;s<p_NelementsPerThd;++s){
-                Iq[s] += Imj*s_q[es][s][j][m];
+                Iq[s] += Imj*s_q[s][es][j][m];
               }
             }
 
