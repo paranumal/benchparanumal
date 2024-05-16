@@ -383,12 +383,7 @@ SOFTWARE.
           dfloat Gss[4];
 
           for (int i = 0; i<4;++i) {
-            if (element[i]>-1) {
-              J[i] = wJ[element[i]];
-              Grr[i] = ggeo[p_Nggeo*element[i] + p_G00ID];
-              Grs[i] = ggeo[p_Nggeo*element[i] + p_G01ID];
-              Gss[i] = ggeo[p_Nggeo*element[i] + p_G11ID];
-            }
+
           }
 
           __attribute__((__vector_size__(4 * 8))) double r_Aq = {0.}; // zero out 16x16 result
@@ -410,7 +405,10 @@ SOFTWARE.
           }
 
           for (int i = 0; i<4;++i) {
-            r_Aq[i] += lambda*J[i]*r_Sq[i];
+            if (element[i]>-1) {
+              const dfloat J = wJ[element[i]];
+              r_Aq[i] += lambda*J*r_Sq[i];
+            }
             r_Sq[i] = 0.;
           }
 
@@ -428,16 +426,20 @@ SOFTWARE.
           }
 
           for (int i = 0; i<4;++i) {
-            r_Aq[i] += Grr[i]*r_Sq[i];
+            if (element[i]>-1) {
+              const dfloat Grr = ggeo[p_Nggeo*element[i] + p_G00ID];
+              r_Aq[i] += Grr*r_Sq[i];
+            }
             r_Sq[i] = 0.;
           }
 
-          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np + 1*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+          S += p_Np*p_Np;
+          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
 
             const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
-            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np + 1*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
 
             // r_Sq += r_q^T * r_S
             r_Sq = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_S, r_Sq, 0, 0, 0);
@@ -446,16 +448,20 @@ SOFTWARE.
           }
 
           for (int i = 0; i<4;++i) {
-            r_Aq[i] += Grs[i]*r_Sq[i];
+            if (element[i]>-1) {
+              const dfloat Grs = ggeo[p_Nggeo*element[i] + p_G01ID];
+              r_Aq[i] += Grs*r_Sq[i];
+            }
             r_Sq[i] = 0.;
           }
 
-          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np + 2*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+          S += p_Np*p_Np;
+          r_S = (n<p_Np && (ly)<p_Np) ? S[n + (ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
 
             const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
-            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np + 2*p_Np*p_Np] : 0.0; //16 rows and 4 columns of MM
+            const dfloat r_S_next = (n<p_Np && (m+4+ly)<p_Np) ? S[n + (m+4+ly)*p_Np] : 0.0; //16 rows and 4 columns of MM
 
             // r_Sq += r_q^T * r_S
             r_Sq = __builtin_amdgcn_mfma_f64_16x16x4f64(r_q, r_S, r_Sq, 0, 0, 0);
@@ -464,7 +470,10 @@ SOFTWARE.
           }
 
           for (int i = 0; i<4;++i) {
-            r_Aq[i] += Gss[i]*r_Sq[i];
+            if (element[i]>-1) {
+              const dfloat Gss = ggeo[p_Nggeo*element[i] + p_G11ID];
+              r_Aq[i] += Gss*r_Sq[i];
+            }
           }
 
           //Mq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
