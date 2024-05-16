@@ -441,7 +441,7 @@ SOFTWARE.
 
   for(int eo=0;eo<Nelements;eo+=16;@outer(0)){
 
-    @shared dfloat  s_q[(((p_cubNp-1)/16)+1)*16][16];
+    @shared dfloat  s_q[(((p_cubNp-1)/16)+1)*16][16+1];
 
     @exclusive dlong element[4];
 
@@ -449,11 +449,13 @@ SOFTWARE.
     @exclusive __attribute__((__vector_size__(4 * 8))) double qr;
     @exclusive __attribute__((__vector_size__(4 * 8))) double qs;
 
+    @exclusive int n;
+
     for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
 
-          const int n = lx + 16*w;
+          n = lx + 16*w;
 
           for (int i=0;i<4;++i) {
             const dlong e = eo + ly + 4*i;
@@ -480,26 +482,10 @@ SOFTWARE.
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
 
-          const int n = lx + 16*w;
-
-          dfloat GWJ[4];
-          dfloat G00[4];
-          dfloat G01[4];
-          dfloat G11[4];
-          for (int i = 0; i<4;++i) {
-            if (element[i]>-1 && n<p_cubNp) {
-              const dlong gbase = element[i]*p_cubNp + n;
-              GWJ[i] = cubwJ[gbase];
-              G00[i] = cubggeo[p_Nggeo*gbase+p_G00ID];
-              G01[i] = cubggeo[p_Nggeo*gbase+p_G01ID];
-              G11[i] = cubggeo[p_Nggeo*gbase+p_G11ID];
-            }
-          }
-
           dfloat r_I = (n<p_cubNp && (ly)<p_Np) ? I[n + (ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
-            const dfloat r_q  = s_q[m+ly][lx] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
             const dfloat r_I_next = (n<p_cubNp && (m+4+ly)<p_Np) ? I[n + (m+4+ly)*p_cubNp] : 0.0; //16 rows and 4 columns of I
 
             // Iq += r_q^T * r_I
@@ -511,7 +497,7 @@ SOFTWARE.
           dfloat r_D = (n<p_cubNp && (ly)<p_Np) ? D[n + (ly)*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
-            const dfloat r_q  = s_q[m+ly][lx] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
             const dfloat r_D_next = (n<p_cubNp && (m+4+ly)<p_Np) ? D[n + (m+4+ly)*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
             // Dq += r_q^T * r_D
@@ -523,7 +509,7 @@ SOFTWARE.
           r_D = (n<p_cubNp && (ly)<p_Np) ? D[n + (ly)*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
           for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each MFMA
-            const dfloat r_q  = s_q[m+ly][lx] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
             const dfloat r_D_next = (n<p_cubNp && (m+4+ly)<p_Np) ? D[n + (m+4+ly)*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
             // Dq += r_q^T * r_D
@@ -534,14 +520,18 @@ SOFTWARE.
 
           //Iq is 16x16. Columns (i.e. lx) increment dofs, and rows (ly + 4*i) increment elements
           for (int i = 0; i<4;++i) {
-            Iq[i] *= lambda*GWJ[i];
-          }
-
-          for (int i = 0; i<4;++i) {
-            const dfloat qx = qr[i];
-            const dfloat qy = qs[i];
-            qr[i] = G00[i] * qx + G01[i] * qy;
-            qs[i] = G01[i] * qx + G11[i] * qy;
+            if (element[i]>-1 && n<p_cubNp) {
+              const dlong gbase = element[i]*p_cubNp + n;
+              const dfloat GWJ = cubwJ[gbase];
+              const dfloat G00 = cubggeo[p_Nggeo*gbase+p_G00ID];
+              const dfloat G01 = cubggeo[p_Nggeo*gbase+p_G01ID];
+              const dfloat G11 = cubggeo[p_Nggeo*gbase+p_G11ID];
+              Iq[i] *= lambda*GWJ;
+              const dfloat qx = qr[i];
+              const dfloat qy = qs[i];
+              qr[i] = G00 * qx + G01 * qy;
+              qs[i] = G01 * qx + G11 * qy;
+            }
           }
         }
       }
@@ -551,10 +541,7 @@ SOFTWARE.
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
           for (int i = 0; i<4;++i) {
-            const int n = lx + 16*w;
-            if (n < p_cubNp) {
-              s_q[ly+4*i][n] = Iq[i];
-            }
+            s_q[n][ly+4*i] = Iq[i];
             Iq[i] = 0.;
           }
         }
@@ -564,12 +551,10 @@ SOFTWARE.
     for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
-          const int n = lx + 16*w;
-
           dfloat r_I = ((ly)<p_cubNp && (n)<p_Np) ? I[(ly) + (n)*p_cubNp] : 0.0; //16 rows and 4 columns of I
 
           for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
-            const dfloat r_q  = s_q[m+ly][lx] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
             const dfloat r_I_next = ((m+4+ly)<p_cubNp && n<p_Np) ? I[(m+4+ly)+n*p_cubNp] : 0.0; //16 rows and 4 columns of I
 
             // Iq += r_q^T * r_I
@@ -585,10 +570,7 @@ SOFTWARE.
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
           for (int i = 0; i<4;++i) {
-            const int n = lx + 16*w;
-            if (n < p_cubNp) {
-              s_q[ly+4*i][n] = qr[i];
-            }
+            s_q[n][ly+4*i] = qr[i];
           }
         }
       }
@@ -597,12 +579,10 @@ SOFTWARE.
     for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
-          const int n = lx + 16*w;
-
           dfloat r_D = ((ly)<p_cubNp && (n)<p_Np) ? D[(ly) + (n)*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
           for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
-            const dfloat r_q  = s_q[m+ly][lx] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
             const dfloat r_D_next = ((m+4+ly)<p_cubNp && n<p_Np) ? D[(m+4+ly)+n*p_cubNp + 0*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
             // Iq += r_q^T * r_D
@@ -618,10 +598,7 @@ SOFTWARE.
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
           for (int i = 0; i<4;++i) {
-            const int n = lx + 16*w;
-            if (n < p_cubNp) {
-              s_q[ly+4*i][n] = qs[i];
-            }
+            s_q[n][ly+4*i] = qs[i];
           }
         }
       }
@@ -630,12 +607,10 @@ SOFTWARE.
     for(int w=0;w<((p_cubNp-1)/16)+1;++w;@inner(2)){
       for(int ly=0;ly<4;++ly;@inner(1)){
         for(int lx=0;lx<16;++lx;@inner(0)){
-          const int n = lx + 16*w;
-
           dfloat r_D = ((ly)<p_cubNp && (n)<p_Np) ? D[(ly) + (n)*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
           for(int m=0;m<p_cubNp;m+=4){ //multiply 4 DOFs over each element in each MFMA
-            const dfloat r_q  = s_q[m+ly][lx] : 0.0; //4 DOFs from 16 elements
+            const dfloat r_q  = s_q[m+ly][lx]; //4 DOFs from 16 elements
             const dfloat r_D_next = ((m+4+ly)<p_cubNp && n<p_Np) ? D[(m+4+ly)+n*p_cubNp + 1*p_Np*p_cubNp] : 0.0; //16 rows and 4 columns of D
 
             // Iq += r_q^T * r_D
