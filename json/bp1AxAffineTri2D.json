@@ -18,18 +18,35 @@
 {"Name":"bp1AxAffineTri2D.okl","keys":{"N":14,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":1,"p_NelementsPerThd":8}}
 {"Name":"bp1AxAffineTri2D.okl","keys":{"N":15,"mode":"HIP"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":5,"p_NelementsPerThd":6}}
 
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 1,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":320,"p_NelementsPerThd":2}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 2,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":160,"p_NelementsPerThd":2}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 3,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":76,"p_NelementsPerThd":2}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 4,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":17,"p_NelementsPerThd":2}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 5,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":48,"p_NelementsPerThd":1}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 6,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":18,"p_NelementsPerThd":1}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 7,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":7,"p_NelementsPerThd":10}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 8,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":11,"p_NelementsPerThd":7}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 9,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":4,"p_NelementsPerThd":7}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":10,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":11,"p_NelementsPerThd":5}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":11,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":3,"p_NelementsPerThd":7}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":12,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":7}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":13,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":4,"p_NelementsPerThd":5}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":14,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":2,"p_NelementsPerThd":8}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":15,"mode":"HIP","arch":"gfx940,gfx941,gfx942"},"props":{"KERNEL_NUMBER":2,"p_NelementsPerBlk":6,"p_NelementsPerThd":5}}
+
 //MFMA kernel for gfx90a
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 5,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 6,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 7,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 8,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 9,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N":10,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N":11,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N":12,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N":13,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N":14,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
-{"Name":"bp1AxAffineTri2D.okl","keys":{"N":15,"mode":"HIP","arch":"gfx90a","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 4,"mode":"HIP","arch":"gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 5,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 6,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 7,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 8,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N": 9,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":10,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":11,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":12,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":13,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":14,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
+{"Name":"bp1AxAffineTri2D.okl","keys":{"N":15,"mode":"HIP","arch":"gfx90a,gfx940,gfx941,gfx942","dfloat":"double"},"props":{"KERNEL_NUMBER":3}}
 
 //CUDA
 {"Name":"bp1AxAffineTri2D.okl","keys":{"N": 1,"mode":"CUDA"},"props":{"KERNEL_NUMBER":1,"p_NelementsPerBlk":170,"p_NelementsPerThd":2}}
