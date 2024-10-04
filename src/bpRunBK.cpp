@@ -68,7 +68,7 @@ void bp_t::RunBK(){
 
   int Ntests = 50;
 
-  for(int n=0;n<5;++n){ //warmup
+  for(int n=0;n<5000;++n){ //warmup
     LocalOperator(o_q, o_AqL);
   }
 

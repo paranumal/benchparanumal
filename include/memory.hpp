@@ -346,8 +346,8 @@ class deviceMemory: public occa::memory {
                static_cast<size_t>(cnt) > src.length());
 
     occa::memory::copyFrom(src.ptr(),
-                           cnt*sizeof(T),
-                           offset*sizeof(T),
+                           cnt,
+                           offset,
                            props);
   }
 
@@ -361,7 +361,7 @@ class deviceMemory: public occa::memory {
                length() > src.length());
 
     occa::memory::copyFrom(src.ptr(),
-                           length()*sizeof(T),
+                           length(),
                            0,
                            props);
   }
@@ -376,8 +376,8 @@ class deviceMemory: public occa::memory {
     if (cnt==0) return;
 
     occa::memory::copyFrom(src,
-                           cnt*sizeof(T),
-                           offset*sizeof(T),
+                           cnt,
+                           offset,
                            0,
                            props);
   }
@@ -388,7 +388,7 @@ class deviceMemory: public occa::memory {
     if (length()==0) return;
 
     occa::memory::copyFrom(src,
-                           length()*sizeof(T),
+                           length(),
                            0,
                            0,
                            props);
@@ -408,8 +408,8 @@ class deviceMemory: public occa::memory {
                static_cast<size_t>(cnt) > dest.length());
 
     occa::memory::copyTo(dest.ptr(),
-                         cnt*sizeof(T),
-                         offset*sizeof(T),
+                         cnt,
+                         offset,
                          props);
   }
 
@@ -423,7 +423,7 @@ class deviceMemory: public occa::memory {
                length() > dest.length());
 
     occa::memory::copyTo(dest.ptr(),
-                         length()*sizeof(T),
+                         length(),
                          0,
                          props);
   }
@@ -438,9 +438,9 @@ class deviceMemory: public occa::memory {
     if (cnt==0) return;
 
     occa::memory::copyTo(dest,
-                         cnt*sizeof(T),
+                         cnt,
                          0,
-                         offset*sizeof(T),
+                         offset,
                          props);
   }
 
@@ -450,7 +450,7 @@ class deviceMemory: public occa::memory {
     if (length()==0) return;
 
     occa::memory::copyTo(dest,
-                         length()*sizeof(T),
+                         length(),
                          0,
                          0,
                          props);
@@ -526,8 +526,8 @@ class pinnedMemory: public occa::memory {
                static_cast<size_t>(cnt) > src.length());
 
     occa::memory::copyFrom(src.ptr(),
-                           cnt*sizeof(T),
-                           offset*sizeof(T),
+                           cnt,
+                           offset,
                            props);
   }
 
@@ -541,7 +541,7 @@ class pinnedMemory: public occa::memory {
                length() > src.length());
 
     occa::memory::copyFrom(src.ptr(),
-                           length()*sizeof(T),
+                           length(),
                            0,
                            props);
   }
@@ -556,8 +556,8 @@ class pinnedMemory: public occa::memory {
     if (cnt==0) return;
 
     occa::memory::copyFrom(src,
-                           cnt*sizeof(T),
-                           offset*sizeof(T),
+                           cnt,
+                           offset,
                            0,
                            props);
   }
@@ -568,7 +568,7 @@ class pinnedMemory: public occa::memory {
     if (length()==0) return;
 
     occa::memory::copyFrom(src,
-                           length()*sizeof(T),
+                           length(),
                            0,
                            0,
                            props);
@@ -584,8 +584,8 @@ class pinnedMemory: public occa::memory {
     if (cnt==0) return;
 
     occa::memory::copyFrom(src,
-                           cnt*sizeof(T),
-                           offset*sizeof(T),
+                           cnt,
+                           offset,
                            0,
                            props);
   }
@@ -596,7 +596,7 @@ class pinnedMemory: public occa::memory {
     if (length()==0) return;
 
     occa::memory::copyFrom(src,
-                           length()*sizeof(T),
+                           length(),
                            0,
                            0,
                            props);
@@ -616,8 +616,8 @@ class pinnedMemory: public occa::memory {
                static_cast<size_t>(cnt) > dest.length());
 
     occa::memory::copyTo(dest.ptr(),
-                         cnt*sizeof(T),
-                         offset*sizeof(T),
+                         cnt,
+                         offset,
                          props);
   }
 
@@ -631,7 +631,7 @@ class pinnedMemory: public occa::memory {
                length() > dest.length());
 
     occa::memory::copyTo(dest.ptr(),
-                         length()*sizeof(T),
+                         length(),
                          0,
                          props);
   }
@@ -646,9 +646,9 @@ class pinnedMemory: public occa::memory {
     if (cnt==0) return;
 
     occa::memory::copyTo(dest,
-                         cnt*sizeof(T),
+                         cnt,
                          0,
-                         offset*sizeof(T),
+                         offset,
                          props);
   }
 
@@ -658,7 +658,7 @@ class pinnedMemory: public occa::memory {
     if (length()==0) return;
 
     occa::memory::copyTo(dest,
-                         length()*sizeof(T),
+                         length(),
                          0,
                          0,
                          props);
@@ -674,9 +674,9 @@ class pinnedMemory: public occa::memory {
     if (cnt==0) return;
 
     occa::memory::copyTo(dest,
-                         cnt*sizeof(T),
+                         cnt,
                          0,
-                         offset*sizeof(T),
+                         offset,
                          props);
   }
 
@@ -686,7 +686,7 @@ class pinnedMemory: public occa::memory {
     if (length()==0) return;
 
     occa::memory::copyTo(dest,
-                         length()*sizeof(T),
+                         length(),
                          0,
                          0,
                          props);

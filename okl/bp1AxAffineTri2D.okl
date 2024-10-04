@@ -193,7 +193,7 @@ SOFTWARE.
 }
 #endif
 
-#if KERNEL_NUMBER==3
+#if KERNEL_NUMBER==3 && defined(OCCA_USE_HIP)
 /*MFMA 16x16*/
 @kernel void bp1AxAffineTri2D(const dlong Nelements,
                         @restrict const  dlong  *  elementList,
@@ -255,6 +255,85 @@ SOFTWARE.
               if (element[i]>-1) {
                 Aq[n + element[i]*p_Np] = Mq[i];
               }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#endif
+
+
+#if KERNEL_NUMBER==3 && defined(OCCA_USE_CUDA)
+
+/*WMMA 8x8x*/
+@kernel void bp1AxAffineTri2D(const dlong Nelements,
+                        @restrict const  dlong  *  elementList,
+                        @restrict const  dlong  *  GlobalToLocal,
+                        @restrict const  dfloat *  wJ,
+                        @restrict const  dfloat *  I,
+                        @restrict const  dfloat *  MM,
+                        @restrict const  dfloat *  q,
+                              @restrict  dfloat *  Aq){
+
+  for(dlong eo=0;eo<Nelements;eo+=8;@outer(0)){
+
+    @shared dfloat  s_q[(((p_Np-1)/8)+1)*8][8+1];
+
+    @exclusive dlong element;
+
+    for(int w=0;w<((p_Np-1)/8)+1;++w;@inner(2)){
+      for(int ly=0;ly<8;++ly;@inner(1)){
+        for(int lx=0;lx<4;++lx;@inner(0)){
+
+          const int n = 2*lx + 8*w;
+
+          const dlong e = eo + ly;
+          if (e<Nelements) {
+            element = elementList[e];
+            const dfloat J = wJ[element];
+            const dlong id0 = (n+0<p_Np) ? GlobalToLocal[n + 0 + element*p_Np] : -1;
+            const dlong id1 = (n+1<p_Np) ? GlobalToLocal[n + 1 + element*p_Np] : -1;
+            s_q[n+0][ly] = (id0!=-1) ? J*q[id0] : 0.0;
+            s_q[n+1][ly] = (id1!=-1) ? J*q[id1] : 0.0;
+          } else {
+            element = -1;
+            s_q[n+0][ly] = 0.0;
+            s_q[n+1][ly] = 0.0;
+          }
+        }
+      }
+    }
+
+    for(int w=0;w<((p_Np-1)/8)+1;++w;@inner(2)){
+      for(int ly=0;ly<8;++ly;@inner(1)){
+        for(int lx=0;lx<4;++lx;@inner(0)){
+
+          double Mq[2] = {0.}; // zero out 8x8 result
+
+          dfloat r_MM = (lx<p_Np && (ly+8*w)<p_Np) ? MM[lx + (ly+8*w)*p_Np] : 0.0; //8 rows and 4 columns of MM
+
+          for(int m=0;m<p_Np;m+=4){ //multiply 4 DOFs over each element in each WMMA
+
+            const dfloat r_q  = s_q[m+lx][ly]; //4 DOFs from 8 elements
+            const dfloat r_MM_next = ((m+4+lx)<p_Np && (ly+8*w)<p_Np) ? MM[m+4+lx + (ly+8*w)*p_Np] : 0.0; //8 rows and 4 columns of MM
+
+            // Mq += r_q * r_MM^T
+            asm volatile("wmma.mma.sync.aligned.m8n8k4.row.col.f64.f64.f64.f64 {%0, %1}, {%2}, {%3}, {%4,%5};\n"
+                         : "=d"(Mq[0]), "=d"(Mq[1]) : "d"(r_q), "d"(r_MM), "d"(Mq[0]), "d"(Mq[1]));
+
+            r_MM = r_MM_next;
+          }
+
+          //Mq is 8x8. Columns (i.e. 2*lx+0 and 2*lx+1) increment dofs, and rows ly increment elements
+          const int n = 2*lx + 8*w;
+          if (element>-1) {
+            if (n+0 < p_Np) {
+              Aq[n+0 + element*p_Np] = Mq[0];
+            }
+            if (n+1 < p_Np) {
+              Aq[n+1 + element*p_Np] = Mq[1];
             }
           }
         }
